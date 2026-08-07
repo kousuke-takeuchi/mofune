@@ -86,7 +86,7 @@ async function confirm(): Promise<void> {
     <p v-if="error" data-test="error">{{ error }}</p>
 
     <!-- grant を読み終えるまで押させない。押せても失敗するだけで分かりにくい。 -->
-    <button type="button" data-test="register" :disabled="busy || !loaded" @click="register">
+    <button type="button" class="primary" data-test="register" :disabled="busy || !loaded" @click="register">
       登録する
     </button>
 

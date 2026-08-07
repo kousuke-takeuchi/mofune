@@ -21,9 +21,9 @@ async function onLogin(next: Session, root: string, adminPublicKey: string): Pro
 </script>
 
 <template>
-  <div>
+  <div class="stack">
     <LoginView @login="onLogin" />
-    <button type="button" data-test="provision" @click="router.push({ name: 'provision' })">
+    <button type="button" class="wide" data-test="provision" @click="router.push({ name: 'provision' })">
       グループを作る
     </button>
   </div>

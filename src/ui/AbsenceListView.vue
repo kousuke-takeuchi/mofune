@@ -45,7 +45,7 @@ onMounted(async () => {
 <template>
   <section v-if="loaded">
     <h1>届いた連絡</h1>
-    <button type="button" data-test="close" @click="emit('close')">閉じる</button>
+    <button type="button" class="quiet" data-test="close" @click="emit('close')">閉じる</button>
 
     <p v-if="!allowed" data-test="not-allowed">
       届いた連絡を見られるのは担当者と管理者だけです。

@@ -89,8 +89,8 @@ async function submit(): Promise<void> {
         オフラインのため送信待ちにしました。オンラインに戻ると自動で送信されます。
       </p>
 
-      <button type="button" data-test="cancel" @click="emit('cancel')">キャンセル</button>
-      <button type="button" data-test="submit" :disabled="busy" @click="submit">送信する</button>
+      <button type="button" class="quiet" data-test="cancel" @click="emit('cancel')">キャンセル</button>
+      <button type="button" class="primary" data-test="submit" :disabled="busy" @click="submit">送信する</button>
     </form>
   </section>
 </template>

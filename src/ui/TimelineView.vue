@@ -65,10 +65,15 @@ onMounted(reload)
 <template>
   <section>
     <header>
-      <h1>{{ session.groupName }}</h1>
-      <p>{{ session.displayName }}</p>
-      <p>未読 <span data-test="unread-count">{{ unreadCount }}</span></p>
-      <button data-test="sync" :disabled="syncing" @click="sync">いま同期する</button>
+      <div class="avatar" aria-hidden="true">{{ session.groupName.slice(0, 1) }}</div>
+      <div class="titles">
+        <h1>{{ session.groupName }}</h1>
+        <p>{{ session.displayName }}</p>
+      </div>
+      <p class="badge">未読 <span data-test="unread-count">{{ unreadCount }}</span></p>
+      <button type="button" class="quiet" data-test="sync" :disabled="syncing" @click="sync">
+        いま同期する
+      </button>
     </header>
 
     <p v-if="syncError" data-test="sync-error">{{ syncError }}</p>

@@ -70,7 +70,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section>
-    <button data-test="back" @click="emit('back')">戻る</button>
+    <button type="button" class="quiet" data-test="back" @click="emit('back')">戻る</button>
 
     <p v-if="notFound" data-test="not-found">このお知らせは見つかりませんでした。</p>
 
