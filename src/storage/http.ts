@@ -1,6 +1,6 @@
 import type { Bytes } from '../crypto/bytes'
 import type { StorageCapabilities, StorageEntry, StorageProvider } from './provider'
-import { NotFoundError, UnsupportedOperationError } from './provider'
+import { NotFoundError, UnsupportedOperationError, assertSafePath } from './provider'
 
 /**
  * 公開読み取り専用のプロバイダ。参加者はストレージのアカウントを持たないため、
@@ -21,6 +21,7 @@ export class HttpStorageProvider implements StorageProvider {
   }
 
   async get(path: string): Promise<Bytes> {
+    assertSafePath(path)
     const response = await fetch(`${this.root}/${path}`, { cache: 'no-store' })
     // S3 互換ストレージは一覧権限が無い場合、存在しないオブジェクトに 403 を返す。
     if (response.status === 404 || response.status === 403) {

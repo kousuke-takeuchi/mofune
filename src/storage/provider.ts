@@ -1,6 +1,28 @@
 import type { Bytes } from '../crypto/bytes'
 export class NotFoundError extends Error {}
 export class UnsupportedOperationError extends Error {}
+export class InvalidPathError extends Error {}
+
+/**
+ * ストレージパスを検証する。URL に連結するプロバイダは必ずこれを通すこと。
+ *
+ * `new URL()` は ".." を正規化するため、検証しないと `midori/../../../x` のような
+ * パスがグループの区画どころかバケットの外へ到達する。接続コードの group_id は
+ * 紙で配られる外部入力なので、細工されたコードを信用してはならない。
+ */
+export function assertSafePath(path: string): void {
+  if (path.length === 0) {
+    throw new InvalidPathError('storage path must not be empty')
+  }
+  if (path.startsWith('/')) {
+    throw new InvalidPathError(`storage path must be relative, got "${path}"`)
+  }
+  for (const segment of path.split('/')) {
+    if (segment === '' || segment === '.' || segment === '..') {
+      throw new InvalidPathError(`storage path has an unsafe segment: "${path}"`)
+    }
+  }
+}
 
 export interface StorageEntry {
   path: string

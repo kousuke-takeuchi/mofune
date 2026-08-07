@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { HttpStorageProvider } from '../../src/storage/http'
-import { NotFoundError, UnsupportedOperationError } from '../../src/storage/provider'
+import {
+  InvalidPathError,
+  NotFoundError,
+  UnsupportedOperationError,
+} from '../../src/storage/provider'
 import { utf8, fromUtf8 } from '../../src/crypto/bytes'
 
 function mockFetch(response: Response): void {
@@ -58,5 +62,13 @@ describe('HttpStorageProvider', () => {
     await expect(storage.put('a', utf8('x'))).rejects.toThrow(UnsupportedOperationError)
     await expect(storage.list('a')).rejects.toThrow(UnsupportedOperationError)
     await expect(storage.delete('a')).rejects.toThrow(UnsupportedOperationError)
+  })
+
+  it('refuses a path that climbs out of the root', async () => {
+    const storage = new HttpStorageProvider('https://example.invalid/mofune')
+    await expect(storage.get('../other-group/roster.sig.json')).rejects.toThrow(InvalidPathError)
+    await expect(storage.get('midori/../../../etc/passwd')).rejects.toThrow(InvalidPathError)
+    await expect(storage.get('/absolute.json')).rejects.toThrow(InvalidPathError)
+    await expect(storage.get('')).rejects.toThrow(InvalidPathError)
   })
 })

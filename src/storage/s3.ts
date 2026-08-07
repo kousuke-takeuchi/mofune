@@ -1,6 +1,6 @@
 import type { Bytes } from '../crypto/bytes'
 import type { StorageCapabilities, StorageEntry, StorageProvider } from './provider'
-import { NotFoundError } from './provider'
+import { NotFoundError, assertSafePath } from './provider'
 import { parseListObjectsV2 } from './s3/list'
 import type { S3Credentials } from './s3/sigv4'
 import { signRequestHeaders } from './s3/sigv4'
@@ -24,6 +24,7 @@ export class S3StorageProvider implements StorageProvider {
   constructor(private readonly config: S3ProviderConfig) {}
 
   private objectUrl(path: string, query?: Record<string, string>): URL {
+    assertSafePath(path)
     const url = new URL(`${this.config.endpoint}/${this.config.bucket}/${path}`)
     for (const [name, value] of Object.entries(query ?? {})) {
       url.searchParams.set(name, value)

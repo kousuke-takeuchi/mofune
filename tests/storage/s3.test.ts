@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { S3StorageProvider } from '../../src/storage/s3'
-import { NotFoundError } from '../../src/storage/provider'
+import { InvalidPathError, NotFoundError } from '../../src/storage/provider'
 import { fromUtf8, utf8 } from '../../src/crypto/bytes'
 
 const config = {
@@ -93,6 +93,31 @@ describe('S3StorageProvider', () => {
     const { calls } = mockFetch([new Response(null, { status: 204 })])
     await new S3StorageProvider(config).delete('midori/events/1-a.enc')
     expect(calls[0]?.method).toBe('DELETE')
+  })
+
+  it('refuses a path that climbs out of the group prefix', async () => {
+    mockFetch([new Response(utf8('payload'))])
+    const storage = new S3StorageProvider(config)
+    // new URL() は ".." を正規化するため、検証しないとバケット外に到達する
+    await expect(storage.get('../other-group/roster.sig.json')).rejects.toThrow(InvalidPathError)
+    await expect(storage.get('midori/../../../etc/passwd')).rejects.toThrow(InvalidPathError)
+    await expect(storage.put('../evil.enc', utf8('x'))).rejects.toThrow(InvalidPathError)
+    await expect(storage.delete('../evil.enc')).rejects.toThrow(InvalidPathError)
+  })
+
+  it('refuses an absolute, empty or doubled-slash path', async () => {
+    mockFetch([new Response(utf8('payload'))])
+    const storage = new S3StorageProvider(config)
+    await expect(storage.get('/absolute.json')).rejects.toThrow(InvalidPathError)
+    await expect(storage.get('')).rejects.toThrow(InvalidPathError)
+    await expect(storage.get('midori//manifest.json')).rejects.toThrow(InvalidPathError)
+    await expect(storage.get('midori/./manifest.json')).rejects.toThrow(InvalidPathError)
+  })
+
+  it('makes no network request when the path is rejected', async () => {
+    const { calls } = mockFetch([new Response(utf8('payload'))])
+    await expect(new S3StorageProvider(config).get('../evil')).rejects.toThrow(InvalidPathError)
+    expect(calls).toHaveLength(0)
   })
 
   it('lists a single page', async () => {
