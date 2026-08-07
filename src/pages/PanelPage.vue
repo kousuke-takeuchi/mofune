@@ -9,9 +9,9 @@ const session = useSessionStore()
 
 <template>
   <StaffPanelView
-    v-if="session.session && session.storage"
+    v-if="session.session && (session.writer ?? session.storage)"
     :session="session.session"
-    :storage="session.storage"
+    :storage="(session.writer ?? session.storage)!"
     :admin-public-key="session.adminPublicKey"
     @close="router.push({ name: 'timeline', params: { groupId: session.groupId } })"
   />

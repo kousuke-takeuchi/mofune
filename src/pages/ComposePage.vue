@@ -12,10 +12,11 @@ function posted(messageId: string): void {
 </script>
 
 <template>
+  <!-- 投稿は書き込みプロバイダで行う。公開読みのプロバイダでは必ず失敗する。 -->
   <ComposeView
-    v-if="session.session && session.storage"
+    v-if="session.session && (session.writer ?? session.storage)"
     :session="session.session"
-    :storage="session.storage"
+    :storage="(session.writer ?? session.storage)!"
     @posted="posted"
     @cancel="router.push({ name: 'timeline', params: { groupId: session.groupId } })"
   />

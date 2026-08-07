@@ -18,6 +18,24 @@ export async function pending(db: GroupDatabase): Promise<OutboxItem[]> {
 }
 
 /**
+ * 1件を送る。
+ *
+ * 上りの投函先は presigned URL なので、プロバイダを通さず素の PUT で送る。
+ * 参加者が持つのは公開読み専用のプロバイダで、そこへ put すると必ず失敗し、
+ * 投函が永久にキューへ残る。
+ */
+async function send(storage: StorageProvider, item: OutboxItem): Promise<void> {
+  if (item.kind === 'inbox') {
+    const response = await fetch(item.path, { method: 'PUT', body: item.body })
+    if (!response.ok) {
+      throw new Error(`inbox upload failed with status ${response.status}`)
+    }
+    return
+  }
+  await storage.put(item.path, item.body)
+}
+
+/**
  * 溜まっている投稿をストレージへ送る。1件の失敗で以降を止めず、
  * 失敗した項目はキューに残して attempts を増やす(次回の再送で拾う)。
  */
@@ -29,7 +47,7 @@ export async function flushOutbox(options: {
   let failed = 0
   for (const item of await pending(options.db)) {
     try {
-      await options.storage.put(item.path, item.body)
+      await send(options.storage, item)
       await options.db.outbox.delete(item.id)
       sent += 1
     } catch {

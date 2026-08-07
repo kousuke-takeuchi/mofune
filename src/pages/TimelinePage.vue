@@ -53,7 +53,12 @@ function go(place: NavPlace): void {
     >
       れんらく
     </button>
-    <TimelineView :session="session.session" :storage="session.storage" @open="open" />
+    <!-- 担当者は一覧できる経路で同期する。参加者は公開読みのまま索引を使う。 -->
+    <TimelineView
+      :session="session.session"
+      :storage="(session.writer ?? session.storage)!"
+      @open="open"
+    />
     <BottomNav active="home" @go="go" />
   </template>
 </template>

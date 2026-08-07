@@ -84,6 +84,10 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+afterEach(() => {
   for (const wrapper of mounted) wrapper.unmount()
   mounted = []
 })
@@ -97,6 +101,16 @@ async function mountAbsence(storage: MemoryStorageProvider, session: Session) {
     }
   }, { timeout: 2000, interval: 10 })
   return wrapper
+}
+
+/**
+ * 投函先は presigned URL なので、送信はプロバイダを通らず素の PUT で出ていく。
+ * ここを Memory プロバイダに吸わせてしまうと、本番だけ落ちる経路を見逃す。
+ */
+function acceptUploads(): ReturnType<typeof vi.fn> {
+  const put = vi.fn(async () => new Response(null, { status: 200 }))
+  vi.stubGlobal('fetch', put)
+  return put
 }
 
 describe('AbsenceView', () => {
@@ -118,6 +132,7 @@ describe('AbsenceView', () => {
     const { session, member } = await fixture()
     const storage = await storageWithGrant(member)
     const wrapper = await mountAbsence(storage, session)
+    const uploads = acceptUploads()
     await wrapper.find('[data-test="kind"][data-kind="absent"]').trigger('click')
     await wrapper.find('[data-test="note"]').setValue('朝から熱があります')
     await wrapper.find('[data-test="submit"]').trigger('click')
@@ -128,6 +143,8 @@ describe('AbsenceView', () => {
     }, { timeout: 2000, interval: 10 })
     expect(wrapper.emitted('sent')).toBeTruthy()
     expect(await pending(openGroupDatabase('midori'))).toHaveLength(0)
+    // 投函は presigned URL への PUT で出る
+    expect(uploads).toHaveBeenCalledTimes(1)
   })
 
   it('tells the user when no slots are available', async () => {
