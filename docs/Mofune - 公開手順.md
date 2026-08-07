@@ -138,11 +138,74 @@ DNS が反映されると Settings → Pages に **Enforce HTTPS** が現れる�
 
 手動で流したいときは Actions タブから `workflow_dispatch` で実行できる。
 
-## 6. まだ済んでいないこと
+## 6. DNS のよくある間違い(2026-08-08 に実際に踏んだもの)
 
-- Settings → Pages の Source を GitHub Actions にする(3.1)
-- Custom domain に `mofune.site` を設定する(3.1)
-- DNS レコードの登録(4)
-- Enforce HTTPS の有効化(4.4)
-- 紹介ページ・プライバシーポリシー・導入手順書の作成(Phase 2d)
+初回設定時に次の2つが起きた。どちらもプロバイダ側の入力補完が原因で、
+値をそのまま貼ると壊れる。
+
+### 6.1 AAAA レコードから `2606:50c0:` が落ちる
+
+登録された値(8.8.8.8 と 1.1.1.1 の両方で確認):
+
+```
+2606:50c0:8000::153   ← 正しい
+8001::153             ← 誤り
+8002::153             ← 誤り
+8003::153             ← 誤り
+```
+
+先頭 1 本だけが正しく、残り3本はプレフィックスが欠けて**まったく別のアドレス**に
+なっていた。IPv6 で来た利用者は接続できず、**Let's Encrypt の証明書発行も
+失敗しうる**(検証が IPv6 を先に試すため)。
+
+対処: 4本とも `2606:50c0:800X::153` の完全な形で入れ直す。
+IPv6 が不要なら **AAAA を全部消してよい**。公式ドキュメント上、apex は
+A レコードだけでも成立する。
+
+### 6.2 www の CNAME にゾーン名が付け足される
+
+```
+www.mofune.site → kousuke-takeuchi.github.io.mofune.site   ← 誤り
+```
+
+値に終端ドットを付けなかったため、プロバイダがゾーン名 `mofune.site` を
+自動で末尾に足していた。
+
+対処: 値を `kousuke-takeuchi.github.io.`(**末尾にドット**)にする。
+プロバイダによっては「FQDN として扱う」チェックボックスがある。
+
+### 6.3 切り分けの手順
+
+DNS と配信のどちらが原因かは、IP を直接叩けば分かる。
+
+```bash
+# Host ヘッダを付けて GitHub Pages の IP を直接叩く
+node -e "require('http').request({host:'185.199.108.153',path:'/',headers:{Host:'mofune.site'}},r=>{console.log(r.statusCode)}).end()"
+```
+
+これが 200 を返せば配信は生きていて、問題は DNS 側にある。
+
+HTTPS が `ERR_TLS_CERT_ALTNAME_INVALID` になるのは証明書がまだ発行されていない
+状態。DNS が正しくなってから最大24時間かかる。
+
+## 7. 現在の状態 (2026-08-08 時点)
+
+済んでいるもの:
+
+- `workflow` スコープの付与と、ワークフローの push
+- Settings → Pages の Source を GitHub Actions に設定
+- Custom domain に `mofune.site` を設定(`kousuke-takeuchi.github.io/mofune/` が
+  `mofune.site` へ 301 することで確認済み)
+- 初回デプロイの成功(typecheck → test → build → deploy がすべて green)
+- apex の `A` レコード 4 本(値は正しい)
+- 配信の疎通(IP 直叩きで `/` が 200、`<title>Mofune</title>` を確認)
+
+残っているもの:
+
+- **AAAA レコードの修正または削除**(§6.1)。3 本がプレフィックス欠けで別アドレスに
+  なっており、証明書発行を妨げうるので最優先
+- **www の CNAME 修正**(§6.2)。終端ドットが無く、ゾーン名が付け足されている
+- Enforce HTTPS の有効化(§4.4)。証明書が発行されてから
 - ドメイン検証(Settings → Pages → Verify domain)。乗っ取り対策として推奨
+- 紹介ページ・プライバシーポリシー・導入手順書の作成(Phase 2d)。
+  それに伴いルートの `noindex` を外す
