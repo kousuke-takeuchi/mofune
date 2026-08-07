@@ -1,5 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import type { Router, RouteRecordRaw } from 'vue-router'
+import { useGroupsStore } from '../stores/groups'
+import { useSessionStore } from '../stores/session'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -75,9 +77,62 @@ const routes: RouteRecordRaw[] = [
 ]
 
 /**
+ * 戻り先はアプリ内の相対パスだけ受け付ける。細工したリンクで
+ * 別サイトへ飛ばされないようにするため。
+ */
+export function safeNext(next: unknown): string | null {
+  if (typeof next !== 'string') return null
+  if (!next.startsWith('/')) return null
+  if (next.startsWith('//')) return null
+  return next
+}
+
+export function installGuards(router: Router): void {
+  router.beforeEach(async (to) => {
+    const session = useSessionStore()
+
+    if (to.name === 'home') {
+      const groups = useGroupsStore()
+      await groups.load()
+      const groupId = groups.lastGroupId
+      if (!groupId) return { name: 'login' }
+      if (session.isSignedIn && session.groupId === groupId) {
+        return { name: 'timeline', params: { groupId } }
+      }
+      return { name: 'unlock', query: { next: `/g/${groupId}` } }
+    }
+
+    if (to.meta.public) return true
+
+    const groupId = String(to.params.groupId ?? '')
+
+    if (!session.isSignedIn || session.groupId !== groupId) {
+      const groups = useGroupsStore()
+      await groups.load()
+      const known = groups.groups.some((group) => group.groupId === groupId)
+      const query = { next: to.fullPath }
+      return known ? { name: 'unlock', query } : { name: 'login', query }
+    }
+
+    if (to.meta.staffOnly && session.role === 'member') {
+      return { name: 'timeline', params: { groupId } }
+    }
+
+    // メールアドレス未登録の参加者は、登録が済むまで主要機能をロックする(要件書 §4.6)
+    if (session.role === 'member' && !session.emailConfirmed && to.name !== 'setup') {
+      return { name: 'setup', params: { groupId } }
+    }
+
+    return true
+  })
+}
+
+/**
  * hash history を使う。GitHub Pages は SPA のフォールバックを持たないため、
  * history mode だと直接アクセスとリロードが 404 になる。
  */
 export function createAppRouter(): Router {
-  return createRouter({ history: createWebHashHistory(), routes })
+  const router = createRouter({ history: createWebHashHistory(), routes })
+  installGuards(router)
+  return router
 }
