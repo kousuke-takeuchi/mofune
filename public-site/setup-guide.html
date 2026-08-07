@@ -59,8 +59,17 @@
 
         <h3>1-1. CORS を設定する</h3>
         <p>
-          ブラウザから読み書きするため、バケットの CORS 設定に次を入れます。ここが抜けているとあとの接続確認で「読み戻せません」と出ます。
+          ブラウザから読み書きするため、バケットの CORS 設定に次を入れます。ここが抜けていると接続確認が「サーバーまで届いていません」で止まります。<strong><code>DELETE</code> も要ります。</strong>担当者が投函物を回収したあと、受信箱から消すためです。
         </p>
+        <p>R2 のダッシュボードなら、バケット → 設定 → CORS ポリシーに次を貼ります。</p>
+        <pre class="callout" style="overflow-x: auto"><code>[
+  {
+    "AllowedOrigins": ["https://mofune.site"],
+    "AllowedMethods": ["GET", "PUT", "HEAD", "DELETE"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"]
+  }
+]</code></pre>
         <div class="table-scroll">
           <table>
             <tr>
@@ -69,7 +78,7 @@
             </tr>
             <tr>
               <th>AllowedMethods</th>
-              <td><code>GET</code> / <code>PUT</code> / <code>HEAD</code></td>
+              <td><code>GET</code> / <code>PUT</code> / <code>HEAD</code> / <code>DELETE</code></td>
             </tr>
             <tr>
               <th>AllowedHeaders</th>

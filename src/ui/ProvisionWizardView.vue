@@ -101,12 +101,13 @@ async function provision(): Promise<void> {
     check.value = setup.check
     result.value = setup
   } catch (cause) {
-    // 接続確認で止まった場合は何も書かれていない。どこで落ちたかをそのまま出す。
-    const detail =
-      cause instanceof SetupError || cause instanceof Error
-        ? cause.message
-        : 'グループを開設できませんでした'
-    check.value = { ok: false, steps: [{ name: 'write', ok: false, detail }] }
+    // 接続確認で止まった場合は何も書かれていない。どこまで通ってどこで落ちたかを
+    // そのまま出す。丸めると、直すべき設定が分からなくなる。
+    const detail = cause instanceof Error ? cause.message : 'グループを開設できませんでした'
+    check.value =
+      cause instanceof SetupError && cause.check
+        ? cause.check
+        : { ok: false, steps: [{ name: 'setup', ok: false, detail }] }
     error.value = detail
   } finally {
     busy.value = false

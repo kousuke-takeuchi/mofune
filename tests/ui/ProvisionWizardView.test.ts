@@ -5,6 +5,7 @@ import { mount } from '@vue/test-utils'
 import type { VueWrapper } from '@vue/test-utils'
 import ProvisionWizardView from '../../src/ui/ProvisionWizardView.vue'
 import { MemoryStorageProvider } from '../../src/storage/memory'
+import type { StorageProvider } from '../../src/storage/provider'
 import { TEST_KDF } from '../../src/crypto/kdf'
 
 let mounted: VueWrapper[] = []
@@ -141,6 +142,42 @@ describe('ProvisionWizardView', () => {
       if (!wrapper.find('[data-test="recovery-code"]').exists()) throw new Error('not yet')
     }, { timeout: 8000, interval: 20 })
     expect(wrapper.text()).toContain('二度と')
+  })
+
+  it('shows every check step when provisioning stops partway', async () => {
+    // 「write: NG — 消せません」のように、落ちた段と文言がずれると原因を追えない。
+    const inner = new MemoryStorageProvider()
+    const failsToDelete: StorageProvider = {
+      capabilities: inner.capabilities,
+      put: (path, data) => inner.put(path, data),
+      get: (path) => inner.get(path),
+      delete: () => Promise.reject(new TypeError('Failed to fetch')),
+      list: (prefix, after) => inner.list(prefix, after),
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.startsWith(`${PUBLIC_BASE}/`)
+          ? new Response(await inner.get(url.slice(PUBLIC_BASE.length + 1)))
+          : new Response(null, { status: 404 }),
+      ),
+    )
+    const wrapper = mount(ProvisionWizardView, {
+      props: { kdf: TEST_KDF, createStorage: () => failsToDelete },
+    })
+    mounted.push(wrapper)
+
+    await fillGroupStep(wrapper)
+    await fillStorageStep(wrapper)
+    await vi.waitFor(() => {
+      if (!wrapper.find('[data-test="check-result"]').exists()) throw new Error('not yet')
+    }, { timeout: 8000, interval: 20 })
+
+    const steps = wrapper.findAll('[data-test="check-step"]').map((step) => step.text())
+    expect(steps).toHaveLength(4)
+    expect(steps[3]).toContain('delete')
+    expect(steps[3]).toContain('NG')
+    expect(steps[0]).toContain('OK')
   })
 
   it('emits cancel from the first step', async () => {

@@ -18,6 +18,18 @@ function describeCause(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause)
 }
 
+/**
+ * ブラウザは CORS で弾かれた事実を JS に教えず、TypeError('Failed to fetch') だけ返す。
+ * 素の文言を出しても何を直せばよいか分からないので、疑うべき設定を添える。
+ */
+function describeRequestFailure(cause: unknown, method: string): string {
+  const message = describeCause(cause)
+  if (cause instanceof TypeError) {
+    return `${message} (サーバーまで届いていません。CORS の AllowedMethods に ${method} が入っているか、AllowedOrigins がこのサイトを許しているか確認してください)`
+  }
+  return message
+}
+
 /** 失敗の理由を返す。読めたなら undefined。 */
 async function checkPublicRead(
   baseUrl: string,
@@ -65,7 +77,7 @@ export async function checkConnection(options: {
     await options.storage.put(probe, payload)
     steps.push({ name: 'write', ok: true, detail: '書き込みに成功しました' })
   } catch (cause) {
-    steps.push({ name: 'write', ok: false, detail: `書き込めません: ${describeCause(cause)}` })
+    steps.push({ name: 'write', ok: false, detail: `書き込めません: ${describeRequestFailure(cause, 'PUT')}` })
     return { ok: false, steps }
   }
 
@@ -81,7 +93,7 @@ export async function checkConnection(options: {
     }
     steps.push({ name: 'read', ok: true, detail: '読み戻しに成功しました' })
   } catch (cause) {
-    steps.push({ name: 'read', ok: false, detail: `読み戻せません: ${describeCause(cause)}` })
+    steps.push({ name: 'read', ok: false, detail: `読み戻せません: ${describeRequestFailure(cause, 'GET')}` })
     return { ok: false, steps }
   }
 
@@ -100,7 +112,7 @@ export async function checkConnection(options: {
     await options.storage.delete(probe)
     steps.push({ name: 'delete', ok: true, detail: '後片付けに成功しました' })
   } catch (cause) {
-    steps.push({ name: 'delete', ok: false, detail: `消せません: ${describeCause(cause)}` })
+    steps.push({ name: 'delete', ok: false, detail: `消せません: ${describeRequestFailure(cause, 'DELETE')}` })
     return { ok: false, steps }
   }
 

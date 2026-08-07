@@ -190,6 +190,27 @@ describe('setUpGroup', () => {
     await expect(setUpGroup(options(storage))).rejects.toThrow(/書き込めません/)
   })
 
+  it('carries the whole connection check on the error', async () => {
+    // どの段まで通ってどこで落ちたかを画面に出せないと、直しようがない。
+    const inner = new MemoryStorageProvider()
+    const storage: StorageProvider = {
+      capabilities: inner.capabilities,
+      put: (path, data) => inner.put(path, data),
+      get: (path) => inner.get(path),
+      delete: () => Promise.reject(new TypeError('Failed to fetch')),
+      list: (prefix, after) => inner.list(prefix, after),
+    }
+    const setup = options(storage)
+    const error = await setUpGroup(setup).catch((cause: unknown) => cause)
+    expect(error).toBeInstanceOf(SetupError)
+    expect((error as SetupError).check?.steps.map((step) => step.name)).toEqual([
+      'write',
+      'read',
+      'public',
+      'delete',
+    ])
+  })
+
   it('points the connection code at the public read url', async () => {
     // 参加者は資格情報を持たず、root へ素の GET で読む。S3 の API エンドポイントを
     // 入れてしまうと全員 401 になり、紙を配り直すまで直せない。
