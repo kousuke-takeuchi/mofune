@@ -20,7 +20,18 @@ import { buildRecoveryKit } from './recovery-kit'
 import type { StorageSettings } from './storage-credentials'
 import { writeStorageSettings } from './storage-credentials'
 
-export class SetupError extends Error {}
+export class SetupError extends Error {
+  /**
+   * 接続確認で止まった場合の全段。どこまで通ってどこで落ちたかを画面に出せないと、
+   * 利用者は直しようがない。
+   */
+  readonly check: CheckResult | undefined
+
+  constructor(message: string, check?: CheckResult) {
+    super(message)
+    this.check = check
+  }
+}
 
 export interface SetupOptions {
   groupId: string
@@ -66,7 +77,7 @@ export async function setUpGroup(options: SetupOptions): Promise<SetupResult> {
   })
   if (!check.ok) {
     const failed = check.steps.find((step) => !step.ok)
-    throw new SetupError(failed?.detail ?? 'ストレージの接続確認に失敗しました')
+    throw new SetupError(failed?.detail ?? 'ストレージの接続確認に失敗しました', check)
   }
 
   const admin: NewMember = {

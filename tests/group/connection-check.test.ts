@@ -139,6 +139,23 @@ describe('checkConnection', () => {
     expect(result.steps.map((step) => step.name)).not.toContain('public')
   })
 
+  it('points at the CORS policy when the request never reaches the server', async () => {
+    // ブラウザは CORS で弾かれたことを教えず TypeError('Failed to fetch') しか返さない。
+    // 素の文言だけ出しても、何を直せばよいか分からない。
+    const inner = new MemoryStorageProvider()
+    const storage: StorageProvider = {
+      capabilities: inner.capabilities,
+      put: (path, data) => inner.put(path, data),
+      get: (path) => inner.get(path),
+      delete: () => Promise.reject(new TypeError('Failed to fetch')),
+      list: (prefix, after) => inner.list(prefix, after),
+    }
+    const result = await checkConnection({ storage, groupId: 'midori' })
+    const failed = result.steps.find((step) => !step.ok)
+    expect(failed?.detail).toContain('CORS')
+    expect(failed?.detail).toContain('DELETE')
+  })
+
   it('detects storage that returns different bytes than were written', async () => {
     const inner = new MemoryStorageProvider()
     const lying: StorageProvider = {
