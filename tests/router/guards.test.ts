@@ -18,7 +18,12 @@ function router(): Router {
   const created = createAppRouter()
   for (const route of created.getRoutes()) {
     if (typeof route.name === 'string') {
-      created.addRoute({ ...route, component: Blank, children: [] })
+      created.addRoute({
+        path: route.path,
+        name: route.name,
+        component: Blank,
+        meta: route.meta,
+      })
     }
   }
   return created
