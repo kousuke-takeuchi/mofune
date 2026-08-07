@@ -8,6 +8,7 @@ import AbsenceView from './ui/AbsenceView.vue'
 import SetupView from './ui/SetupView.vue'
 import StaffPanelView from './ui/StaffPanelView.vue'
 import AbsenceListView from './ui/AbsenceListView.vue'
+import NotifyView from './ui/NotifyView.vue'
 import type { Session } from './group/session'
 import { isEmailConfirmed } from './group/email-registration'
 import { openGroupDatabase } from './db/group-db'
@@ -23,6 +24,7 @@ const composing = ref(false)
 const reporting = ref(false)
 const panelOpen = ref(false)
 const absenceListOpen = ref(false)
+const notifyMessageId = ref<string | null>(null)
 const emailConfirmed = ref(true)
 const adminPublicKey = ref<Bytes>(new Uint8Array(0))
 
@@ -49,8 +51,15 @@ async function onLogin(next: Session, root: string, adminKey: string): Promise<v
       v-else-if="composing"
       :session="session"
       :storage="storage"
-      @posted="composing = false"
+      @posted="(id: string) => { composing = false; notifyMessageId = id }"
       @cancel="composing = false"
+    />
+    <NotifyView
+      v-else-if="notifyMessageId"
+      :session="session"
+      :storage="storage"
+      :message-id="notifyMessageId"
+      @close="notifyMessageId = null"
     />
     <AbsenceListView
       v-else-if="absenceListOpen"

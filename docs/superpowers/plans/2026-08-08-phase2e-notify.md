@@ -1377,6 +1377,7 @@ import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
 import { pendingBatches } from '../../src/notify/delivery-log'
 import { writeGroupSettings, DEFAULT_GROUP_SETTINGS } from '../../src/group/group-settings'
 import { sealContacts } from '../../src/group/contacts'
+import type { ContactBook } from '../../src/group/contacts'
 import { signRoster, serializeRosterFile } from '../../src/crypto/roster'
 import { generateEcdsaKeyPair } from '../../src/crypto/asymmetric'
 import { generateAesKey } from '../../src/crypto/symmetric'
@@ -1419,7 +1420,8 @@ async function fixture(options: { withAddresses?: boolean } = {}) {
       },
     ],
   }
-  const contacts = options.withAddresses === false ? {} : { u_sato: { email: 'sakura@example.com' } }
+  const contacts: ContactBook =
+    options.withAddresses === false ? {} : { u_sato: { email: 'sakura@example.com' } }
   const storage = new MemoryStorageProvider()
   const staffSection = await sealContacts({ contacts, staffKey, generation: 1 })
   const file = await signRoster(roster, staffSection, admin)
