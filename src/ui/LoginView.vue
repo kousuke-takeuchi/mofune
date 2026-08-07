@@ -6,7 +6,7 @@ import { login } from '../group/session'
 import { HttpStorageProvider } from '../storage/http'
 import { rememberGroup } from '../db/groups'
 
-const emit = defineEmits<{ login: [session: Session, root: string] }>()
+const emit = defineEmits<{ login: [session: Session, root: string, adminPublicKey: string] }>()
 
 const code = ref('')
 const loginId = ref('')
@@ -37,7 +37,7 @@ async function submit(): Promise<void> {
       at: Date.now(),
     })
     password.value = ''
-    emit('login', session, connection.root)
+    emit('login', session, connection.root, connection.adminPublicKey)
   } catch (caught) {
     error.value =
       caught instanceof ConnectionCodeError
