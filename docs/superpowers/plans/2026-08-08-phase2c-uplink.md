@@ -2099,12 +2099,13 @@ describe('AbsenceView', () => {
     await wrapper.find('[data-test="kind"][data-kind="absent"]').trigger('click')
     await wrapper.find('[data-test="note"]').setValue('朝から熱があります')
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await vi.waitFor(async () => {
-      if ((await pending(openGroupDatabase('midori'))).length === 0 && !wrapper.emitted('sent')) {
-        throw new Error('not sent')
-      }
+    // 待つべきは「送信が完了して sent が出ること」。キューに積まれた時点で
+    // 待機を抜けると、送信前に検証してしまう。
+    await vi.waitFor(() => {
+      if (!wrapper.emitted('sent')) throw new Error('not sent yet')
     }, { timeout: 2000, interval: 10 })
     expect(wrapper.emitted('sent')).toBeTruthy()
+    expect(await pending(openGroupDatabase('midori'))).toHaveLength(0)
   })
 
   it('tells the user when no slots are available', async () => {
