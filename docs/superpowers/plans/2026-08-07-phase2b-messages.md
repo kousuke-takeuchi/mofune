@@ -589,7 +589,7 @@ export interface OutboxItem {
 
 ```ts
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { PostError, createPost, resolveTargets } from '../../src/content/post'
 import type { Draft } from '../../src/content/post'
 import { openMessage } from '../../src/content/messages'
@@ -977,7 +977,7 @@ Phase 2a の `syncGroup` はイベントを `events` テーブルに記録する
 
 ```ts
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { projectEvent } from '../../src/sync/projection'
 import { createPost } from '../../src/content/post'
 import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
@@ -2091,7 +2091,7 @@ design 06 の画面。フォーム埋め込みは Phase 3 なので、本文・�
 ```ts
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import ComposeView from '../../src/ui/ComposeView.vue'
 import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
@@ -2133,6 +2133,19 @@ async function staffSession(role: 'staff' | 'member' = 'staff'): Promise<Session
 beforeEach(async () => {
   await deleteGroupDatabase('midori')
 })
+
+/**
+ * createPost → flushOutbox は IndexedDB を何度も往復するので、固定回数の
+ * flushPromises では足りない。条件が満たされるまで待つ。
+ */
+async function until(check: () => boolean | Promise<boolean>): Promise<void> {
+  await vi.waitFor(
+    async () => {
+      if (!(await check())) throw new Error('not settled yet')
+    },
+    { timeout: 2000, interval: 10 },
+  )
+}
 
 async function mountCompose(storage?: StorageProvider, role?: 'staff' | 'member') {
   const wrapper = mount(ComposeView, {
@@ -2176,7 +2189,7 @@ describe('ComposeView', () => {
     const wrapper = await mountCompose()
     await wrapper.find('[data-test="body"]').setValue('こんにちは')
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await flushPromises()
+    await until(() => wrapper.find('[data-test="error"]').exists())
     expect(wrapper.find('[data-test="error"]').exists()).toBe(true)
     expect(await pending(openGroupDatabase('midori'))).toHaveLength(0)
   })
@@ -2185,7 +2198,7 @@ describe('ComposeView', () => {
     const wrapper = await mountCompose()
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await flushPromises()
+    await until(() => wrapper.find('[data-test="error"]').exists())
     expect(wrapper.find('[data-test="error"]').exists()).toBe(true)
   })
 
@@ -2196,7 +2209,7 @@ describe('ComposeView', () => {
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a_pickup"]').setValue(true)
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await flushPromises()
+    await until(async () => (await storage.list('midori/messages/')).length === 1)
     expect(await storage.list('midori/messages/')).toHaveLength(1)
     expect(await storage.list('midori/events/')).toHaveLength(1)
   })
@@ -2206,7 +2219,7 @@ describe('ComposeView', () => {
     await wrapper.find('[data-test="body"]').setValue('こんにちは')
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await flushPromises()
+    await until(() => wrapper.emitted('posted') !== undefined)
     expect(wrapper.emitted('posted')).toBeTruthy()
   })
 
@@ -2222,7 +2235,7 @@ describe('ComposeView', () => {
     await wrapper.find('[data-test="body"]').setValue('こんにちは')
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await flushPromises()
+    await until(() => wrapper.find('[data-test="queued"]').exists())
     expect(wrapper.find('[data-test="queued"]').exists()).toBe(true)
     expect(await pending(openGroupDatabase('midori'))).toHaveLength(2)
   })
@@ -2306,11 +2319,12 @@ async function submit(): Promise<void> {
       db,
       draft: { body: body.value, scopes, attachments: attachments.value },
     })
-    try {
-      await flushOutbox({ db, storage: props.storage })
-      emit('posted')
-    } catch {
+    // flushOutbox は失敗しても例外を投げず、失敗件数を返す
+    const flushed = await flushOutbox({ db, storage: props.storage })
+    if (flushed.failed > 0) {
       queued.value = true
+    } else {
+      emit('posted')
     }
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : '送信できませんでした'
@@ -2347,7 +2361,7 @@ async function submit(): Promise<void> {
       </p>
 
       <button type="button" data-test="cancel" @click="emit('cancel')">キャンセル</button>
-      <button type="submit" data-test="submit" :disabled="busy">送信する</button>
+      <button type="button" data-test="submit" :disabled="busy" @click="submit">送信する</button>
     </form>
   </section>
 </template>
