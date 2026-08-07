@@ -19,7 +19,9 @@ async function submit(): Promise<void> {
   busy.value = true
   try {
     const connection = decodeConnectionCode(code.value)
-    if (connection.provider !== 'http') {
+    // 読み取りは provider に関わらず root への素の GET。s3 も公開URLを root に持つので
+    // ここを通す。まだ経路を実装していないものだけ断る。
+    if (connection.provider !== 'http' && connection.provider !== 's3') {
       throw new Error(
         `ストレージ "${connection.provider}" はこのバージョンではまだ利用できません`,
       )

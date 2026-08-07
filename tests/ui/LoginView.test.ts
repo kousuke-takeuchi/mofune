@@ -9,11 +9,13 @@ import { TEST_KDF } from '../../src/crypto/kdf'
 import { MemoryStorageProvider } from '../../src/storage/memory'
 import { registryDb } from '../../src/db/groups'
 
-async function buildGroup(): Promise<{ code: string; storage: MemoryStorageProvider }> {
+async function buildGroup(
+  provider: 'http' | 's3' = 'http',
+): Promise<{ code: string; storage: MemoryStorageProvider }> {
   const result = await provisionGroup({
     groupId: 'midori',
     groupName: 'みどり台グループ',
-    provider: 'http',
+    provider,
     root: 'https://example.invalid/mofune',
     kdf: TEST_KDF,
     subgroups: [{ id: 'sg_a', name: 'Aチーム', parent: null }],
@@ -118,6 +120,19 @@ describe('LoginView', () => {
       expect(wrapper.find('[data-test="error"]').text()).toContain('ログインID'),
     )
     expect(wrapper.emitted('login')).toBeFalsy()
+  })
+
+  it('logs in with a code from the provisioning wizard', async () => {
+    // ウィザードは provider を s3 で発行する。読み取りは公開URLへの素の GET なので、
+    // ここで弾くと開設した管理者が自分のグループへ入れない。
+    const { code, storage } = await buildGroup('s3')
+    routeFetchTo(storage)
+    const wrapper = mount(LoginView)
+    await wrapper.find('[data-test="code"]').setValue(code)
+    await wrapper.find('[data-test="login-id"]').setValue('watanabe')
+    await wrapper.find('[data-test="password"]').setValue('admin-pass')
+    await wrapper.find('[data-test="submit"]').trigger('submit')
+    await vi.waitFor(() => expect(wrapper.emitted('login')).toBeTruthy())
   })
 
   it('reports unsupported storage providers instead of failing obscurely', async () => {
