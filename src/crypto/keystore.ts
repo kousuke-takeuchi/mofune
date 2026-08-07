@@ -1,3 +1,4 @@
+import type { Bytes } from './bytes'
 import type { RawKeyPair } from './asymmetric'
 import { fromBase64, fromUtf8, toBase64, utf8 } from './bytes'
 import { DecryptionError, openEnvelopeWithKey, sealEnvelope } from './envelope'
@@ -82,7 +83,7 @@ export async function unlockKeystore(
     parallelism: file.kdf.parallelism,
     hashLength: file.kdf.hashLength,
   })
-  let plaintext: Uint8Array
+  let plaintext: Bytes
   try {
     plaintext = await openEnvelopeWithKey(kek, fromBase64(file.envelope))
   } catch (error) {
@@ -105,11 +106,11 @@ export async function unlockKeystore(
   }
 }
 
-export function serializeKeystoreFile(file: KeystoreFile): Uint8Array {
+export function serializeKeystoreFile(file: KeystoreFile): Bytes {
   return utf8(JSON.stringify(file))
 }
 
-export function parseKeystoreFile(bytes: Uint8Array): KeystoreFile {
+export function parseKeystoreFile(bytes: Bytes): KeystoreFile {
   let parsed: unknown
   try {
     parsed = JSON.parse(fromUtf8(bytes))

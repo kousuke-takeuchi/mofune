@@ -1,3 +1,4 @@
+import type { Bytes } from './bytes'
 import { concat, equal, fromUtf8, utf8 } from './bytes'
 import {
   IV_BYTES,
@@ -24,15 +25,15 @@ const WRAPPED_LENGTH = IV_BYTES + 32 + 16
 export interface EnvelopeRecipient {
   keyId: string
   /** IV(12) || AES-GCM(scopeKey, CEK, AAD=keyId) */
-  wrapped: Uint8Array
+  wrapped: Bytes
 }
 
 export interface ParsedEnvelope {
   recipients: EnvelopeRecipient[]
-  iv: Uint8Array
-  ciphertext: Uint8Array
+  iv: Bytes
+  ciphertext: Bytes
   /** magic から body IV までの平文ヘッダ。本体の AAD として使う。 */
-  header: Uint8Array
+  header: Bytes
 }
 
 export interface SealTarget {
@@ -40,7 +41,7 @@ export interface SealTarget {
   key: CryptoKey
 }
 
-async function wrapContentKey(target: SealTarget, cek: CryptoKey): Promise<Uint8Array> {
+async function wrapContentKey(target: SealTarget, cek: CryptoKey): Promise<Bytes> {
   const iv = randomBytes(IV_BYTES)
   const sealed = await aesGcmEncrypt(target.key, await exportAesKey(cek), iv, utf8(target.keyId))
   return concat(iv, sealed)
@@ -59,7 +60,7 @@ async function unwrapContentKey(
   return importAesKey(raw)
 }
 
-export function parseEnvelope(bytes: Uint8Array): ParsedEnvelope {
+export function parseEnvelope(bytes: Bytes): ParsedEnvelope {
   if (bytes.length < RECIPIENTS_OFFSET) {
     throw new EnvelopeError('envelope is too short')
   }
@@ -107,14 +108,14 @@ export function parseEnvelope(bytes: Uint8Array): ParsedEnvelope {
   }
 }
 
-export function readKeyIds(bytes: Uint8Array): string[] {
+export function readKeyIds(bytes: Bytes): string[] {
   return parseEnvelope(bytes).recipients.map((recipient) => recipient.keyId)
 }
 
 export async function sealEnvelopeFor(
   targets: SealTarget[],
-  plaintext: Uint8Array,
-): Promise<Uint8Array> {
+  plaintext: Bytes,
+): Promise<Bytes> {
   if (targets.length < 1 || targets.length > 255) {
     throw new EnvelopeError(`envelope needs 1-255 recipients, got ${targets.length}`)
   }
@@ -124,7 +125,7 @@ export async function sealEnvelopeFor(
   }
 
   const cek = await generateAesKey()
-  const parts: Uint8Array[] = [ENVELOPE_MAGIC, new Uint8Array([ENVELOPE_VERSION, targets.length])]
+  const parts: Bytes[] = [ENVELOPE_MAGIC, new Uint8Array([ENVELOPE_VERSION, targets.length])]
   for (const target of targets) {
     const encodedKeyId = utf8(target.keyId)
     if (encodedKeyId.length < 1 || encodedKeyId.length > 255) {
@@ -150,15 +151,15 @@ export async function sealEnvelopeFor(
 export async function sealEnvelope(
   key: CryptoKey,
   keyId: string,
-  plaintext: Uint8Array,
-): Promise<Uint8Array> {
+  plaintext: Bytes,
+): Promise<Bytes> {
   return sealEnvelopeFor([{ keyId, key }], plaintext)
 }
 
 export async function openEnvelope(
   keys: ReadonlyMap<string, CryptoKey>,
-  bytes: Uint8Array,
-): Promise<Uint8Array> {
+  bytes: Bytes,
+): Promise<Bytes> {
   const envelope = parseEnvelope(bytes)
   for (const recipient of envelope.recipients) {
     const scopeKey = keys.get(recipient.keyId)
@@ -180,8 +181,8 @@ export async function openEnvelope(
 /** 単一スコープのオブジェクト用。keyId を問わず手持ちの鍵で総当たりする。 */
 export async function openEnvelopeWithKey(
   key: CryptoKey,
-  bytes: Uint8Array,
-): Promise<Uint8Array> {
+  bytes: Bytes,
+): Promise<Bytes> {
   const envelope = parseEnvelope(bytes)
   const keys = new Map(envelope.recipients.map((recipient) => [recipient.keyId, key]))
   return openEnvelope(keys, bytes)

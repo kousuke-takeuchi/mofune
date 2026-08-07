@@ -1,3 +1,4 @@
+import type { Bytes } from './bytes'
 import { argon2id } from 'hash-wasm'
 import { utf8 } from './bytes'
 import { importAesKey } from './symmetric'
@@ -36,7 +37,7 @@ export const TEST_KDF: KdfParams = {
 export async function deriveKek(
   password: string,
   pepper: string,
-  salt: Uint8Array,
+  salt: Bytes,
   params: KdfParams,
 ): Promise<CryptoKey> {
   if (params.algorithm !== 'argon2id') {
@@ -56,6 +57,6 @@ export async function deriveKek(
     memorySize: params.memorySize,
     hashLength: params.hashLength,
     outputType: 'binary',
-  })) as Uint8Array
+  })) as Bytes
   return importAesKey(raw)
 }

@@ -23,6 +23,7 @@
 - ロールは `admin` / `staff` / `member` の3種。UI表示は管理者 / 担当者 / 参加者。園・クラス・先生・保護者といった用途固有語をコードにもUIにも持ち込まない
 - スコープ鍵はすべて独立に生成する。サブグループの親子関係から子の鍵を導出してはならない(設計書 §3.2)。所属の伝播は `resolveScopes` 1か所に閉じる
 - 暗号化オブジェクトは必ずマルチレシピエントエンベロープ(`sealEnvelopeFor`)を通す。スコープ鍵で本文を直接暗号化しない
+- **バイト列の型は `src/crypto/bytes.ts` の `Bytes`(= `Uint8Array<ArrayBuffer>`)を使う。** TypeScript 5.7 以降 `Uint8Array` は `ArrayBufferLike` 既定になり、そのままでは WebCrypto の `BufferSource` に代入できず `vue-tsc` が落ちる。以降のタスクのコード例に出てくる型注釈上の `Uint8Array` はすべて `Bytes` と読み替える(`new Uint8Array(...)` という生成式はそのまま)
 - コミットは Conventional Commits 形式。`Co-Authored-By` 行は付けない
 
 ## File Structure

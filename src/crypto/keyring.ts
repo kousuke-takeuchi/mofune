@@ -1,3 +1,4 @@
+import type { Bytes } from './bytes'
 import {
   generateEcdhKeyPair,
   importEcdhPrivateKey,
@@ -47,9 +48,9 @@ export function keyId(scope: string, generation: number): string {
 }
 
 async function deriveWrappingKey(
-  privatePkcs8: Uint8Array,
-  publicRaw: Uint8Array,
-  hkdfSalt: Uint8Array,
+  privatePkcs8: Bytes,
+  publicRaw: Bytes,
+  hkdfSalt: Bytes,
 ): Promise<CryptoKey> {
   const sharedBits = new Uint8Array(
     await crypto.subtle.deriveBits(
@@ -72,7 +73,7 @@ async function deriveWrappingKey(
 }
 
 export async function wrapKey(
-  recipientEcdhPublic: Uint8Array,
+  recipientEcdhPublic: Bytes,
   key: CryptoKey,
 ): Promise<WrappedKey> {
   const ephemeral = await generateEcdhKeyPair()
@@ -88,7 +89,7 @@ export async function wrapKey(
 
 export async function unwrapKey(
   wrapped: WrappedKey,
-  recipientEcdhPrivate: Uint8Array,
+  recipientEcdhPrivate: Bytes,
 ): Promise<CryptoKey> {
   const ephemeralPublic = fromBase64(wrapped.epk)
   try {
@@ -112,7 +113,7 @@ export async function unwrapKey(
 export async function unlockKeyring(
   file: KeyringFile,
   userId: string,
-  ecdhPrivate: Uint8Array,
+  ecdhPrivate: Bytes,
 ): Promise<Map<string, CryptoKey>> {
   const keys = new Map<string, CryptoKey>()
   for (const [id, entry] of Object.entries(file.keys)) {
@@ -123,11 +124,11 @@ export async function unlockKeyring(
   return keys
 }
 
-export function serializeKeyringFile(file: KeyringFile): Uint8Array {
+export function serializeKeyringFile(file: KeyringFile): Bytes {
   return utf8(JSON.stringify(file))
 }
 
-export function parseKeyringFile(bytes: Uint8Array): KeyringFile {
+export function parseKeyringFile(bytes: Bytes): KeyringFile {
   let parsed: unknown
   try {
     parsed = JSON.parse(fromUtf8(bytes))
