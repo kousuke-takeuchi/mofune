@@ -9,7 +9,7 @@ import type { StorageProvider } from '../storage/provider'
 import { flushOutbox } from '../sync/outbox'
 
 const props = defineProps<{ session: Session; storage: StorageProvider }>()
-const emit = defineEmits<{ posted: []; cancel: [] }>()
+const emit = defineEmits<{ posted: [messageId: string]; cancel: [] }>()
 
 const body = ref('')
 const selected = ref<Record<string, boolean>>({})
@@ -43,7 +43,7 @@ async function submit(): Promise<void> {
     const scopes = Object.entries(selected.value)
       .filter(([, on]) => on)
       .map(([id]) => id)
-    await createPost({
+    const result = await createPost({
       session: props.session,
       db,
       draft: { body: body.value, scopes, attachments: attachments.value },
@@ -53,7 +53,7 @@ async function submit(): Promise<void> {
     if (flushed.failed > 0) {
       queued.value = true
     } else {
-      emit('posted')
+      emit('posted', result.messageId)
     }
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : '送信できませんでした'

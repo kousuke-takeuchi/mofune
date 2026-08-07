@@ -32,6 +32,17 @@ export interface CachedAbsence {
   at: string
 }
 
+export interface DeliveryRecord {
+  /** `${messageId}#${batchIndex}` */
+  id: string
+  messageId: string
+  batchIndex: number
+  total: number
+  recipients: number
+  /** 担当者が「送った」と申告した時刻。未送信は null。 */
+  sentAt: string | null
+}
+
 export interface CachedRoster {
   groupId: string
   contents: RosterContents
@@ -61,6 +72,7 @@ export class GroupDatabase extends Dexie {
   outbox!: Table<OutboxItem, string>
   syncState!: Table<SyncState, string>
   absences!: Table<CachedAbsence, string>
+  deliveries!: Table<DeliveryRecord, string>
 
   constructor(groupId: string) {
     super(`mofune_${groupId}`)
@@ -81,6 +93,16 @@ export class GroupDatabase extends Dexie {
       outbox: 'id, queuedAt',
       syncState: 'key',
       absences: 'id, date',
+    })
+    this.version(3).stores({
+      messages: 'id, at',
+      files: 'id, cachedAt',
+      events: 'id',
+      roster: 'groupId',
+      outbox: 'id, queuedAt',
+      syncState: 'key',
+      absences: 'id, date',
+      deliveries: 'id, messageId',
     })
   }
 }

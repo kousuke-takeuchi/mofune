@@ -7,6 +7,8 @@ import ComposeView from './ui/ComposeView.vue'
 import AbsenceView from './ui/AbsenceView.vue'
 import SetupView from './ui/SetupView.vue'
 import StaffPanelView from './ui/StaffPanelView.vue'
+import AbsenceListView from './ui/AbsenceListView.vue'
+import NotifyView from './ui/NotifyView.vue'
 import type { Session } from './group/session'
 import { isEmailConfirmed } from './group/email-registration'
 import { openGroupDatabase } from './db/group-db'
@@ -21,6 +23,8 @@ const openMessageId = ref<string | null>(null)
 const composing = ref(false)
 const reporting = ref(false)
 const panelOpen = ref(false)
+const absenceListOpen = ref(false)
+const notifyMessageId = ref<string | null>(null)
 const emailConfirmed = ref(true)
 const adminPublicKey = ref<Bytes>(new Uint8Array(0))
 
@@ -47,8 +51,20 @@ async function onLogin(next: Session, root: string, adminKey: string): Promise<v
       v-else-if="composing"
       :session="session"
       :storage="storage"
-      @posted="composing = false"
+      @posted="(id: string) => { composing = false; notifyMessageId = id }"
       @cancel="composing = false"
+    />
+    <NotifyView
+      v-else-if="notifyMessageId"
+      :session="session"
+      :storage="storage"
+      :message-id="notifyMessageId"
+      @close="notifyMessageId = null"
+    />
+    <AbsenceListView
+      v-else-if="absenceListOpen"
+      :session="session"
+      @close="absenceListOpen = false"
     />
     <StaffPanelView
       v-else-if="panelOpen"
@@ -76,6 +92,13 @@ async function onLogin(next: Session, root: string, adminKey: string): Promise<v
       </button>
       <button v-if="session.role !== 'member'" data-test="staff-panel" @click="panelOpen = true">
         受信と配布
+      </button>
+      <button
+        v-if="session.role !== 'member'"
+        data-test="absence-list"
+        @click="absenceListOpen = true"
+      >
+        届いた連絡
       </button>
       <!-- 不在連絡は全ロールが行える(要件書 §3) -->
       <button data-test="report" @click="reporting = true">れんらく</button>
