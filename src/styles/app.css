@@ -462,3 +462,32 @@ button.wide {
   color: var(--amber-ink) !important;
   font-weight: 700;
 }
+
+/* ---------- 下の移動 ---------- */
+
+.bottom-nav {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  background: rgba(251, 247, 240, 0.94);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--line);
+}
+
+.bottom-nav button {
+  align-self: stretch;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  padding: 8px 4px;
+}
+
+.bottom-nav button[aria-current='page'] {
+  background: var(--sand);
+  color: var(--amber-ink);
+}

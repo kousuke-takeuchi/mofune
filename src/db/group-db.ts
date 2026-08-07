@@ -60,7 +60,7 @@ export interface OutboxItem {
 }
 
 export interface SyncState {
-  key: 'cursor' | 'lastReadAt' | 'usedInboxSlots' | 'emailConfirmed'
+  key: 'cursor' | 'lastReadAt' | 'usedInboxSlots' | 'emailConfirmed' | 'lastSyncedAt'
   value: string | null
 }
 

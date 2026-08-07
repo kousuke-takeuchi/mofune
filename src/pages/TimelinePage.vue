@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import BottomNav from '../ui/BottomNav.vue'
+import type { NavPlace } from '../ui/BottomNav.vue'
 import TimelineView from '../ui/TimelineView.vue'
 import { useSessionStore } from '../stores/session'
 
@@ -8,6 +10,12 @@ const session = useSessionStore()
 
 function open(messageId: string): void {
   router.push({ name: 'message', params: { groupId: session.groupId, messageId } })
+}
+
+function go(place: NavPlace): void {
+  const groupId = session.groupId
+  if (place === 'absence') router.push({ name: 'absence', params: { groupId } })
+  if (place === 'menu') router.push({ name: 'settings', params: { groupId } })
 }
 </script>
 
@@ -46,5 +54,6 @@ function open(messageId: string): void {
       れんらく
     </button>
     <TimelineView :session="session.session" :storage="session.storage" @open="open" />
+    <BottomNav active="home" @go="go" />
   </template>
 </template>
