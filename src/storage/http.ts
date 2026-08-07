@@ -36,7 +36,7 @@ export class HttpStorageProvider implements StorageProvider {
     throw new UnsupportedOperationError('HttpStorageProvider is read-only')
   }
 
-  async list(_prefix: string): Promise<StorageEntry[]> {
+  async list(_prefix: string, _after?: string): Promise<StorageEntry[]> {
     throw new UnsupportedOperationError('HttpStorageProvider cannot list objects')
   }
 

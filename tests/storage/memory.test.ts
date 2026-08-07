@@ -58,4 +58,39 @@ describe('MemoryStorageProvider', () => {
     const storage = new MemoryStorageProvider(new Map([['a', utf8('seeded')]]))
     expect(fromUtf8(await storage.get('a'))).toBe('seeded')
   })
+
+  it('returns every entry under the prefix when no cursor is given', async () => {
+    const storage = new MemoryStorageProvider()
+    await storage.put('midori/events/a.enc', utf8('1'))
+    await storage.put('midori/events/b.enc', utf8('2'))
+    expect((await storage.list('midori/events/')).map((entry) => entry.path)).toEqual([
+      'midori/events/a.enc',
+      'midori/events/b.enc',
+    ])
+  })
+
+  it('returns only entries after the cursor', async () => {
+    const storage = new MemoryStorageProvider()
+    await storage.put('midori/events/a.enc', utf8('1'))
+    await storage.put('midori/events/b.enc', utf8('2'))
+    await storage.put('midori/events/c.enc', utf8('3'))
+    expect(
+      (await storage.list('midori/events/', 'midori/events/a.enc')).map((entry) => entry.path),
+    ).toEqual(['midori/events/b.enc', 'midori/events/c.enc'])
+  })
+
+  it('excludes the cursor entry itself', async () => {
+    const storage = new MemoryStorageProvider()
+    await storage.put('midori/events/a.enc', utf8('1'))
+    expect(await storage.list('midori/events/', 'midori/events/a.enc')).toEqual([])
+  })
+
+  it('ignores a cursor that is outside the prefix', async () => {
+    const storage = new MemoryStorageProvider()
+    await storage.put('midori/events/a.enc', utf8('1'))
+    await storage.put('midori/messages/m.enc', utf8('2'))
+    expect(
+      (await storage.list('midori/events/', 'midori/aaa')).map((entry) => entry.path),
+    ).toEqual(['midori/events/a.enc'])
+  })
 })
