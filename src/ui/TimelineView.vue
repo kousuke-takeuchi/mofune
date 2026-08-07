@@ -1,4 +1,6 @@
 <script setup lang="ts">
+defineOptions({ name: 'TimelineView' })
+
 import { computed, onMounted, ref } from 'vue'
 import type { CachedMessage } from '../db/group-db'
 import { openGroupDatabase } from '../db/group-db'
