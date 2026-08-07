@@ -39,7 +39,7 @@ export interface OutboxItem {
 }
 
 export interface SyncState {
-  key: 'cursor' | 'lastReadAt'
+  key: 'cursor' | 'lastReadAt' | 'usedInboxSlots'
   value: string | null
 }
 
