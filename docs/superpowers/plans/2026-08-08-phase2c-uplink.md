@@ -2427,8 +2427,12 @@ async function mountSetup() {
   const { session, storage } = await fixture()
   const wrapper = mount(SetupView, { props: { session, storage } })
   mounted.push(wrapper)
+  // grant の読み込みが終わって登録ボタンが押せるようになるまで待つ
   await vi.waitFor(() => {
-    if (!wrapper.find('[data-test="email"]').exists()) throw new Error('still loading')
+    const button = wrapper.find('[data-test="register"]')
+    if (!button.exists() || button.attributes('disabled') !== undefined) {
+      throw new Error('still loading')
+    }
   }, { timeout: 2000, interval: 10 })
   return wrapper
 }
@@ -2518,6 +2522,7 @@ const props = defineProps<{ session: Session; storage: StorageProvider }>()
 const emit = defineEmits<{ done: [] }>()
 
 const grant = ref<InboxGrant | null>(null)
+const loaded = ref(false)
 const email = ref('')
 const registered = ref(false)
 const error = ref('')
@@ -2535,6 +2540,8 @@ onMounted(async () => {
     })
   } catch {
     grant.value = null
+  } finally {
+    loaded.value = true
   }
 })
 
@@ -2584,7 +2591,8 @@ async function confirm(): Promise<void> {
 
     <p v-if="error" data-test="error">{{ error }}</p>
 
-    <button type="button" data-test="register" :disabled="busy" @click="register">
+    <!-- grant を読み終えるまで押させない。押せても失敗するだけで分かりにくい。 -->
+    <button type="button" data-test="register" :disabled="busy || !loaded" @click="register">
       登録する
     </button>
 

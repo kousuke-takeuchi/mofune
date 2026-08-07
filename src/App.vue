@@ -5,7 +5,10 @@ import TimelineView from './ui/TimelineView.vue'
 import MessageDetailView from './ui/MessageDetailView.vue'
 import ComposeView from './ui/ComposeView.vue'
 import AbsenceView from './ui/AbsenceView.vue'
+import SetupView from './ui/SetupView.vue'
 import type { Session } from './group/session'
+import { isEmailConfirmed } from './group/email-registration'
+import { openGroupDatabase } from './db/group-db'
 import type { StorageProvider } from './storage/provider'
 import { HttpStorageProvider } from './storage/http'
 
@@ -14,16 +17,26 @@ const storage = ref<StorageProvider | null>(null)
 const openMessageId = ref<string | null>(null)
 const composing = ref(false)
 const reporting = ref(false)
+const emailConfirmed = ref(true)
 
-function onLogin(next: Session, root: string): void {
+async function onLogin(next: Session, root: string): Promise<void> {
   session.value = next
   storage.value = new HttpStorageProvider(root)
+  // メールアドレス未登録の参加者は、登録が済むまで主要機能をロックする(要件書 §4.6)
+  emailConfirmed.value =
+    next.role !== 'member' || (await isEmailConfirmed(openGroupDatabase(next.groupId)))
 }
 </script>
 
 <template>
   <main>
     <LoginView v-if="!session || !storage" @login="onLogin" />
+    <SetupView
+      v-else-if="!emailConfirmed"
+      :session="session"
+      :storage="storage"
+      @done="emailConfirmed = true"
+    />
     <ComposeView
       v-else-if="composing"
       :session="session"
