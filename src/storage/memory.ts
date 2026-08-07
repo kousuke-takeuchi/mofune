@@ -32,9 +32,10 @@ export class MemoryStorageProvider implements StorageProvider {
     this.objects.set(path, Uint8Array.from(data))
   }
 
-  async list(prefix: string): Promise<StorageEntry[]> {
+  async list(prefix: string, after?: string): Promise<StorageEntry[]> {
     return [...this.objects.entries()]
       .filter(([path]) => path.startsWith(prefix))
+      .filter(([path]) => after === undefined || path > after)
       .map(([path, data]) => ({ path, size: data.length }))
       .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
   }

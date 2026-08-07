@@ -17,6 +17,9 @@
     "vue": "^3.5.41"
   },
   "devDependencies": {
+    "@aws-crypto/sha256-js": "^5.2.0",
+    "@smithy/protocol-http": "^5.5.16",
+    "@smithy/signature-v4": "^5.6.12",
     "@types/node": "^26.1.2",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/test-utils": "^2.4.11",

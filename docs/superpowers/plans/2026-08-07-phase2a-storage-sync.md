@@ -219,7 +219,7 @@ git commit -m "feat(storage): add a cursor argument to list for incremental sync
 npm install -D @smithy/signature-v4 @smithy/protocol-http @aws-crypto/sha256-js
 ```
 
-インストール後、**テストを書く前に各パッケージの README または `.d.ts` を読み、実際のエクスポート名とコンストラクタ引数を確認すること。** 本計画は `SignatureV4` / `HttpRequest` / `Sha256` という名前を前提にしているが、確認せずに書かない。API が想定と違った場合は、確認した実際の形に合わせてテストを書き、この Step にその旨を追記する。
+エクスポート名は実機で確認済み: `@smithy/signature-v4` が `SignatureV4`、`@smithy/protocol-http` が `HttpRequest`、`@aws-crypto/sha256-js` が `Sha256`。
 
 - [ ] **Step 2: 失敗するテストを書く**
 
@@ -248,12 +248,20 @@ const credentials = {
 const region = 'us-east-1'
 const now = new Date('2026-08-07T09:12:34.000Z')
 
-/** AWS 公式実装で同じリクエストに署名し、Authorization ヘッダを返す。 */
+/**
+ * AWS 公式実装で「まったく同じリクエスト」に署名し、Authorization ヘッダを返す。
+ * 自前実装が生成したヘッダをそのまま渡すのが要点。片方だけ x-amz-content-sha256 を
+ * 持つ状態で比較すると、署名対象が違うので当然一致しない。
+ * ここで渡すのは署名の入力であり、比較するのは出力(署名)なので、
+ * オラクルとしての独立性は保たれる。
+ */
 async function oracleAuthorization(
   method: string,
   url: URL,
-  headers: Record<string, string>,
+  produced: Record<string, string>,
 ): Promise<string> {
+  const headers: Record<string, string> = { ...produced }
+  delete headers['Authorization']
   const signer = new SignatureV4({
     service: 's3',
     region,
@@ -363,7 +371,7 @@ describe('signRequestHeaders (checked against the AWS reference implementation)'
   it('matches the oracle for a simple GET', async () => {
     const url = new URL('https://example.invalid/bucket/midori/manifest.json')
     const headers = await signRequestHeaders({ credentials, region, method: 'GET', url, now })
-    expect(headers['Authorization']).toBe(await oracleAuthorization('GET', url, {}))
+    expect(headers['Authorization']).toBe(await oracleAuthorization('GET', url, headers))
   })
 
   it('matches the oracle for a PUT with a body', async () => {
@@ -377,12 +385,7 @@ describe('signRequestHeaders (checked against the AWS reference implementation)'
       payload,
       now,
     })
-    expect(headers['Authorization']).toBe(
-      await oracleAuthorization('PUT', url, {
-        'x-amz-content-sha256': headers['x-amz-content-sha256'] as string,
-        'x-amz-date': headers['x-amz-date'] as string,
-      }),
-    )
+    expect(headers['Authorization']).toBe(await oracleAuthorization('PUT', url, headers))
   })
 
   it('matches the oracle for a request with query parameters', async () => {
@@ -390,7 +393,7 @@ describe('signRequestHeaders (checked against the AWS reference implementation)'
       'https://example.invalid/bucket?list-type=2&prefix=midori%2Fevents%2F&max-keys=1000',
     )
     const headers = await signRequestHeaders({ credentials, region, method: 'GET', url, now })
-    expect(headers['Authorization']).toBe(await oracleAuthorization('GET', url, {}))
+    expect(headers['Authorization']).toBe(await oracleAuthorization('GET', url, headers))
   })
 
   it('announces the algorithm and the credential scope in the header', async () => {
@@ -1086,7 +1089,7 @@ describe('S3StorageProvider', () => {
   })
 
   it('deletes an object', async () => {
-    const { calls } = mockFetch([new Response('', { status: 204 })])
+    const { calls } = mockFetch([new Response(null, { status: 204 })])
     await new S3StorageProvider(config).delete('midori/events/1-a.enc')
     expect(calls[0]?.method).toBe('DELETE')
   })
@@ -1354,7 +1357,7 @@ describe('storage settings', () => {
   })
 
   it('can be replaced by writing a newer generation', async () => {
-    const { storage, staffKey } = await seeded()
+    const { storage } = await seeded()
     const rotated: StorageSettings = { ...settings, accessKeyId: 'AKID2', secretAccessKey: 'S2' }
     const newKey = await generateAesKey()
     await writeStorageSettings({
