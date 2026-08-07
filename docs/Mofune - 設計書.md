@@ -441,12 +441,14 @@ push購読あり かつ 関数healthy(GET /health, 短タイムアウト) → We
 
 | 設定 | 主体 | 保存先 | 画面 |
 |---|---|---|---|
-| サブグループ単位の通知停止 | 管理者 | manifest.json | design 08 |
-| チャネル既定(push/メール) | 管理者 | manifest.json | design 08 |
+| サブグループ単位の通知停止 | 管理者 | `settings/notifications.enc`(staffスコープ) | design 08 |
+| チャネル既定(push/メール) | 管理者 | `settings/notifications.enc`(staffスコープ) | design 08 |
 | 個人のpush購読 | 本人 | 購読レジストリ(関数) | design 12 |
 | 個人のメール受信可否 | 本人 | 名簿 staff 部 | design 12 |
 
 配信対象は「スコープのメンバー ∩ サブグループ通知が有効 ∩ 個人設定が有効」で決まる。
+
+**通知設定を manifest.json に置かない理由**: manifest は平文で、ログイン前に読む必要がある唯一のファイルである。どのサブグループが通知を止めているかは運用上の内情であり、鍵を持たない第三者に見せる必要がない。`settings/storage.enc` や `settings/templates.enc` と同じく staff スコープで暗号化する。設定を読むのは投稿時、つまりログイン後なので、平文である必要もない。
 
 ## 9.3 Web Push(関数層経由)
 
