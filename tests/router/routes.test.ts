@@ -22,7 +22,9 @@ describe('routes', () => {
         '/g/:groupId/messages/:messageId',
         '/g/:groupId/messages/:messageId/notify',
         '/g/:groupId/panel',
+        '/g/:groupId/settings',
         '/g/:groupId/setup',
+        '/groups',
         '/login',
         '/provision',
         '/unlock',
@@ -49,6 +51,8 @@ describe('routes', () => {
       'absences',
       'panel',
       'setup',
+      'settings',
+      'groups',
     ]) {
       expect(names).toContain(name)
     }
@@ -67,6 +71,6 @@ describe('routes', () => {
       .getRoutes()
       .filter((route) => route.meta.public)
       .map((route) => route.name)
-    expect(publicNames.sort()).toEqual(['home', 'login', 'provision', 'unlock'])
+    expect(publicNames.sort()).toEqual(['groups', 'home', 'login', 'provision', 'unlock'])
   })
 })

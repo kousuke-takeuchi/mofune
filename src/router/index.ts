@@ -73,6 +73,18 @@ const routes: RouteRecordRaw[] = [
     meta: { staffOnly: true },
   },
   { path: '/g/:groupId/setup', name: 'setup', component: () => import('../pages/SetupPage.vue') },
+  {
+    path: '/g/:groupId/settings',
+    name: 'settings',
+    component: () => import('../pages/SettingsPage.vue'),
+  },
+  {
+    // 端末の記録を並べるだけでセッションは要らない。開く段でガードが解錠を求める。
+    path: '/groups',
+    name: 'groups',
+    component: () => import('../pages/GroupsPage.vue'),
+    meta: { public: true },
+  },
   { path: '/:pathMatch(.*)*', redirect: { name: 'home' } },
 ]
 

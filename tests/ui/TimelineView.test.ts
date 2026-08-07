@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import type { VueWrapper } from '@vue/test-utils'
 import TimelineView from '../../src/ui/TimelineView.vue'
@@ -133,10 +133,9 @@ describe('TimelineView', () => {
     expect(wrapper.findAll('[data-test="message"]')).toHaveLength(0)
     await openGroupDatabase('midori').messages.put(newer)
     await wrapper.find('[data-test="sync"]').trigger('click')
-    // syncGroup → reload と非同期が多段なので、1ティックでは足りない
-    await flushPromises()
-    await flushPromises()
-    expect(wrapper.findAll('[data-test="message"]')).toHaveLength(1)
+    // syncGroup → reload は IndexedDB を何往復もする。回数を決め打ちにすると、
+    // 往復が1つ増えただけで落ちる。検証したい状態そのものを待つ。
+    await vi.waitFor(() => expect(wrapper.findAll('[data-test="message"]')).toHaveLength(1))
   })
 
   it('reports a sync failure without losing the cached list', async () => {

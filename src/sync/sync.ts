@@ -21,6 +21,11 @@ export async function writeCursor(db: GroupDatabase, cursor: string): Promise<vo
   await db.syncState.put({ key: 'cursor', value: cursor })
 }
 
+/** 最後に同期を終えた時刻 (ISO)。まだ一度も同期していなければ null。 */
+export async function readLastSyncedAt(db: GroupDatabase): Promise<string | null> {
+  return (await db.syncState.get('lastSyncedAt'))?.value ?? null
+}
+
 /** ストレージパスからイベント ID を取り出す。 */
 function idFromPath(path: string): string {
   return (path.split('/').pop() ?? '').replace(/\.enc$/, '')
@@ -72,5 +77,8 @@ export async function syncGroup(options: {
   if (newest !== null) {
     await writeCursor(options.db, newest)
   }
+  // 新着が無かった同期も記録する。「いつ確かめたか」が利用者の知りたいことで、
+  // 「いつ届いたか」ではない。
+  await options.db.syncState.put({ key: 'lastSyncedAt', value: new Date().toISOString() })
   return { applied, skipped, missing, cursor: newest ?? cursor }
 }
