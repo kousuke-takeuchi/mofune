@@ -1,0 +1,464 @@
+/*
+ * アプリ本体の見た目。docs/design/Mofune Mobile.dc.html の 2b が正。
+ *
+ * 画面ごとの CSS を書かず、要素セレクタと少数のクラスで揃える。ビューの構造は
+ * すでに section / header / ul / li と意味的なので、これで大半が決まる。
+ * フォントは紹介サイトと同じ同梱 woff2 を使う(外部CDNへ出さない)。
+ */
+
+@font-face {
+  font-family: 'Zen Maru Gothic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/zen-maru-gothic-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/noto-sans-jp-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/noto-sans-jp-700.woff2') format('woff2');
+}
+
+:root {
+  --paper: #efe8dc;
+  --card: #ffffff;
+  --cream: #fbf7f0;
+  --sand: #f7f1e6;
+  --sand-deep: #f7efe1;
+  --ink: #3b322a;
+  --ink-2: #5c5145;
+  --muted: #8b7f70;
+  --faint: #9c8f7e;
+  --line: #ede3d3;
+  --amber: #e8a03c;
+  --amber-ink: #a87c3a;
+  --terracotta: #d9703f;
+  --green: #7fa37a;
+  --danger: #c0503a;
+  --shadow: 0 18px 32px -26px rgba(59, 50, 42, 0.45);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  word-break: auto-phrase;
+  line-break: strict;
+  text-wrap: pretty;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 画面はスマホ幅を基準にする。広い画面では中央に寄せる。 */
+main {
+  width: min(480px, 100%);
+  margin-inline: auto;
+  padding: 0 16px calc(24px + env(safe-area-inset-bottom));
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Noto Sans JP', system-ui, sans-serif;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 0;
+}
+
+h1 {
+  font-size: 19px;
+}
+
+h2 {
+  font-size: 16px;
+}
+
+h3 {
+  font-size: 15px;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--terracotta);
+}
+
+/* 画面 = section か form。上下の余白と部品の間隔をここで一括で決める。 */
+section,
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 18px;
+}
+
+section > header,
+form > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+section > header > h1,
+form > header > h1 {
+  width: 100%;
+}
+
+form > header p,
+section > header p {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- 入力 ---------- */
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+/* チェックボックスとラジオは横並びにする */
+label:has(> input[type='checkbox']),
+label:has(> input[type='radio']) {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  accent-color: var(--amber);
+}
+
+input[type='file'] {
+  padding: 9px;
+  background: var(--cream);
+  font-size: 12.5px;
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+li[data-test='message']:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+
+/* ---------- ボタン ---------- */
+
+button {
+  align-self: flex-start;
+  padding: 11px 20px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--sand);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 画面の主目的を進めるボタン。1画面に1つだけ付ける。 */
+button.primary {
+  align-self: stretch;
+  padding: 14px 20px;
+  border-color: transparent;
+  background: var(--amber);
+  color: #fff;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #d78f2d;
+}
+
+button.quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-2);
+  padding-inline: 6px;
+}
+
+button.quiet:hover:not(:disabled) {
+  background: transparent;
+  color: var(--terracotta);
+}
+
+button.danger {
+  border-color: transparent;
+  color: var(--danger);
+  background: transparent;
+}
+
+/* 横に並べたい操作はこれで囲む */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ---------- 一覧 ---------- */
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+li {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+li time {
+  display: block;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+/* 未読のお知らせは左端に印を付ける。色だけに頼らない。 */
+li[data-test='message'] {
+  cursor: pointer;
+  border-left: 4px solid transparent;
+}
+
+li[data-test='message'][data-unread='true'] {
+  border-left-color: var(--amber);
+  background: var(--sand-deep);
+}
+
+/* ---------- 状態の表示 ---------- */
+
+[data-test='error'],
+[data-test='sync-error'] {
+  background: #fbeee9;
+  border: 1px solid #f0cfc3;
+  border-radius: 12px;
+  padding: 10px 13px;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+[data-test='empty'],
+[data-test='not-found'] {
+  background: var(--cream);
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  padding: 22px 16px;
+  color: var(--muted);
+  text-align: center;
+}
+
+[data-test='has-attachment'],
+[data-test='unread-count'] {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+[data-test='has-attachment'] {
+  margin-top: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--sand);
+  color: var(--amber-ink);
+}
+
+article {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+article img {
+  width: 100%;
+  border-radius: 12px;
+}
+
+pre {
+  margin: 0;
+  padding: 13px;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  background: var(--sand);
+  font-size: 12px;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* ---------- 画面の顔 ---------- */
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 0 4px;
+  text-align: center;
+}
+
+.brand svg {
+  width: 96px;
+}
+
+.brand h1 {
+  font-size: 21px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.hint.center {
+  text-align: center;
+}
+
+/* 画面を縦に積むだけの入れ物 */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 幅いっぱいに置きたい副次的な操作 */
+button.wide {
+  align-self: stretch;
+}
+
+/* ---------- タイムラインの見出し ---------- */
+
+.avatar {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--amber);
+  color: #fff;
+  font-family: 'Zen Maru Gothic', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.titles h1 {
+  font-size: 17px;
+}
+
+.badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--sand);
+  color: var(--amber-ink) !important;
+  font-weight: 700;
+}

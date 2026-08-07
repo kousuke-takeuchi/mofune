@@ -78,7 +78,7 @@ async function markSent(batch: MailBatch): Promise<void> {
 <template>
   <section v-if="loaded" data-test="ready">
     <h1>メールで知らせる</h1>
-    <button type="button" data-test="close" @click="emit('close')">閉じる</button>
+    <button type="button" class="quiet" data-test="close" @click="emit('close')">閉じる</button>
 
     <p>
       リンクを押すとメールアプリが開きます。送信そのものはアプリからは

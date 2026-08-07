@@ -161,8 +161,8 @@ function back(): void {
         <input type="email" data-test="admin-email" v-model="adminEmail" />
       </label>
 
-      <button type="button" data-test="next" @click="toStorageStep">次へ</button>
-      <button type="button" data-test="cancel" @click="emit('cancel')">やめる</button>
+      <button type="button" class="primary" data-test="next" @click="toStorageStep">次へ</button>
+      <button type="button" class="quiet" data-test="cancel" @click="emit('cancel')">やめる</button>
     </template>
 
     <template v-else-if="step === 2">
@@ -213,10 +213,10 @@ function back(): void {
         <input type="password" data-test="secret-access-key" v-model="secretAccessKey" />
       </label>
 
-      <button type="button" data-test="next" :disabled="busy" @click="provision">
+      <button type="button" class="primary" data-test="next" :disabled="busy" @click="provision">
         接続を確かめて作る
       </button>
-      <button type="button" data-test="back" @click="back">戻る</button>
+      <button type="button" class="quiet" data-test="back" @click="back">戻る</button>
     </template>
 
     <template v-else>
@@ -260,7 +260,7 @@ function back(): void {
           <input type="checkbox" data-test="kit-stored" v-model="kitStored" />
           リカバリキットと接続コードを紙に控えて保管しました
         </label>
-        <button type="button" data-test="finish" @click="finish">できあがり</button>
+        <button type="button" class="primary" data-test="finish" @click="finish">できあがり</button>
       </template>
     </template>
   </section>
