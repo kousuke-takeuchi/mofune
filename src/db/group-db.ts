@@ -29,7 +29,8 @@ export interface CachedRoster {
 
 export interface OutboxItem {
   id: string
-  kind: 'event' | 'inbox'
+  /** object: files/ と messages/ の実体。event: events/ の追記。inbox: 上りの投函。 */
+  kind: 'object' | 'event' | 'inbox'
   /** 送信先のストレージパス、または presigned URL。 */
   path: string
   body: Bytes
