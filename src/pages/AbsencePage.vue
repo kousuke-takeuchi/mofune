@@ -1,7 +1,22 @@
 <script setup lang="ts">
-// Task 5/6 で中身を入れる。
+import { useRouter } from 'vue-router'
+import AbsenceView from '../ui/AbsenceView.vue'
+import { useSessionStore } from '../stores/session'
+
+const router = useRouter()
+const session = useSessionStore()
+
+function back(): void {
+  router.push({ name: 'timeline', params: { groupId: session.groupId } })
+}
 </script>
 
 <template>
-  <div />
+  <AbsenceView
+    v-if="session.session && session.storage"
+    :session="session.session"
+    :storage="session.storage"
+    @sent="back"
+    @cancel="back"
+  />
 </template>

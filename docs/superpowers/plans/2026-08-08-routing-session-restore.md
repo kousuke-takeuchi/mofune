@@ -1652,7 +1652,10 @@ git commit -m "feat(ui): drive every screen from the router"
 
 ## バンドル増分
 
-(Task 6 Step 5 で記録する)
+導入前は単一チャンクで gzip 88.61 kB。導入後は初期読み込みが index 65.82 kB +
+runtime-core 22.22 kB = **88.04 kB** で、画面ごとに遅延チャンクへ分かれた
+(最大は ProvisionPage の 6.47 kB)。ルータとストアを足しても初期読み込みは
+増えていない。開設ウィザードのような重い画面が初回に載らなくなったため。
 
 ## 次への引き継ぎ
 

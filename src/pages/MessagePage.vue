@@ -1,7 +1,18 @@
 <script setup lang="ts">
-// Task 5/6 で中身を入れる。
+import { useRoute, useRouter } from 'vue-router'
+import MessageDetailView from '../ui/MessageDetailView.vue'
+import { useSessionStore } from '../stores/session'
+
+const route = useRoute()
+const router = useRouter()
+const session = useSessionStore()
 </script>
 
 <template>
-  <div />
+  <MessageDetailView
+    v-if="session.session"
+    :session="session.session"
+    :message-id="String(route.params.messageId)"
+    @back="router.push({ name: 'timeline', params: { groupId: session.groupId } })"
+  />
 </template>

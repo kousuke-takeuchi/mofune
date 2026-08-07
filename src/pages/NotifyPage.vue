@@ -1,7 +1,19 @@
 <script setup lang="ts">
-// Task 5/6 で中身を入れる。
+import { useRoute, useRouter } from 'vue-router'
+import NotifyView from '../ui/NotifyView.vue'
+import { useSessionStore } from '../stores/session'
+
+const route = useRoute()
+const router = useRouter()
+const session = useSessionStore()
 </script>
 
 <template>
-  <div />
+  <NotifyView
+    v-if="session.session && session.storage"
+    :session="session.session"
+    :storage="session.storage"
+    :message-id="String(route.params.messageId)"
+    @close="router.push({ name: 'timeline', params: { groupId: session.groupId } })"
+  />
 </template>
