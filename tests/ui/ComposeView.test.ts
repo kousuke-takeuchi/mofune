@@ -118,7 +118,9 @@ describe('ComposeView', () => {
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a_pickup"]').setValue(true)
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await until(async () => (await storage.list('midori/messages/')).length === 1)
+    // イベントはメッセージの後に書かれる。messages/ が埋まった時点で待機を
+    // 抜けると events/ の検証が送信完了前に走る。送信完了そのものを待つ。
+    await until(() => wrapper.emitted('posted') !== undefined)
     expect(await storage.list('midori/messages/')).toHaveLength(1)
     expect(await storage.list('midori/events/')).toHaveLength(1)
   })

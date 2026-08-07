@@ -15,7 +15,7 @@
 Phase 1 / 2a / 2b の Global Constraints をすべて引き継ぐ。特に:
 
 - 暗号プリミティブは Web Crypto API のみ。例外は Argon2id (hash-wasm) のみ
-- **バイト列の型は `src/crypto/bytes.ts` の `Bytes`**(= `Uint8Array<ArrayBuffer>`)。型注釈上の `Uint8Array` は `Bytes` と読み替える(`new Uint8Array(...)` はそのまま)。テストの `as Uint8Array` も `as Bytes`
+- **バイト列の型は `src/crypto/bytes.ts` の `Bytes`**(= `Uint8Array<ArrayBuffer>`)。型注釈上の `Uint8Array` は `Bytes` と読み替える(`new Uint8Array(...)` はそのまま)。テストの `as Bytes` も `as Bytes`
 - 秘密鍵・パスワード・ストレージ資格情報を IndexedDB / localStorage に保存してはならない
 - ロールは `admin` / `staff` / `member`。UI 表示は管理者 / 担当者 / 参加者
 - **参加者からの上りに staff スコープ鍵を使ってはならない**(設計書 §4.6)。受信者の ECDH 公開鍵へ ECIES でラップする
@@ -900,7 +900,7 @@ describe('submitToInbox', () => {
     const { session, staff } = await memberSession()
     const db = openGroupDatabase('midori')
     await submitToInbox({ session, db, grant: grantWith(1), plaintext: utf8('体調不良'), now })
-    const body = (await pending(db))[0]?.body as Uint8Array
+    const body = (await pending(db))[0]?.body as Bytes
     expect(fromUtf8(body)).not.toContain('体調不良')
     expect(fromUtf8(await openAsRecipient('u_tanaka', staff.privateKey, body))).toBe('体調不良')
   })
@@ -1143,7 +1143,7 @@ describe('collectInbox', () => {
     )
     const result = await collectInbox({ storage, session })
     expect(result.items).toHaveLength(1)
-    expect(fromUtf8(result.items[0]?.body as Uint8Array)).toBe('体調不良のため欠席します')
+    expect(fromUtf8(result.items[0]?.body as Bytes)).toBe('体調不良のため欠席します')
     expect(result.items[0]?.key).toBe('midori/inbox/u_sato/aaaa.enc')
   })
 
@@ -1169,7 +1169,7 @@ describe('collectInbox', () => {
     await storage.put('midori/inbox/u_sato/a.enc', await sealForRecipients(recipients, utf8('a')))
     const result = await collectInbox({ storage, session })
     expect(result.items).toHaveLength(1)
-    expect(fromUtf8(result.items[0]?.body as Uint8Array)).toBe('a')
+    expect(fromUtf8(result.items[0]?.body as Bytes)).toBe('a')
   })
 
   it('counts packets it cannot open instead of failing', async () => {
@@ -1479,7 +1479,7 @@ describe('sendAbsenceReport', () => {
     const queued = await pending(db)
     expect(queued).toHaveLength(1)
     expect(queued[0]?.kind).toBe('inbox')
-    const body = queued[0]?.body as Uint8Array
+    const body = queued[0]?.body as Bytes
     expect(fromUtf8(body)).not.toContain('体調不良')
 
     const opened = parseAbsenceReport(
@@ -1783,7 +1783,7 @@ describe('sendEmailRegistration', () => {
 
     const queued = await pending(db)
     expect(queued).toHaveLength(1)
-    const body = queued[0]?.body as Uint8Array
+    const body = queued[0]?.body as Bytes
     // 連絡先は参加者どうしに見えてはならない(要件書 §5.3)
     expect(fromUtf8(body)).not.toContain('sakura@example.com')
 
@@ -2099,12 +2099,13 @@ describe('AbsenceView', () => {
     await wrapper.find('[data-test="kind"][data-kind="absent"]').trigger('click')
     await wrapper.find('[data-test="note"]').setValue('朝から熱があります')
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await vi.waitFor(async () => {
-      if ((await pending(openGroupDatabase('midori'))).length === 0 && !wrapper.emitted('sent')) {
-        throw new Error('not sent')
-      }
+    // 待つべきは「送信が完了して sent が出ること」。キューに積まれた時点で
+    // 待機を抜けると、送信前に検証してしまう。
+    await vi.waitFor(() => {
+      if (!wrapper.emitted('sent')) throw new Error('not sent yet')
     }, { timeout: 2000, interval: 10 })
     expect(wrapper.emitted('sent')).toBeTruthy()
+    expect(await pending(openGroupDatabase('midori'))).toHaveLength(0)
   })
 
   it('tells the user when no slots are available', async () => {
@@ -2426,8 +2427,12 @@ async function mountSetup() {
   const { session, storage } = await fixture()
   const wrapper = mount(SetupView, { props: { session, storage } })
   mounted.push(wrapper)
+  // grant の読み込みが終わって登録ボタンが押せるようになるまで待つ
   await vi.waitFor(() => {
-    if (!wrapper.find('[data-test="email"]').exists()) throw new Error('still loading')
+    const button = wrapper.find('[data-test="register"]')
+    if (!button.exists() || button.attributes('disabled') !== undefined) {
+      throw new Error('still loading')
+    }
   }, { timeout: 2000, interval: 10 })
   return wrapper
 }
@@ -2517,6 +2522,7 @@ const props = defineProps<{ session: Session; storage: StorageProvider }>()
 const emit = defineEmits<{ done: [] }>()
 
 const grant = ref<InboxGrant | null>(null)
+const loaded = ref(false)
 const email = ref('')
 const registered = ref(false)
 const error = ref('')
@@ -2534,6 +2540,8 @@ onMounted(async () => {
     })
   } catch {
     grant.value = null
+  } finally {
+    loaded.value = true
   }
 })
 
@@ -2583,7 +2591,8 @@ async function confirm(): Promise<void> {
 
     <p v-if="error" data-test="error">{{ error }}</p>
 
-    <button type="button" data-test="register" :disabled="busy" @click="register">
+    <!-- grant を読み終えるまで押させない。押せても失敗するだけで分かりにくい。 -->
+    <button type="button" data-test="register" :disabled="busy || !loaded" @click="register">
       登録する
     </button>
 
