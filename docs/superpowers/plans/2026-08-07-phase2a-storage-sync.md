@@ -1089,7 +1089,7 @@ describe('S3StorageProvider', () => {
   })
 
   it('deletes an object', async () => {
-    const { calls } = mockFetch([new Response('', { status: 204 })])
+    const { calls } = mockFetch([new Response(null, { status: 204 })])
     await new S3StorageProvider(config).delete('midori/events/1-a.enc')
     expect(calls[0]?.method).toBe('DELETE')
   })
