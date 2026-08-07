@@ -62,6 +62,7 @@ export async function setUpGroup(options: SetupOptions): Promise<SetupResult> {
   const check = await checkConnection({
     storage: options.storage,
     groupId: options.groupId,
+    publicBaseUrl: options.settings.publicBaseUrl,
   })
   if (!check.ok) {
     const failed = check.steps.find((step) => !step.ok)
@@ -80,7 +81,8 @@ export async function setUpGroup(options: SetupOptions): Promise<SetupResult> {
     groupId: options.groupId,
     groupName: options.groupName,
     provider: options.settings.provider,
-    root: `${options.settings.endpoint}/${options.settings.bucket}`,
+    // root は参加者が素の GET で読む起点。S3 の API エンドポイントを入れてはならない。
+    root: options.settings.publicBaseUrl.replace(/\/+$/, ''),
     subgroups: options.subgroups ?? [],
     members: [admin, ...(options.members ?? [])],
     ...(options.kdf ? { kdf: options.kdf } : {}),

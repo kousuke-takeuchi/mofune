@@ -32,6 +32,7 @@ const adminEmail = ref('')
 const endpoint = ref('')
 const region = ref('auto')
 const bucket = ref('')
+const publicBaseUrl = ref('')
 const accessKeyId = ref('')
 const secretAccessKey = ref('')
 
@@ -61,7 +62,13 @@ function buildStorage(settings: StorageSettings): StorageProvider {
 }
 
 async function provision(): Promise<void> {
-  if (!endpoint.value.trim() || !bucket.value.trim() || !accessKeyId.value || !secretAccessKey.value) {
+  if (
+    !endpoint.value.trim() ||
+    !bucket.value.trim() ||
+    !publicBaseUrl.value.trim() ||
+    !accessKeyId.value ||
+    !secretAccessKey.value
+  ) {
     error.value = 'データの置き場の情報をすべて入力してください'
     return
   }
@@ -72,6 +79,7 @@ async function provision(): Promise<void> {
     endpoint: endpoint.value.trim(),
     region: region.value.trim() || 'auto',
     bucket: bucket.value.trim(),
+    publicBaseUrl: publicBaseUrl.value.trim().replace(/\/+$/, ''),
     accessKeyId: accessKeyId.value,
     secretAccessKey: secretAccessKey.value,
   }
@@ -187,6 +195,14 @@ function back(): void {
         バケット
         <input data-test="bucket" v-model="bucket" />
       </label>
+      <label>
+        公開読み取りURL
+        <input data-test="public-base-url" v-model="publicBaseUrl" placeholder="https://pub-xxxx.r2.dev" />
+      </label>
+      <p>
+        参加者はアカウントを持たずに読みます。<strong>上のエンドポイントとは別のURL</strong>で、R2 なら
+        r2.dev の公開URLか、割り当てた独自ドメインです。ここを間違えると参加者は何も読めません。
+      </p>
       <label>
         アクセスキーID
         <input data-test="access-key-id" v-model="accessKeyId" />

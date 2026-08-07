@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { SetupError, setUpGroup } from '../../src/group/setup'
 import type { SetupOptions } from '../../src/group/setup'
 import { parseRecoveryKit } from '../../src/group/recovery-kit'
@@ -19,11 +19,29 @@ const settings = {
   endpoint: 'https://example.invalid',
   region: 'auto',
   bucket: 'mofune',
+  publicBaseUrl: 'https://pub-1234.r2.dev',
   accessKeyId: 'AKID',
   secretAccessKey: 'SECRET',
 }
 
+/** 公開読みの経路を、資格情報を持たない参加者の視点で真似る。 */
+function servePublicly(storage: StorageProvider): void {
+  const base = settings.publicBaseUrl
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (!url.startsWith(`${base}/`)) return new Response(null, { status: 404 })
+      try {
+        return new Response(await storage.get(url.slice(base.length + 1)))
+      } catch {
+        return new Response(null, { status: 404 })
+      }
+    }),
+  )
+}
+
 function options(storage: StorageProvider, extra: Partial<SetupOptions> = {}): SetupOptions {
+  servePublicly(storage)
   return {
     groupId: 'midori',
     groupName: 'みどり台グループ',
@@ -49,12 +67,29 @@ function failingPut(): StorageProvider {
   }
 }
 
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
 describe('setUpGroup', () => {
   it('reports every connection check step', async () => {
     const storage = new MemoryStorageProvider()
     const result = await setUpGroup(options(storage))
     expect(result.check.ok).toBe(true)
-    expect(result.check.steps).toHaveLength(3)
+    expect(result.check.steps.map((step) => step.name)).toEqual([
+      'write',
+      'read',
+      'public',
+      'delete',
+    ])
+  })
+
+  it('refuses to provision when participants cannot read without credentials', async () => {
+    const storage = new MemoryStorageProvider()
+    const setup = options(storage)
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 401 })))
+    await expect(setUpGroup(setup)).rejects.toThrow(/公開URL/)
+    expect(await storage.list('midori/')).toHaveLength(0)
   })
 
   it('writes the roster, and it verifies against the connection code', async () => {
@@ -153,6 +188,14 @@ describe('setUpGroup', () => {
   it('says which step of the connection check failed', async () => {
     const storage = failingPut()
     await expect(setUpGroup(options(storage))).rejects.toThrow(/書き込めません/)
+  })
+
+  it('points the connection code at the public read url', async () => {
+    // 参加者は資格情報を持たず、root へ素の GET で読む。S3 の API エンドポイントを
+    // 入れてしまうと全員 401 になり、紙を配り直すまで直せない。
+    const storage = new MemoryStorageProvider()
+    const result = await setUpGroup(options(storage))
+    expect(result.code.root).toBe('https://pub-1234.r2.dev')
   })
 
   it('produces a connection code that decodes back', async () => {

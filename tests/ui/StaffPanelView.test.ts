@@ -74,6 +74,7 @@ async function fixture(options: { withSettings?: boolean } = {}) {
         endpoint: 'https://example.invalid',
         region: 'auto',
         bucket: 'mofune',
+        publicBaseUrl: 'https://pub-1234.r2.dev',
         accessKeyId: 'AKID',
         secretAccessKey: 'SECRET',
       },
