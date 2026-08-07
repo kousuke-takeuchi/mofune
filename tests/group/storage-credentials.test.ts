@@ -85,7 +85,7 @@ describe('storage settings', () => {
   })
 
   it('can be replaced by writing a newer generation', async () => {
-    const { storage, staffKey } = await seeded()
+    const { storage } = await seeded()
     const rotated: StorageSettings = { ...settings, accessKeyId: 'AKID2', secretAccessKey: 'S2' }
     const newKey = await generateAesKey()
     await writeStorageSettings({
