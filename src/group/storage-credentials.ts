@@ -9,9 +9,15 @@ export class StorageCredentialsError extends Error {}
 
 export interface StorageSettings {
   provider: 's3'
+  /** 読み書きに使う S3 API のエンドポイント。SigV4 で署名する。 */
   endpoint: string
   region: string
   bucket: string
+  /**
+   * 参加者が資格情報なしで読む URL の起点。エンドポイントとは別物で、
+   * R2 なら r2.dev の公開URLか独自ドメイン。接続コードの root になる。
+   */
+  publicBaseUrl: string
   accessKeyId: string
   secretAccessKey: string
 }

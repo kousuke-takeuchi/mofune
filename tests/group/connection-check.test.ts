@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { checkConnection } from '../../src/group/connection-check'
 import { MemoryStorageProvider } from '../../src/storage/memory'
 import { UnsupportedOperationError } from '../../src/storage/provider'
@@ -19,6 +19,25 @@ function failingAt(stage: 'put' | 'get' | 'delete'): StorageProvider {
         : inner.delete(path),
     list: (prefix: string, after?: string) => inner.list(prefix, after),
   }
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+/** 公開読みの経路を、資格情報を持たない参加者の視点で真似る。 */
+function anonymousReadsFrom(storage: MemoryStorageProvider, base: string): void {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (!url.startsWith(`${base}/`)) return new Response(null, { status: 404 })
+      try {
+        return new Response(await storage.get(url.slice(base.length + 1)))
+      } catch {
+        return new Response(null, { status: 404 })
+      }
+    }),
+  )
 }
 
 describe('checkConnection', () => {
@@ -67,6 +86,57 @@ describe('checkConnection', () => {
   it('explains what went wrong rather than throwing', async () => {
     const result = await checkConnection({ storage: failingAt('put'), groupId: 'midori' })
     expect(result.steps[0]?.detail.length).toBeGreaterThan(0)
+  })
+
+  it('checks the public read path when a public base url is given', async () => {
+    const storage = new MemoryStorageProvider()
+    anonymousReadsFrom(storage, 'https://pub-1234.r2.dev')
+    const result = await checkConnection({
+      storage,
+      groupId: 'midori',
+      publicBaseUrl: 'https://pub-1234.r2.dev',
+    })
+    expect(result.ok).toBe(true)
+    expect(result.steps.map((step) => step.name)).toEqual(['write', 'read', 'public', 'delete'])
+  })
+
+  it('fails when the object cannot be read without credentials', async () => {
+    // R2 の S3 エンドポイントを公開URLと取り違えると、参加者は 401 で読めない
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 401 })))
+    const result = await checkConnection({
+      storage: new MemoryStorageProvider(),
+      groupId: 'midori',
+      publicBaseUrl: 'https://account.r2.cloudflarestorage.com/mofune',
+    })
+    expect(result.ok).toBe(false)
+    expect(result.steps.find((step) => step.name === 'public')?.ok).toBe(false)
+  })
+
+  it('fails when the public url serves something else', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('something else')))
+    const result = await checkConnection({
+      storage: new MemoryStorageProvider(),
+      groupId: 'midori',
+      publicBaseUrl: 'https://pub-1234.r2.dev',
+    })
+    expect(result.ok).toBe(false)
+    expect(result.steps.find((step) => step.name === 'public')?.ok).toBe(false)
+  })
+
+  it('cleans up the probe even when the public read fails', async () => {
+    const storage = new MemoryStorageProvider()
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 401 })))
+    await checkConnection({
+      storage,
+      groupId: 'midori',
+      publicBaseUrl: 'https://pub-1234.r2.dev',
+    })
+    expect(await storage.list('midori/')).toHaveLength(0)
+  })
+
+  it('skips the public step when no public base url is given', async () => {
+    const result = await checkConnection({ storage: new MemoryStorageProvider(), groupId: 'midori' })
+    expect(result.steps.map((step) => step.name)).not.toContain('public')
   })
 
   it('detects storage that returns different bytes than were written', async () => {
