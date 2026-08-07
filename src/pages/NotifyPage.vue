@@ -10,9 +10,9 @@ const session = useSessionStore()
 
 <template>
   <NotifyView
-    v-if="session.session && session.storage"
+    v-if="session.session && (session.writer ?? session.storage)"
     :session="session.session"
-    :storage="session.storage"
+    :storage="(session.writer ?? session.storage)!"
     :message-id="String(route.params.messageId)"
     @close="router.push({ name: 'timeline', params: { groupId: session.groupId } })"
   />

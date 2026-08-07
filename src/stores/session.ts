@@ -8,7 +8,9 @@ import { isEmailConfirmed } from '../group/email-registration'
 import type { Role } from '../crypto/roster'
 import type { Session } from '../group/session'
 import { login } from '../group/session'
+import { readStorageSettings, toProviderConfig } from '../group/storage-credentials'
 import { HttpStorageProvider } from '../storage/http'
+import { S3StorageProvider } from '../storage/s3'
 import type { StorageProvider } from '../storage/provider'
 import { useGroupsStore } from './groups'
 
@@ -17,6 +19,13 @@ export class UnknownGroupError extends Error {}
 interface SessionState {
   session: Session | null
   storage: StorageProvider | null
+  /**
+   * 書き込みができるプロバイダ。担当者と管理者だけが持つ。
+   *
+   * storage は公開読み専用なので、投稿・回収・投函枠の配布はこちらを使う。
+   * 取り違えると「オフラインのため送信待ち」と言い続ける投稿ができあがる。
+   */
+  writer: StorageProvider | null
   adminPublicKey: Bytes
   emailConfirmed: boolean
 }
@@ -27,10 +36,33 @@ interface SessionState {
  * 鍵とパスワードは永続化しない(要件書 §5)。端末に残すのは接続コードと
  * ログインIDだけで、再開時はパスワードだけを訊く。
  */
+/**
+ * 担当者・管理者のための書き込みプロバイダを組み立てる。
+ * 資格情報は staff スコープ鍵でしか開けないので、参加者では必ず null になる。
+ */
+async function buildWriter(
+  session: Session,
+  storage: StorageProvider,
+): Promise<StorageProvider | null> {
+  if (session.role === 'member') return null
+  try {
+    const settings = await readStorageSettings({
+      storage,
+      groupId: session.groupId,
+      keys: session.groupKeys,
+    })
+    return new S3StorageProvider(toProviderConfig(settings))
+  } catch {
+    // 資格情報がまだ置かれていないグループもある。読むだけなら支障はない。
+    return null
+  }
+}
+
 export const useSessionStore = defineStore('session', {
   state: (): SessionState => ({
     session: null,
     storage: null,
+    writer: null,
     adminPublicKey: new Uint8Array(0),
     emailConfirmed: true,
   }),
@@ -48,6 +80,7 @@ export const useSessionStore = defineStore('session', {
       // メールアドレス未登録の参加者は、登録が済むまで主要機能をロックする(要件書 §4.6)
       this.emailConfirmed =
         session.role !== 'member' || (await isEmailConfirmed(openGroupDatabase(session.groupId)))
+      this.writer = await buildWriter(session, this.storage)
       await useGroupsStore().load()
     },
 
@@ -69,6 +102,7 @@ export const useSessionStore = defineStore('session', {
     signOut(): void {
       this.session = null
       this.storage = null
+      this.writer = null
       this.adminPublicKey = new Uint8Array(0)
       this.emailConfirmed = true
     },

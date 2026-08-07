@@ -1,6 +1,7 @@
 import type { GroupDatabase } from '../db/group-db'
 import type { StorageProvider } from '../storage/provider'
 import { compareEventIds, openEvent } from './events'
+import { listEventIds, rebuildEventIndex } from './event-index'
 import { projectEvent } from './projection'
 
 export interface SyncResult {
@@ -26,11 +27,6 @@ export async function readLastSyncedAt(db: GroupDatabase): Promise<string | null
   return (await db.syncState.get('lastSyncedAt'))?.value ?? null
 }
 
-/** ストレージパスからイベント ID を取り出す。 */
-function idFromPath(path: string): string {
-  return (path.split('/').pop() ?? '').replace(/\.enc$/, '')
-}
-
 /**
  * カーソル以降のイベントだけを取得して適用する。
  *
@@ -46,10 +42,11 @@ export async function syncGroup(options: {
 }): Promise<SyncResult> {
   const cursor = await readCursor(options.db)
   const prefix = `${options.groupId}/events/`
-  const after = cursor ? `${prefix}${cursor}.enc` : undefined
-  const entries = await options.storage.list(prefix, after)
-
-  const ids = entries.map((entry) => idFromPath(entry.path)).sort(compareEventIds)
+  // 参加者の経路は一覧を返せないので、索引から取る (event-index.ts)
+  const all = await listEventIds({ storage: options.storage, groupId: options.groupId })
+  const ids = all
+    .filter((id) => cursor === null || compareEventIds(id, cursor) > 0)
+    .sort(compareEventIds)
   let applied = 0
   let skipped = 0
   let missing = 0
@@ -77,6 +74,16 @@ export async function syncGroup(options: {
   if (newest !== null) {
     await writeCursor(options.db, newest)
   }
+  // 一覧できる側 (担当者・管理者) は、参加者のための索引を最新にしておく。
+  // 参加者はこれが無いと1件も取得できない。
+  if (options.storage.capabilities.list && options.storage.capabilities.write) {
+    try {
+      await rebuildEventIndex({ storage: options.storage, groupId: options.groupId })
+    } catch {
+      // 索引の更新に失敗しても同期そのものは成立している
+    }
+  }
+
   // 新着が無かった同期も記録する。「いつ確かめたか」が利用者の知りたいことで、
   // 「いつ届いたか」ではない。
   await options.db.syncState.put({ key: 'lastSyncedAt', value: new Date().toISOString() })

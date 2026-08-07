@@ -2,6 +2,7 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import type { CachedMessage } from '../db/group-db'
 import { openGroupDatabase } from '../db/group-db'
+import { formatWhen } from './format'
 import type { Session } from '../group/session'
 
 interface ResolvedAttachment {
@@ -75,7 +76,7 @@ onBeforeUnmount(() => {
     <p v-if="notFound" data-test="not-found">このお知らせは見つかりませんでした。</p>
 
     <article v-else-if="message">
-      <p>{{ authorName(message.author) }}・{{ message.at }}</p>
+      <p>{{ authorName(message.author) }}・{{ formatWhen(message.at) }}</p>
       <p data-test="body">{{ message.body }}</p>
 
       <div v-for="attachment in attachments" :key="attachment.id">

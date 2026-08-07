@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import type { AbsenceKind } from '../content/absence'
 import { ABSENCE_KINDS, DEFAULT_REASONS, buildAbsenceReport, sendAbsenceReport } from '../content/absence'
 import { openGroupDatabase } from '../db/group-db'
@@ -45,8 +45,11 @@ onMounted(async () => {
   }
 })
 
+/** 枠が無くても、書き込み資格情報があれば自分で投函できる (担当者・管理者)。 */
+const canSubmit = computed(() => grant.value !== null || props.storage.capabilities.write)
+
 async function submit(): Promise<void> {
-  if (!grant.value) return
+  if (!canSubmit.value) return
   error.value = ''
   queued.value = false
   busy.value = true
@@ -77,7 +80,7 @@ async function submit(): Promise<void> {
   <section v-if="loaded">
     <h1>欠席・不在をつたえる</h1>
 
-    <p v-if="!grant" data-test="no-slots">
+    <p v-if="!canSubmit" data-test="no-slots">
       いまは送信できません。担当者がアプリを開くと送信枠が用意されます。
     </p>
 

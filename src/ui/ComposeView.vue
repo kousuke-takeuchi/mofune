@@ -6,6 +6,7 @@ import { openGroupDatabase } from '../db/group-db'
 import type { Session } from '../group/session'
 import { ALL_SCOPE } from '../crypto/roster'
 import type { StorageProvider } from '../storage/provider'
+import { rebuildEventIndex } from '../sync/event-index'
 import { flushOutbox } from '../sync/outbox'
 
 const props = defineProps<{ session: Session; storage: StorageProvider }>()
@@ -53,6 +54,10 @@ async function submit(): Promise<void> {
     if (flushed.failed > 0) {
       queued.value = true
     } else {
+      // 参加者は一覧を取れないので、索引を更新しないと今の投稿が誰にも届かない
+      if (props.storage.capabilities.list && props.storage.capabilities.write) {
+        await rebuildEventIndex({ storage: props.storage, groupId: props.session.groupId })
+      }
       emit('posted', result.messageId)
     }
   } catch (cause) {

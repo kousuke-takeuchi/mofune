@@ -21,9 +21,10 @@ function go(place: NavPlace): void {
 
 <template>
   <div v-if="session.session && session.storage" class="stack">
+    <!-- 担当者は書き込み経路で直接投函する。参加者は公開読みのまま枠を使う。 -->
     <AbsenceView
       :session="session.session"
-      :storage="session.storage"
+      :storage="(session.writer ?? session.storage)!"
       @sent="back"
       @cancel="back"
     />

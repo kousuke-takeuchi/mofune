@@ -4,7 +4,7 @@ import { randomBytes } from '../crypto/symmetric'
 import type { GroupDatabase } from '../db/group-db'
 import type { Session } from '../group/session'
 import type { InboxGrant } from '../inbox/grants'
-import { submitToInbox } from '../inbox/submit'
+import { submitDirectly, submitToInbox } from '../inbox/submit'
 
 export class AbsenceError extends Error {}
 
@@ -85,10 +85,18 @@ export function parseAbsenceReport(bytes: Bytes): AbsenceReport {
 export async function sendAbsenceReport(options: {
   session: Session
   db: GroupDatabase
-  grant: InboxGrant
+  /** 参加者は配られた枠を使う。担当者・管理者は資格情報を持つので枠が要らない。 */
+  grant: InboxGrant | null
   report: AbsenceReport
   now?: Date
 }): Promise<{ key: string }> {
+  if (!options.grant) {
+    return submitDirectly({
+      session: options.session,
+      db: options.db,
+      plaintext: utf8(JSON.stringify(options.report)),
+    })
+  }
   return submitToInbox({
     session: options.session,
     db: options.db,
