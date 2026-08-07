@@ -2897,7 +2897,7 @@ describe('HttpStorageProvider', () => {
   })
 
   it('fetches an object by joining root and path', async () => {
-    const fetchMock = vi.fn(() => Promise.resolve(new Response(utf8('payload'))))
+    const fetchMock = vi.fn((_url: string) => Promise.resolve(new Response(utf8('payload'))))
     vi.stubGlobal('fetch', fetchMock)
     const storage = new HttpStorageProvider('https://example.invalid/mofune/')
     expect(fromUtf8(await storage.get('midori/manifest.json'))).toBe('payload')
