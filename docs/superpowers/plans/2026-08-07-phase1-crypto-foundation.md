@@ -24,6 +24,7 @@
 - スコープ鍵はすべて独立に生成する。サブグループの親子関係から子の鍵を導出してはならない(設計書 §3.2)。所属の伝播は `resolveScopes` 1か所に閉じる
 - 暗号化オブジェクトは必ずマルチレシピエントエンベロープ(`sealEnvelopeFor`)を通す。スコープ鍵で本文を直接暗号化しない
 - テストで  とキャストしている箇所は  に読み替える( は )
+- テストのコード例にある `as Uint8Array` というキャストは `as Bytes` に読み替え、`import type { Bytes } from '../../src/crypto/bytes'` を足す
 - **バイト列の型は `src/crypto/bytes.ts` の `Bytes`(= `Uint8Array<ArrayBuffer>`)を使う。** TypeScript 5.7 以降 `Uint8Array` は `ArrayBufferLike` 既定になり、そのままでは WebCrypto の `BufferSource` に代入できず `vue-tsc` が落ちる。以降のタスクのコード例に出てくる型注釈上の `Uint8Array` はすべて `Bytes` と読み替える(`new Uint8Array(...)` という生成式はそのまま)
 - コミットは Conventional Commits 形式。`Co-Authored-By` 行は付けない
 
@@ -3588,18 +3589,18 @@ describe('login', () => {
   })
 
   it('reports an unknown login id with the same message as a wrong password', async () => {
-    const unknown = await login({
+    const unknown = (await login({
       code: provisioned.code,
       loginId: 'nobody',
       password: 'member-pass',
       storage,
-    }).catch((error: unknown) => error as Error)
-    const wrongPassword = await login({
+    }).catch((error: unknown) => error)) as Error
+    const wrongPassword = (await login({
       code: provisioned.code,
       loginId: 'sato',
       password: 'wrong',
       storage,
-    }).catch((error: unknown) => error as Error)
+    }).catch((error: unknown) => error)) as Error
     expect(unknown.message).toBe(wrongPassword.message)
   })
 
