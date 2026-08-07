@@ -200,12 +200,20 @@ HTTPS が `ERR_TLS_CERT_ALTNAME_INVALID` になるのは証明書がまだ発行
 - apex の `A` レコード 4 本(値は正しい)
 - 配信の疎通(IP 直叩きで `/` が 200、`<title>Mofune</title>` を確認)
 
+- AAAA レコード 4 本(§6.1 の誤りを修正済み。公開リゾルバへの伝播も確認)
+- www の CNAME(§6.2 の誤りを修正済み。権威サーバーで
+  `kousuke-takeuchi.github.io` を返すことを確認)
+- apex の HTTPS。証明書が発行され、`http://mofune.site/` は HTTPS へ 301 する
+- `https://mofune.site/`(紹介ページのプレースホルダ)と
+  `https://mofune.site/app/`(PWA)がどちらも 200
+
 残っているもの:
 
-- **AAAA レコードの修正または削除**(§6.1)。3 本がプレフィックス欠けで別アドレスに
-  なっており、証明書発行を妨げうるので最優先
-- **www の CNAME 修正**(§6.2)。終端ドットが無く、ゾーン名が付け足されている
-- Enforce HTTPS の有効化(§4.4)。証明書が発行されてから
+- **www の証明書発行待ち。** GitHub 側のリダイレクト設定自体はすでに有効で、
+  `Host: www.mofune.site` で IP を直接叩くと 301 → `https://mofune.site/` を返す。
+  ただし `www` を含む証明書はまだ出ておらず、HTTPS では
+  `ERR_TLS_CERT_ALTNAME_INVALID` になる。公開リゾルバの CNAME キャッシュ
+  (TTL 3600 秒)が切れて DNS が行き渡れば自動で発行される
 - ドメイン検証(Settings → Pages → Verify domain)。乗っ取り対策として推奨
 - 紹介ページ・プライバシーポリシー・導入手順書の作成(Phase 2d)。
   それに伴いルートの `noindex` を外す
