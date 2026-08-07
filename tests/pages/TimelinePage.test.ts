@@ -64,8 +64,16 @@ describe('TimelinePage', () => {
     expect(wrapper.find('[data-test="staff-panel"]').exists()).toBe(false)
   })
 
-  it('always offers the absence report', () => {
+  it('always offers a way to report an absence', () => {
+    // 導線は下のナビへ移した (デザイン 03)。参加者にも必ず出る。
     signIn('member')
-    expect(mount(TimelinePage).find('[data-test="report"]').exists()).toBe(true)
+    expect(mount(TimelinePage).find('[data-test="nav-absence"]').exists()).toBe(true)
+  })
+
+  it('takes the visitor to the absence screen from the bottom nav', async () => {
+    signIn('member')
+    const wrapper = mount(TimelinePage)
+    await wrapper.find('[data-test="nav-absence"]').trigger('click')
+    expect(push).toHaveBeenCalledWith({ name: 'absence', params: { groupId: 'midori' } })
   })
 })

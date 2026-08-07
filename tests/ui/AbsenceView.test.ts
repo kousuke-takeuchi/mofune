@@ -7,6 +7,8 @@ import AbsenceView from '../../src/ui/AbsenceView.vue'
 import { issueGrant, grantPath } from '../../src/inbox/grants'
 import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
 import { pending } from '../../src/sync/outbox'
+import { HttpStorageProvider } from '../../src/storage/http'
+import type { StorageProvider } from '../../src/storage/provider'
 import { MemoryStorageProvider } from '../../src/storage/memory'
 import { generateEcdhKeyPair } from '../../src/crypto/asymmetric'
 import { toBase64 } from '../../src/crypto/bytes'
@@ -92,7 +94,7 @@ afterEach(() => {
   mounted = []
 })
 
-async function mountAbsence(storage: MemoryStorageProvider, session: Session) {
+async function mountAbsence(storage: StorageProvider, session: Session) {
   const wrapper = mount(AbsenceView, { props: { session, storage } })
   mounted.push(wrapper)
   await vi.waitFor(() => {
@@ -147,12 +149,20 @@ describe('AbsenceView', () => {
     expect(uploads).toHaveBeenCalledTimes(1)
   })
 
-  it('tells the user when no slots are available', async () => {
+  it('tells a participant when no slots are available', async () => {
     const { session } = await fixture()
-    // grant が置かれていないストレージ
-    const wrapper = await mountAbsence(new MemoryStorageProvider(), session)
+    // 参加者が持つのは公開読み専用の経路。枠が無ければ投函する手立てが無い。
+    const wrapper = await mountAbsence(new HttpStorageProvider('https://public.invalid'), session)
     expect(wrapper.find('[data-test="no-slots"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="submit"]').exists()).toBe(false)
+  })
+
+  it('lets staff report without waiting for a slot', async () => {
+    // 担当者は書き込み資格情報を持つので、枠が無くても自分で投函できる
+    const { session } = await fixture()
+    const wrapper = await mountAbsence(new MemoryStorageProvider(), session)
+    expect(wrapper.find('[data-test="ready"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="submit"]').exists()).toBe(true)
   })
 
   it('says the report is only readable by staff', async () => {

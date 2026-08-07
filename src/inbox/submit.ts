@@ -1,4 +1,6 @@
 import type { Bytes } from '../crypto/bytes'
+import { toHex } from '../crypto/bytes'
+import { randomBytes } from '../crypto/symmetric'
 import type { GroupDatabase } from '../db/group-db'
 import type { Session } from '../group/session'
 import { enqueue } from '../sync/outbox'
@@ -66,4 +68,27 @@ export async function submitToInbox(options: {
   })
 
   return { key: slot.key }
+}
+
+/**
+ * 投函枠を使わずに直接書き込む。
+ *
+ * 枠 (presigned URL) は参加者にしか配られない。担当者・管理者は書き込み資格情報を
+ * 持っているので、枠を待つ理由がない。要件書 §3 は不在連絡を全ロールに認めており、
+ * 枠を必須にすると担当者だけ連絡できないという妙なことになる。
+ *
+ * 封緘先は枠経由と同じ「担当者・管理者の公開鍵」なので、保存されるものは変わらない。
+ */
+export async function submitDirectly(options: {
+  session: Session
+  db: GroupDatabase
+  plaintext: Bytes
+}): Promise<{ key: string }> {
+  const recipients = staffRecipients(options.session.roster)
+  const sealed = await sealForRecipients(recipients, options.plaintext)
+  // キーをランダムにして、誰がいつ何件投函したかを推測しにくくする
+  const key = `${options.session.groupId}/inbox/${options.session.userId}/${toHex(randomBytes(16))}.enc`
+
+  await enqueue(options.db, { id: key, kind: 'object', path: key, body: sealed })
+  return { key }
 }

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 defineOptions({ name: 'TimelineView' })
 
+import { formatWhen } from './format'
+
 import { computed, onMounted, ref } from 'vue'
 import type { CachedMessage } from '../db/group-db'
 import { openGroupDatabase } from '../db/group-db'
@@ -76,6 +78,9 @@ onMounted(reload)
       </button>
     </header>
 
+    <!-- 担当者向けの操作。ヘッダの下に置く (デザイン 03) -->
+    <slot name="actions" />
+
     <p v-if="syncError" data-test="sync-error">{{ syncError }}</p>
 
     <p v-if="messages.length === 0" data-test="empty">まだお知らせはありません。</p>
@@ -88,7 +93,7 @@ onMounted(reload)
         :data-unread="String(isUnread(message))"
         @click="emit('open', message.id)"
       >
-        <time>{{ message.at }}</time>
+        <time>{{ formatWhen(message.at) }}</time>
         <p>{{ message.body }}</p>
         <span v-if="message.attachments.length > 0" data-test="has-attachment">添付あり</span>
       </li>
