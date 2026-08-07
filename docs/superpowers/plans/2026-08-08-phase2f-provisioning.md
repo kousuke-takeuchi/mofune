@@ -108,7 +108,7 @@ src/App.vue                   未ログイン時の導線(既存を変更)      
 
 `groupForPrinting` は4文字ごとにハイフン、指定数ごとに改行を入れる。目で追える形にするのが目的。
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [x] **Step 1: 失敗するテストを書く**
 
 `tests/crypto/base32.test.ts`:
 
@@ -197,7 +197,7 @@ describe('groupForPrinting', () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認する**
+- [x] **Step 2: テストを実行して失敗を確認する**
 
 ```bash
 npx vitest run tests/crypto/base32.test.ts
@@ -205,7 +205,7 @@ npx vitest run tests/crypto/base32.test.ts
 
 Expected: FAIL — `Failed to resolve import "../../src/crypto/base32"`
 
-- [ ] **Step 3: 実装する**
+- [x] **Step 3: 実装する**
 
 `src/crypto/base32.ts`:
 
@@ -281,7 +281,7 @@ export function groupForPrinting(text: string, groupSize = 4, perLine = 8): stri
 }
 ```
 
-- [ ] **Step 4: テストを実行して成功を確認する**
+- [x] **Step 4: テストを実行して成功を確認する**
 
 ```bash
 npx vitest run tests/crypto/base32.test.ts && npm run typecheck
@@ -289,7 +289,7 @@ npx vitest run tests/crypto/base32.test.ts && npm run typecheck
 
 Expected: 14 tests passed、型チェックはエラーなし。
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/crypto/base32.ts tests/crypto/base32.test.ts
@@ -314,7 +314,7 @@ git commit -m "feat(crypto): add crockford base32 for hand-transcribed backups"
 
 **チェックサムを付ける。** 転記を間違えたまま「復元できた」と誤認すると、後になって署名が通らない形で発覚する。読み込み時に必ず検証する。
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [x] **Step 1: 失敗するテストを書く**
 
 `tests/group/recovery-kit.test.ts`:
 
@@ -413,7 +413,7 @@ describe('parseRecoveryKit', () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認する**
+- [x] **Step 2: テストを実行して失敗を確認する**
 
 ```bash
 npx vitest run tests/group/recovery-kit.test.ts
@@ -421,7 +421,7 @@ npx vitest run tests/group/recovery-kit.test.ts
 
 Expected: FAIL — `Failed to resolve import "../../src/group/recovery-kit"`
 
-- [ ] **Step 3: 実装する**
+- [x] **Step 3: 実装する**
 
 `src/group/recovery-kit.ts`:
 
@@ -549,7 +549,7 @@ export async function parseRecoveryKit(
 }
 ```
 
-- [ ] **Step 4: テストを実行して成功を確認する**
+- [x] **Step 4: テストを実行して成功を確認する**
 
 ```bash
 npx vitest run tests/group/recovery-kit.test.ts && npm run typecheck
@@ -559,7 +559,7 @@ Expected: 12 tests passed、型チェックはエラーなし。
 
 `rejects a code with a mistyped character` が落ちる場合、置き換えた1文字がたまたま同じ値に読み替えられている可能性がある(`0`↔`O` など)。その場合はテスト側で、`BASE32_ALPHABET` 上で確実に異なる記号を選ぶよう直す。
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/group/recovery-kit.ts tests/group/recovery-kit.test.ts
@@ -590,7 +590,7 @@ design 10 の「接続の確認」。**書き込む前に確かめる。** 資�
 
 テスト用オブジェクトのキーはランダムにし、確認後に必ず消す。
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [x] **Step 1: 失敗するテストを書く**
 
 `tests/group/connection-check.test.ts`:
 
@@ -682,7 +682,7 @@ describe('checkConnection', () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認する**
+- [x] **Step 2: テストを実行して失敗を確認する**
 
 ```bash
 npx vitest run tests/group/connection-check.test.ts
@@ -690,7 +690,7 @@ npx vitest run tests/group/connection-check.test.ts
 
 Expected: FAIL — `Failed to resolve import "../../src/group/connection-check"`
 
-- [ ] **Step 3: 実装する**
+- [x] **Step 3: 実装する**
 
 `src/group/connection-check.ts`:
 
@@ -764,7 +764,7 @@ export async function checkConnection(options: {
 }
 ```
 
-- [ ] **Step 4: テストを実行して成功を確認する**
+- [x] **Step 4: テストを実行して成功を確認する**
 
 ```bash
 npx vitest run tests/group/connection-check.test.ts && npm run typecheck
@@ -772,7 +772,7 @@ npx vitest run tests/group/connection-check.test.ts && npm run typecheck
 
 Expected: 9 tests passed、型チェックはエラーなし。
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/group/connection-check.ts tests/group/connection-check.test.ts
@@ -806,7 +806,7 @@ git commit -m "feat(group): check storage read-write-delete before provisioning"
 
 **リカバリキットは開設の戻り値に必ず含める。** 「あとで出す」導線にすると出さないまま運用が始まり、ルート鍵を失った時点で詰む(設計書 §4.8)。
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [x] **Step 1: 失敗するテストを書く**
 
 `tests/group/setup.test.ts`:
 
@@ -989,7 +989,7 @@ describe('setUpGroup', () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認する**
+- [x] **Step 2: テストを実行して失敗を確認する**
 
 ```bash
 npx vitest run tests/group/setup.test.ts
@@ -997,7 +997,7 @@ npx vitest run tests/group/setup.test.ts
 
 Expected: FAIL — `Failed to resolve import "../../src/group/setup"`
 
-- [ ] **Step 3: 実装する**
+- [x] **Step 3: 実装する**
 
 `src/group/setup.ts`:
 
@@ -1154,7 +1154,7 @@ export async function setUpGroup(options: SetupOptions): Promise<SetupResult> {
 
 **`publishGrants` に渡す名簿について。** 上のコードは仮の userId を組み立てているが、これは誤りである。`provisionGroup` が実際に採番した userId と公開鍵を使わなければ、参加者はその grant を復号できない。**実装時は署名済み名簿から実物を読むこと。** `provisioned.objects` の `rosterPath` を `parseRosterFile` → `verifyRoster` して `RosterContents` を得て、それを `publishGrants` に渡す。テスト `issues upload grants for members` は grant が書かれたことしか見ていないので仮実装でも通ってしまう。**通ったからといって仮のままにしないこと。**
 
-- [ ] **Step 4: テストを実行して成功を確認する**
+- [x] **Step 4: テストを実行して成功を確認する**
 
 ```bash
 npx vitest run tests/group/setup.test.ts && npm run typecheck
@@ -1162,7 +1162,7 @@ npx vitest run tests/group/setup.test.ts && npm run typecheck
 
 Expected: 13 tests passed、型チェックはエラーなし。
 
-- [ ] **Step 5: 参加者が grant を開けることを確かめる**
+- [x] **Step 5: 参加者が grant を開けることを確かめる**
 
 上の注意点を落とさないため、次のテストを `tests/group/setup.test.ts` に追記して green にする。
 
@@ -1200,7 +1200,7 @@ Expected: 13 tests passed、型チェックはエラーなし。
   })
 ```
 
-- [ ] **Step 6: コミット**
+- [x] **Step 6: コミット**
 
 ```bash
 git add src/group/setup.ts tests/group/setup.test.ts
@@ -1231,7 +1231,7 @@ design 10 の画面。4ステップで進む。
 
 **接続コードとリカバリキットは、この画面を離れると二度と出せない。** リカバリキットは鍵そのもので、接続コードもストレージからは復元できない(pepper が含まれるため)。画面にその旨を明記する。
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [x] **Step 1: 失敗するテストを書く**
 
 `tests/ui/ProvisionWizardView.test.ts`:
 
@@ -1368,7 +1368,7 @@ describe('ProvisionWizardView', () => {
 
 **テストが実バケットを叩かないようにする。** `S3StorageProvider` は `fetch` を使うので、`beforeEach` で `vi.stubGlobal('fetch', …)` してインメモリに向けるか、コンポーネントがプロバイダを差し替えられる形にする。実装時にどちらかを選び、**外部へ通信しないことを確認すること**(テストがネットワークに出ると CI が不安定になる)。前者を選ぶ場合は `tests/ui/LoginView.test.ts` の `routeFetchTo` と同じ手法が使える。
 
-- [ ] **Step 2: テストを実行して失敗を確認する**
+- [x] **Step 2: テストを実行して失敗を確認する**
 
 ```bash
 npx vitest run tests/ui/ProvisionWizardView.test.ts
@@ -1376,7 +1376,7 @@ npx vitest run tests/ui/ProvisionWizardView.test.ts
 
 Expected: FAIL — `Failed to resolve import "../../src/ui/ProvisionWizardView.vue"`
 
-- [ ] **Step 3: 実装する**
+- [x] **Step 3: 実装する**
 
 `src/ui/ProvisionWizardView.vue` を作る。要点は次のとおり。
 
@@ -1408,7 +1408,7 @@ const provisioning = ref(false)
 
 既存の `v-if="!session || !storage"` を上の形に置き換えること。`tests/ui/LoginView.test.ts` は `LoginView` を直接マウントしているので影響しない。
 
-- [ ] **Step 4: 全体の検証**
+- [x] **Step 4: 全体の検証**
 
 ```bash
 npm run test:run && npm run typecheck && npm run build
@@ -1416,7 +1416,7 @@ npm run test:run && npm run typecheck && npm run build
 
 Expected: すべて成功。
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/ui/ProvisionWizardView.vue src/App.vue tests/ui/ProvisionWizardView.test.ts
