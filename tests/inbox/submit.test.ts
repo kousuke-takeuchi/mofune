@@ -1,3 +1,4 @@
+import type { Bytes } from '../../src/crypto/bytes'
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { SubmitError, nextSlot, submitToInbox, usedSlots } from '../../src/inbox/submit'
@@ -109,7 +110,7 @@ describe('submitToInbox', () => {
     const { session, staff } = await memberSession()
     const db = openGroupDatabase('midori')
     await submitToInbox({ session, db, grant: grantWith(1), plaintext: utf8('体調不良'), now })
-    const body = (await pending(db))[0]?.body as Uint8Array
+    const body = (await pending(db))[0]?.body as Bytes
     expect(fromUtf8(body)).not.toContain('体調不良')
     expect(fromUtf8(await openAsRecipient('u_tanaka', staff.privateKey, body))).toBe('体調不良')
   })
