@@ -1749,8 +1749,9 @@ design 04 のうち、フォーム回答を除いた部分。フォームは Pha
 ```ts
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import type { VueWrapper } from '@vue/test-utils'
 import MessageDetailView from '../../src/ui/MessageDetailView.vue'
 import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
 import { generateAesKey } from '../../src/crypto/symmetric'
@@ -1811,11 +1812,21 @@ beforeEach(async () => {
   })
 })
 
+let mounted: VueWrapper[] = []
+
+// DB を消す前にコンポーネントを外さないと、進行中の読み取りが未処理のまま落ちる。
+afterEach(() => {
+  for (const wrapper of mounted) wrapper.unmount()
+  mounted = []
+})
+
 async function mountDetail(messageId = 'm_1') {
   const wrapper = mount(MessageDetailView, {
     props: { session: await session(), messageId },
   })
-  await flushPromises()
+  mounted.push(wrapper)
+  // 読み込みが複数段の非同期なので、落ち着くまで数ティック回す
+  for (let i = 0; i < 5; i += 1) await flushPromises()
   return wrapper
 }
 
@@ -1933,29 +1944,38 @@ function authorName(userId: string): string {
 }
 
 onMounted(async () => {
-  const found = await db.messages.get(props.messageId)
-  if (!found) {
-    notFound.value = true
-    return
-  }
-  message.value = found
-
-  for (const fileId of found.attachments) {
-    const file = await db.files.get(fileId)
-    if (!file) {
-      missingAttachments.value.push(fileId)
-      continue
+  try {
+    const found = await db.messages.get(props.messageId)
+    if (!found) {
+      notFound.value = true
+      return
     }
-    const blob = new Blob([file.blob], { type: file.mediaType })
-    attachments.value.push({
-      id: fileId,
-      mediaType: file.mediaType,
-      url: URL.createObjectURL(blob),
-    })
-  }
+    message.value = found
 
-  // 既読はローカルにだけ記録する。送出は一切しない(要件書 §4.10)。
-  await db.syncState.put({ key: 'lastReadAt', value: new Date().toISOString() })
+    // 添付を1件ずつ直列に待つと、呼び出し側が待つティック数に依存して
+    // 表示が欠ける。既読の記録も含めて1段にまとめる。
+    // 既読はローカルにだけ記録する。送出は一切しない(要件書 §4.10)。
+    const [files] = await Promise.all([
+      Promise.all(found.attachments.map((fileId) => db.files.get(fileId))),
+      db.syncState.put({ key: 'lastReadAt', value: new Date().toISOString() }),
+    ])
+
+    found.attachments.forEach((fileId, index) => {
+      const file = files[index]
+      if (!file) {
+        missingAttachments.value.push(fileId)
+        return
+      }
+      const blob = new Blob([file.blob], { type: file.mediaType })
+      attachments.value.push({
+        id: fileId,
+        mediaType: file.mediaType,
+        url: URL.createObjectURL(blob),
+      })
+    })
+  } catch {
+    // 端末の登録解除(設計書 §5.4)などで DB が閉じられた場合。画面は壊さない。
+  }
 })
 
 onBeforeUnmount(() => {
