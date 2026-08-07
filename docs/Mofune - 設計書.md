@@ -287,17 +287,28 @@ mofune_{group_id}
 ## 7.1 StorageProvider抽象
 
 ```typescript
+interface StorageEntry {
+  path: string
+  size: number
+}
+
+interface StorageCapabilities {
+  read: boolean
+  write: boolean
+  list: boolean
+  inbox: boolean          // 認証アカウントを持たない利用者が自分の区画にだけ書ける経路があるか
+}
+
 interface StorageProvider {
-  get(path: string): Promise<Uint8Array>
-  put(path: string, data: Uint8Array): Promise<void>      // 要書き込み権限(担当者)
-  list(prefix: string, after?: string): Promise<Entry[]>  // カーソル付き範囲取得
+  readonly capabilities: StorageCapabilities
+  get(path: string): Promise<Uint8Array>                        // 不在時は NotFoundError
+  put(path: string, data: Uint8Array): Promise<void>            // 要書き込み権限(担当者)
+  list(prefix: string, after?: string): Promise<StorageEntry[]> // after 以降のみ返す(同期カーソル)
   delete(path: string): Promise<void>
-  capabilities: {
-    inbox: boolean          // 匿名アップロード経路の有無
-    publicRead: boolean
-  }
 }
 ```
+
+能力に応じて実装できない操作は `UnsupportedOperationError` を投げる(公開読み取り専用プロバイダの `put` など)。`list` の `after` は「このパスより後」を意味し、イベントログの差分同期がこれに依存する(§6.1)。
 
 ## 7.2 プロバイダ能力マトリクス
 
@@ -333,6 +344,29 @@ interface StorageProvider {
 ```
 
 平文で露出するのはオブジェクトのサイズ・更新時刻・パス構造・宛先 key_id のみ(許容メタデータ、要件書§5.3)。
+
+## 7.4 書き込み資格情報の保管
+
+読み取りは公開読みなので資格情報を必要としないが、**書き込みとpresigned URL発行には資格情報が要る**。誰がどこに持つかを定義する。
+
+```
+settings/storage.enc     # staff スコープ鍵で暗号化
+{
+  "provider": "s3",
+  "endpoint": "https://<account>.r2.cloudflarestorage.com",
+  "region": "auto",
+  "bucket": "...",
+  "accessKeyId": "...",
+  "secretAccessKey": "..."
+}
+```
+
+- 投稿権限を持つのは管理者と担当者(要件書§3)なので、資格情報は **staff スコープ**に置く。管理者のキーストアには置かない(担当者が投稿できなくなるため)
+- 参加者はこのオブジェクトを復号できない。参加者の上りは資格情報ではなく、配布された presigned PUT URL で行う(§8)
+- 開設ウィザードが接続確認に成功した時点で書き込む。資格情報の差し替えは管理者が同じ経路で行う
+- ブラウザから直接 S3 を叩くため、バケットに CORS 設定(`PUT`/`GET`/`HEAD` と `ETag` の公開)が必要。手順書に記載する
+
+**受容する制約**: 担当者は誰でも `settings/storage.enc` を復号でき、バケットへの書き込み資格情報を取り出せる。これは「担当者は投稿できる」という要件と同義であり、鍵の分離では防げない。退任時は資格情報のローテーション(新しいアクセスキーを発行し `settings/storage.enc` を更新)を staff スコープ鍵のローテーションと同時に行う。
 
 ---
 
@@ -531,6 +565,7 @@ GET  /health
 | 子サブグループ宛の内容が親に漏れる | スコープ鍵は独立生成。派生関係を持たない(§3.2) |
 | 関数の侵害 | 無内容通知のためスパム送信以外の被害なし |
 | 退会者のアクセス継続 | 所属全スコープの鍵ローテーション(既取得データは回収不能=受容済み) |
+| 退任した担当者による書き込み | staff スコープ鍵のローテーションと同時にストレージのアクセスキーを再発行(§7.4) |
 | 閲覧行動のプロファイリング | 既読情報を一切送出しない(§6.4) |
 | inboxへのスパム投函 | presigned URLの期限・ランダムキー。E2EEにより改竄・盗聴は無効 |
 
