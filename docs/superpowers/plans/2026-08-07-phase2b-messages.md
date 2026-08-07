@@ -1404,8 +1404,9 @@ design 03 の画面。ローカルDBの `messages` を新しい順に並べ、�
 ```ts
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import type { VueWrapper } from '@vue/test-utils'
 import TimelineView from '../../src/ui/TimelineView.vue'
 import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
 import { MemoryStorageProvider } from '../../src/storage/memory'
@@ -1445,14 +1446,24 @@ const newer: CachedMessage = {
   attachments: ['f_1'],
 }
 
+let mounted: VueWrapper[] = []
+
 beforeEach(async () => {
   await deleteGroupDatabase('midori')
+})
+
+// DB を消す前にコンポーネントを外さないと、進行中の読み取りが
+// DatabaseClosedError で未処理のまま落ちる。
+afterEach(() => {
+  for (const wrapper of mounted) wrapper.unmount()
+  mounted = []
 })
 
 async function mountTimeline() {
   const wrapper = mount(TimelineView, {
     props: { session: await session(), storage: new MemoryStorageProvider() },
   })
+  mounted.push(wrapper)
   await flushPromises()
   return wrapper
 }
@@ -1526,6 +1537,8 @@ describe('TimelineView', () => {
     expect(wrapper.findAll('[data-test="message"]')).toHaveLength(0)
     await openGroupDatabase('midori').messages.put(newer)
     await wrapper.find('[data-test="sync"]').trigger('click')
+    // syncGroup → reload と非同期が多段なので、1ティックでは足りない
+    await flushPromises()
     await flushPromises()
     expect(wrapper.findAll('[data-test="message"]')).toHaveLength(1)
   })
@@ -1543,6 +1556,7 @@ describe('TimelineView', () => {
     const wrapper = mount(TimelineView, {
       props: { session: await session(), storage: failing as never },
     })
+    mounted.push(wrapper)
     await flushPromises()
     await wrapper.find('[data-test="sync"]').trigger('click')
     await flushPromises()
@@ -1591,8 +1605,19 @@ function isUnread(message: CachedMessage): boolean {
 const unreadCount = computed(() => messages.value.filter(isUnread).length)
 
 async function reload(): Promise<void> {
-  messages.value = (await db.messages.toArray()).sort((a, b) => (a.at < b.at ? 1 : -1))
-  lastReadAt.value = (await db.syncState.get('lastReadAt'))?.value ?? null
+  try {
+    // 2つを直列に await すると、呼び出し側が1ティックしか待たないときに
+    // 2つ目が反映されない。まとめて解決させる。
+    const [cached, state] = await Promise.all([
+      db.messages.toArray(),
+      db.syncState.get('lastReadAt'),
+    ])
+    messages.value = cached.sort((a, b) => (a.at < b.at ? 1 : -1))
+    lastReadAt.value = state?.value ?? null
+  } catch {
+    // 端末の登録解除(設計書 §5.4)などで DB が閉じられた場合は、
+    // 表示を最後の状態のまま保つ。読み取り失敗で画面を壊さない。
+  }
 }
 
 async function sync(): Promise<void> {
