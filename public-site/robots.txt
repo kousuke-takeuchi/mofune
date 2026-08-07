@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+# アプリ本体は読み物ではないので拾わせない
+Disallow: /app/
+
+Sitemap: https://mofune.site/sitemap.xml

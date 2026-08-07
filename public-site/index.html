@@ -3,63 +3,428 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="robots" content="noindex" />
-    <title>Mofune</title>
-    <style>
-      :root {
-        color-scheme: light dark;
-        --ink: #3b322a;
-        --paper: #f7f1e6;
-        --accent: #e8a03c;
-      }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        background: var(--paper);
-        color: var(--ink);
-        font-family: system-ui, sans-serif;
-        line-height: 1.8;
-        padding: 1.5rem;
-      }
-      main {
-        max-width: 32rem;
-      }
-      h1 {
-        margin: 0 0 0.5rem;
-        font-size: 2rem;
-      }
-      .lead {
-        margin: 0 0 2rem;
-      }
-      .note {
-        font-size: 0.9rem;
-        opacity: 0.75;
-      }
-      a {
-        color: inherit;
-        text-decoration-color: var(--accent);
-        text-underline-offset: 0.2em;
-      }
-      @media (prefers-color-scheme: dark) {
-        body {
-          background: #241f1a;
-          color: #f7f1e6;
-        }
-      }
-    </style>
+    <title>Mofune — グループのなかの連絡を、やわらかく、安全に。</title>
+    <meta
+      name="description"
+      content="Mofune は、お知らせ・写真・出欠確認・不在の連絡を、グループが用意した保管場所に暗号化して置く連絡アプリです。中央サーバーを持たず、Mofune の利用料は無料です。"
+    />
+    <link rel="canonical" href="https://mofune.site/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Mofune" />
+    <meta property="og:title" content="Mofune — グループのなかの連絡を、やわらかく、安全に。" />
+    <meta
+      property="og:description"
+      content="お知らせ・写真・出欠確認・不在の連絡を、グループが用意した保管場所に暗号化して置く連絡アプリ。中央サーバーを持ちません。"
+    />
+    <meta property="og:url" content="https://mofune.site/" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="stylesheet" href="/assets/site.css" />
   </head>
   <body>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">
+          <svg class="mark" viewBox="0 0 200 190" aria-hidden="true">
+            <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
+            <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
+            <circle cx="78" cy="52" r="26" fill="#FFFFFF" />
+            <circle cx="124" cy="50" r="24" fill="#FFFFFF" />
+            <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
+            <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
+            <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
+            <circle cx="82" cy="88" r="6" fill="#3B322A" />
+            <circle cx="118" cy="88" r="6" fill="#3B322A" />
+          </svg>
+          Mofune
+        </a>
+        <nav class="site-nav">
+          <a href="#features">できること</a>
+          <a href="#security">安心のしくみ</a>
+          <a href="#start">はじめかた</a>
+          <a href="#faq">よくある質問</a>
+          <a class="btn btn-primary" href="/app/">グループを作る</a>
+        </nav>
+      </div>
+    </header>
+
     <main>
-      <h1>Mofune</h1>
-      <p class="lead">グループのなかの連絡を、やわらかく、安全に。</p>
-      <p class="note">
-        紹介ページは準備中です。アプリは <a href="/app/">/app</a> で動作します。
-        開発状況とドキュメントは
-        <a href="https://github.com/kousuke-takeuchi/mofune">GitHub リポジトリ</a>
-        にあります。
-      </p>
+      <section class="hero">
+        <div class="wrap">
+          <div>
+            <p class="eyebrow">共有ストレージと連携する連絡アプリ</p>
+            <h1>みんなへの連絡を、<br />やさしく、安全に。</h1>
+            <p class="lead">
+              お知らせ、写真やPDF、出欠確認、不在の連絡、アンケートを、グループが用意した保管場所に暗号化して保存します。Mofune の利用に会員登録も月額料金もかかりません。
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="/app/">グループを作る</a>
+              <a class="btn btn-ghost" href="/app/">メンバーとしてログイン</a>
+            </div>
+            <ul class="chips">
+              <li>Mofune の利用料は無料</li>
+              <li>アプリのインストール不要</li>
+              <li>広告なし</li>
+            </ul>
+          </div>
+
+          <div class="mock" aria-hidden="true">
+            <svg class="mock-mascot float" viewBox="0 0 200 190">
+              <ellipse cx="100" cy="152" rx="60" ry="10" fill="#3B322A" opacity=".07" />
+              <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
+              <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
+              <circle cx="78" cy="52" r="26" fill="#FFFFFF" />
+              <circle cx="124" cy="50" r="24" fill="#FFFFFF" />
+              <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
+              <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
+              <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
+              <path d="M74 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+              <path d="M110 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+              <ellipse cx="64" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+              <ellipse cx="136" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+              <path d="M92 100 q8 8 16 0" stroke="#3B322A" stroke-width="3.4" fill="none" stroke-linecap="round" />
+            </svg>
+            <div>
+              <p class="mock-title">みどり台グループ</p>
+              <p class="mock-meta">Aチーム · 8/7</p>
+            </div>
+            <p class="mock-note">今週の写真を共有しました</p>
+            <div class="mock-form">
+              <p class="label">アンケート</p>
+              <p class="q">来週の集まり、参加できますか?</p>
+              <div class="mock-choices"><span>はい</span><span>いいえ</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section why">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="eyebrow">Why Mofune</p>
+            <h2>データを、あなたのグループが持ったまま使えます</h2>
+          </div>
+          <div class="grid why-grid">
+            <div class="card">
+              <h3>Mofune の利用料は無料</h3>
+              <p>
+                利用者の端末と、グループが用意した保管場所だけで動きます。Mofune への会員登録も月額利用料もありません。保管場所は各グループが選んで契約します(料金や登録条件はそのサービスの規約によります)。
+              </p>
+            </div>
+            <div class="card">
+              <h3>中身は関係者だけ</h3>
+              <p>
+                写真も連絡も、送る前に端末の中で鍵をかけます。保管場所の事業者も、私たちも中身を読めません。
+              </p>
+            </div>
+            <div class="card">
+              <h3>参加者はIDだけ</h3>
+              <p>
+                Googleアカウントもアプリのインストールも不要。配られたIDとパスワードでどの端末からでも見られます。
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="wrap">
+          <div class="section-head">
+            <h2>できること</h2>
+            <p class="lead">運営側の手間を増やさない4つだけに絞っています</p>
+          </div>
+          <div class="grid features">
+            <div class="feature">
+              <svg viewBox="0 0 200 190" aria-hidden="true">
+                <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
+                <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
+                <circle cx="78" cy="52" r="26" fill="#FFFFFF" />
+                <circle cx="124" cy="50" r="24" fill="#FFFFFF" />
+                <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
+                <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
+                <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
+                <path d="M74 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+                <path d="M110 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+                <ellipse cx="64" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+                <ellipse cx="136" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+                <path d="M92 100 q8 8 16 0" stroke="#3B322A" stroke-width="3.4" fill="none" stroke-linecap="round" />
+                <g transform="translate(46,58) scale(1.45) rotate(-7 25 55)">
+                  <rect x="6" y="34" width="36" height="44" rx="4" fill="#FBF7F0" stroke="#3B322A" stroke-width="2.6" />
+                  <rect x="12" y="42" width="24" height="4" rx="2" fill="#E8A03C" />
+                  <rect x="12" y="52" width="24" height="3" rx="1.5" fill="#D6CBBB" />
+                  <rect x="12" y="60" width="18" height="3" rx="1.5" fill="#D6CBBB" />
+                  <rect x="12" y="68" width="21" height="3" rx="1.5" fill="#D6CBBB" />
+                </g>
+              </svg>
+              <h3>お知らせと添付</h3>
+              <p>全体・グループ単位で配信。写真やPDFをまとめて添付できます。</p>
+            </div>
+
+            <div class="feature">
+              <svg viewBox="0 0 200 190" aria-hidden="true">
+                <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
+                <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
+                <circle cx="78" cy="52" r="26" fill="#FFFFFF" />
+                <circle cx="124" cy="50" r="24" fill="#FFFFFF" />
+                <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
+                <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
+                <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
+                <path d="M74 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+                <path d="M110 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+                <ellipse cx="64" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+                <ellipse cx="136" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+                <path d="M92 100 q8 8 16 0" stroke="#3B322A" stroke-width="3.4" fill="none" stroke-linecap="round" />
+                <g transform="translate(46,58) scale(1.45) rotate(-6 25 55)">
+                  <rect x="6" y="34" width="36" height="44" rx="4" fill="#FBF7F0" stroke="#3B322A" stroke-width="2.6" />
+                  <rect x="12" y="42" width="10" height="10" rx="2" fill="#7FA37A" />
+                  <path d="M14 47 l3 3 l5 -6" stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round" />
+                  <rect x="26" y="45" width="12" height="3" rx="1.5" fill="#D6CBBB" />
+                  <rect x="12" y="58" width="10" height="10" rx="2" fill="#FBF7F0" stroke="#B7A992" stroke-width="2" />
+                  <rect x="26" y="61" width="12" height="3" rx="1.5" fill="#D6CBBB" />
+                </g>
+              </svg>
+              <h3>埋め込みフォーム</h3>
+              <p>出欠・アンケートをお知らせの中に。集計は作成した本人だけに見えます。</p>
+            </div>
+
+            <div class="feature">
+              <svg viewBox="0 0 200 190" aria-hidden="true">
+                <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
+                <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
+                <circle cx="78" cy="52" r="26" fill="#FFFFFF" />
+                <circle cx="124" cy="50" r="24" fill="#FFFFFF" />
+                <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
+                <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
+                <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
+                <path d="M74 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+                <path d="M110 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+                <ellipse cx="64" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+                <ellipse cx="136" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+                <path d="M92 100 q8 8 16 0" stroke="#3B322A" stroke-width="3.4" fill="none" stroke-linecap="round" />
+                <g transform="translate(46,58) scale(1.45)">
+                  <rect x="6" y="36" width="38" height="38" rx="6" fill="#FBF7F0" stroke="#3B322A" stroke-width="2.6" />
+                  <rect x="6" y="36" width="38" height="11" rx="5" fill="#D9703F" />
+                  <circle cx="25" cy="61" r="9" fill="#F2A28C" opacity=".55" />
+                  <path d="M20 61 l4 4 l7 -8" stroke="#3B322A" stroke-width="2.8" fill="none" stroke-linecap="round" />
+                </g>
+              </svg>
+              <h3>欠席・不在の連絡</h3>
+              <p>電話や口頭の伝達を減らせます。内容は宛先の担当者にしか届きません。</p>
+            </div>
+
+            <div class="feature">
+              <svg viewBox="0 0 200 190" aria-hidden="true">
+                <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
+                <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
+                <circle cx="78" cy="52" r="26" fill="#FFFFFF" />
+                <circle cx="124" cy="50" r="24" fill="#FFFFFF" />
+                <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
+                <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
+                <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
+                <path d="M74 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+                <path d="M110 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+                <ellipse cx="64" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+                <ellipse cx="136" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+                <path d="M92 100 q8 8 16 0" stroke="#3B322A" stroke-width="3.4" fill="none" stroke-linecap="round" />
+                <g transform="translate(46,58) scale(1.45)">
+                  <rect x="6" y="36" width="38" height="28" rx="4" fill="#FBF7F0" stroke="#3B322A" stroke-width="2.6" />
+                  <path d="M7 38 L25 53 L43 38" stroke="#3B322A" stroke-width="2.6" fill="none" stroke-linecap="round" />
+                  <circle cx="46" cy="35" r="8" fill="#D9703F" />
+                </g>
+              </svg>
+              <h3>気づける通知</h3>
+              <p>Push・メールを自動で使い分け。通知に本文は載せません。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="security">
+        <div class="wrap">
+          <div class="security">
+            <div>
+              <p class="eyebrow">Security</p>
+              <h2>預けないから、<br />漏れません。</h2>
+              <p style="margin-top: 1rem">
+                データはグループが用意した保管場所に、鍵をかけた状態で置かれます。鍵はグループの中だけ。
+                Mofune はサーバーもデータベースも持ちません。
+              </p>
+              <ul>
+                <li>送る前に端末の中で鍵をかける</li>
+                <li>フォームの回答は作成した本人だけが読める</li>
+                <li>メンバーどうしの連絡先は非公開</li>
+                <li>オフラインでも閲覧できる</li>
+              </ul>
+            </div>
+            <div class="flow">
+              <div class="flow-step">
+                <p class="who">送る人</p>
+                <p class="what">端末内で暗号化</p>
+              </div>
+              <p class="flow-arrow">↓</p>
+              <div class="flow-step">
+                <p class="who">グループの保管場所</p>
+                <p class="what">中身は読めない</p>
+              </div>
+              <p class="flow-arrow">↓</p>
+              <div class="flow-step">
+                <p class="who">受け取る人</p>
+                <p class="what">鍵で開いて読む</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="start">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="eyebrow">How to start</p>
+            <h2>はじめかたは3ステップ</h2>
+          </div>
+          <div class="grid steps">
+            <div class="step">
+              <p class="num">01</p>
+              <h3>グループの保管場所を用意</h3>
+              <p>
+                グループのアカウントで保管場所を1つ用意します。<a href="/setup-guide.html">手順書</a>
+                のとおりに進めれば10分ほどです。
+              </p>
+            </div>
+            <div class="step">
+              <p class="num">02</p>
+              <h3>メンバーを登録</h3>
+              <p>担当者とメンバーを登録。参加者へは接続コードとIDを紙かQRで配ります。</p>
+            </div>
+            <div class="step">
+              <p class="num">03</p>
+              <h3>最初のお知らせ</h3>
+              <p>参加者はホーム画面に追加するだけ。アプリのように使えます。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="faq">
+        <div class="wrap">
+          <div class="section-head">
+            <h2>よくある質問</h2>
+          </div>
+          <div class="faq">
+            <details>
+              <summary>本当に費用はかかりませんか?</summary>
+              <p class="answer">
+                Mofune の利用に会員登録も月額料金もかかりません。ただしデータの保管場所はグループが用意します。その料金や登録条件は選んだサービスの規約によりますので、契約前にご確認ください。
+              </p>
+            </details>
+            <details>
+              <summary>パスワードを忘れたときは?</summary>
+              <p class="answer">
+                安全のため自動リセットはありません。グループの管理者が新しいパスワードを再発行します。どの端末からでも同じIDで入り直せます。
+              </p>
+            </details>
+            <details>
+              <summary>スマホを買い替えても使えますか?</summary>
+              <p class="answer">
+                使えます。データは端末ではなくグループの保管場所にあるので、新しい端末で接続コードとID・パスワードを入れ直せば同じ内容が読めます。未読の印だけは端末ごとの管理なので、買い替えでリセットされます。
+              </p>
+            </details>
+            <details>
+              <summary>どこにデータを置けますか?</summary>
+              <p class="answer">
+                S3互換のストレージ (Cloudflare R2 / Backblaze B2 / MinIO など)、WebDAV や NAS、
+                Google Drive、Dropbox を想定しています。参加者からの連絡 (欠席・フォーム回答) には各自の投函先を作れる仕組みが要るため、S3互換か WebDAV を選んでください。いまアプリから接続できるのは S3互換です。
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="section how">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="eyebrow">How it works</p>
+            <h2>サーバーを持たない仕組み</h2>
+            <p class="lead">
+              Mofune は Web アプリを配るだけです。データはグループが用意した保管場所に、暗号化された状態で置かれます。
+            </p>
+          </div>
+          <div class="grid how-grid">
+            <div class="how-card">
+              <p class="num">1. 送信者の端末</p>
+              <h3>お知らせを作る</h3>
+              <p>担当者の端末で暗号化してから送ります。</p>
+            </div>
+            <div class="how-card">
+              <p class="num">2. グループの保管場所</p>
+              <h3>データの置き場</h3>
+              <p>グループのアカウントで1つ選ぶだけ。上り用の受信箱 (inbox) も同じ中に置きます。</p>
+              <ul class="store-list">
+                <li>S3互換 (R2 / B2)</li>
+                <li>WebDAV / NAS</li>
+                <li>Google Drive</li>
+                <li>Dropbox</li>
+              </ul>
+            </div>
+            <div class="how-card">
+              <p class="num">3. 参加者の端末</p>
+              <h3>アプリで読む</h3>
+              <p>差分を取って、端末の中で鍵を外して表示します。</p>
+            </div>
+          </div>
+
+          <div class="optional">
+            <h3>任意 · 通知用の関数サービス</h3>
+            <p>
+              通知を自動で送りたい場合は、Google Apps Script や Cloudflare Workers などの実行環境に Mofune が用意したプログラムを置きます。中継するのは「新しい連絡がある」という合図だけで、本文は通りません。置かなくても全機能が動きます。
+            </p>
+          </div>
+
+          <p style="margin-top: 1.5rem; font-size: 14px">
+            通知の届きかた、暗号化方式、ストレージごとの対応状況などの技術的な詳細は、
+            <a href="https://github.com/kousuke-takeuchi/mofune/tree/master/docs">要件書・設計書</a>
+            にまとめています。
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="cta">
+            <h2>今日のお知らせから、はじめませんか。</h2>
+            <p>まずは1グループだけの試験運用もできます。</p>
+            <div class="cta-actions">
+              <a class="btn btn-primary" href="/app/">グループを作る</a>
+              <a class="btn btn-ghost" href="/setup-guide.html">導入手順書を見る</a>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <a class="brand" href="/">
+          <svg class="mark" viewBox="0 0 200 190" aria-hidden="true">
+            <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
+            <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
+            <circle cx="78" cy="52" r="26" fill="#FFFFFF" />
+            <circle cx="124" cy="50" r="24" fill="#FFFFFF" />
+            <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
+            <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
+            <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
+            <circle cx="82" cy="88" r="6" fill="#3B322A" />
+            <circle cx="118" cy="88" r="6" fill="#3B322A" />
+          </svg>
+          Mofune
+        </a>
+        <nav>
+          <a href="/privacy.html">プライバシーポリシー</a>
+          <a href="/setup-guide.html">導入手順書</a>
+          <a href="https://github.com/kousuke-takeuchi/mofune">GitHub</a>
+        </nav>
+        <p class="copy">グループのなかの連絡を、やわらかく、安全に。</p>
+      </div>
+    </footer>
   </body>
 </html>

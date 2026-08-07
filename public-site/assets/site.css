@@ -1,0 +1,863 @@
+/*
+ * 紹介サイトの共通スタイル。docs/design/Mofune Site.dc.html の 1b パネルが正。
+ * フォントは同梱の woff2 のみを使う。外部CDNへ接続すると、訪問者のIPが
+ * 第三者に渡り「預けない」という主張と矛盾する。
+ */
+
+@font-face {
+  font-family: 'Zen Maru Gothic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/zen-maru-gothic-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Zen Maru Gothic';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('../fonts/zen-maru-gothic-900.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/noto-sans-jp-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/noto-sans-jp-700.woff2') format('woff2');
+}
+
+:root {
+  --paper: #efe8dc;
+  --card: #ffffff;
+  --cream: #fbf7f0;
+  --sand: #f7f1e6;
+  --sand-deep: #f2e7d6;
+  --ink: #3b322a;
+  --ink-2: #5c5145;
+  --muted: #8b7f70;
+  --faint: #b7a992;
+  --line: #ede3d3;
+  --amber: #e8a03c;
+  --amber-ink: #a87c3a;
+  --terracotta: #d9703f;
+  --green: #7fa37a;
+  --shadow: 0 24px 48px -32px rgba(59, 50, 42, 0.35);
+  --round: 20px;
+  --round-lg: 28px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 84px;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', system-ui, -apple-system, 'Hiragino Kaku Gothic ProN', sans-serif;
+  font-size: 15px;
+  line-height: 1.9;
+  word-break: auto-phrase;
+  line-break: strict;
+  text-wrap: pretty;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.brand,
+.stat {
+  font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Noto Sans JP', system-ui, sans-serif;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--terracotta);
+  text-decoration: none;
+}
+
+a:hover {
+  color: #b4552a;
+}
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+/* ---------- 共通の部品 ---------- */
+
+.wrap {
+  width: min(1080px, 100% - 2.5rem);
+  margin-inline: auto;
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--amber-ink);
+  text-transform: uppercase;
+}
+
+.section {
+  padding: clamp(3.5rem, 8vw, 6rem) 0;
+}
+
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.section-head h2 {
+  font-size: clamp(1.5rem, 4.2vw, 2.15rem);
+}
+
+.section-head .lead {
+  color: var(--ink-2);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--round);
+  padding: 1.6rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--amber);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #d78f2d;
+  color: #fff;
+}
+
+.btn-ghost {
+  background: var(--cream);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.btn-ghost:hover {
+  background: #fff;
+  color: var(--ink);
+}
+
+/* ---------- ヘッダー ---------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(251, 247, 240, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 68px;
+  padding-block: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--ink);
+}
+
+.brand .mark {
+  width: 38px;
+  height: 36px;
+  flex: none;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.35rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.site-nav a {
+  color: var(--ink-2);
+}
+
+.site-nav a:hover {
+  color: var(--terracotta);
+}
+
+.site-nav .btn {
+  padding: 0.55rem 1.15rem;
+  font-size: 14px;
+}
+
+/* ---------- ヒーロー ---------- */
+
+.hero {
+  padding: clamp(2.5rem, 6vw, 4.5rem) 0 clamp(3rem, 7vw, 5rem);
+}
+
+.hero .wrap {
+  display: grid;
+  gap: clamp(2rem, 5vw, 3.5rem);
+  grid-template-columns: 1fr;
+  align-items: center;
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 6.2vw, 3.1rem);
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  margin: 0.75rem 0 1rem;
+}
+
+.hero .lead {
+  color: var(--ink-2);
+  max-width: 34rem;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.1rem;
+  margin-top: 1.25rem;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.chips li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  list-style: none;
+}
+
+.chips li::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.chips {
+  padding: 0;
+  margin-inline: 0;
+}
+
+/* 端末のモック */
+
+.mock {
+  justify-self: center;
+  width: min(300px, 100%);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--round-lg);
+  box-shadow: var(--shadow);
+  padding: 1.1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.mock-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.mock-meta {
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+.mock-note {
+  background: var(--sand);
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.mock-form {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.mock-form .label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--amber-ink);
+}
+
+.mock-form .q {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.mock-choices {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mock-choices span {
+  flex: 1;
+  text-align: center;
+  font-size: 12.5px;
+  padding: 0.35rem 0;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+.mock-choices span:first-child {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  font-weight: 700;
+}
+
+.mock-mascot {
+  justify-self: center;
+  width: 96px;
+}
+
+/* ---------- WHY ---------- */
+
+.why {
+  background: var(--cream);
+  border-block: 1px solid var(--line);
+}
+
+.why-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.why-grid h3 {
+  font-size: 18px;
+  margin-bottom: 0.4rem;
+}
+
+.why-grid p {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+/* ---------- できること ---------- */
+
+.features {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.feature {
+  text-align: center;
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 1.5rem 1.25rem 1.75rem;
+}
+
+.feature svg {
+  width: 88px;
+  height: 84px;
+}
+
+.feature h3 {
+  font-size: 17px;
+}
+
+.feature p {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+/* ---------- 安心のしくみ ---------- */
+
+.security {
+  background: var(--ink);
+  color: var(--sand);
+  border-radius: var(--round-lg);
+  padding: clamp(2rem, 5vw, 3.25rem);
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr;
+}
+
+.security h2 {
+  color: #fff;
+  font-size: clamp(1.5rem, 4.2vw, 2.15rem);
+}
+
+.security .eyebrow {
+  color: var(--amber);
+}
+
+.security p {
+  color: #ded3c2;
+}
+
+.security ul {
+  margin: 1.25rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+  font-size: 14px;
+}
+
+.security li {
+  list-style: none;
+  display: flex;
+  gap: 0.6rem;
+  color: #ede3d3;
+}
+
+.security li::before {
+  content: '·';
+  color: var(--amber);
+  font-weight: 700;
+}
+
+.flow {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+  align-content: start;
+}
+
+.flow-step {
+  background: rgba(247, 241, 230, 0.07);
+  border: 1px solid rgba(237, 227, 211, 0.18);
+  border-radius: 18px;
+  padding: 1rem 1.1rem;
+}
+
+.flow-step .who {
+  font-weight: 700;
+  color: #fff;
+  font-size: 14.5px;
+}
+
+.flow-step .what {
+  font-size: 12.5px;
+  color: #c9b79a;
+}
+
+.flow-arrow {
+  text-align: center;
+  color: var(--amber);
+  font-size: 13px;
+}
+
+/* ---------- はじめかた ---------- */
+
+.steps {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.step {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 1.5rem;
+}
+
+.step .num {
+  font-family: 'Zen Maru Gothic', system-ui, sans-serif;
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--amber);
+  line-height: 1.2;
+}
+
+.step h3 {
+  font-size: 17px;
+  margin: 0.25rem 0 0.4rem;
+}
+
+.step p {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+/* ---------- FAQ ---------- */
+
+.faq {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.faq details {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 0 1.35rem;
+}
+
+.faq summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 0;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq summary::after {
+  content: '+';
+  color: var(--amber);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.faq details[open] summary::after {
+  content: '−';
+}
+
+.faq .answer {
+  padding: 0 0 1.35rem;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+/* ---------- 仕組み ---------- */
+
+.how {
+  background: var(--sand);
+  border-block: 1px solid var(--line);
+}
+
+.how-grid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  align-items: stretch;
+}
+
+.how-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 1.5rem;
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+}
+
+.how-card .num {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--amber-ink);
+}
+
+.how-card h3 {
+  font-size: 16px;
+}
+
+.how-card p {
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.store-list {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.store-list li {
+  list-style: none;
+  background: var(--sand-deep);
+  border-radius: 10px;
+  padding: 0.25rem 0.7rem;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.optional {
+  margin-top: 1.25rem;
+  background: repeating-linear-gradient(135deg, #e7dcc9 0 6px, #efe6d6 6px 12px);
+  border-radius: 22px;
+  padding: 1.4rem 1.5rem;
+}
+
+.optional h3 {
+  font-size: 15px;
+}
+
+.optional p {
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+/* ---------- CTA ---------- */
+
+.cta {
+  text-align: center;
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--round-lg);
+  padding: clamp(2.25rem, 6vw, 3.5rem) 1.5rem;
+}
+
+.cta h2 {
+  font-size: clamp(1.4rem, 4.2vw, 2rem);
+}
+
+.cta p {
+  color: var(--ink-2);
+}
+
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+/* ---------- フッター ---------- */
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  background: var(--cream);
+  padding: 2.25rem 0 3rem;
+}
+
+.site-footer .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+}
+
+.site-footer nav {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  font-size: 13.5px;
+}
+
+.site-footer nav a {
+  color: var(--ink-2);
+}
+
+.site-footer .copy {
+  width: 100%;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* ---------- 本文ページ (プライバシー・手順書) ---------- */
+
+.doc {
+  padding: clamp(2.5rem, 6vw, 4rem) 0 5rem;
+}
+
+.doc h1 {
+  font-size: clamp(1.7rem, 5vw, 2.4rem);
+  font-weight: 900;
+}
+
+.doc .updated {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 0.5rem;
+}
+
+.doc h2 {
+  font-size: clamp(1.2rem, 3.4vw, 1.5rem);
+  margin-top: 2.75rem;
+}
+
+.doc h3 {
+  font-size: 1.05rem;
+  margin-top: 1.75rem;
+}
+
+.doc p,
+.doc li {
+  color: var(--ink-2);
+}
+
+.doc p {
+  margin-top: 0.9rem;
+}
+
+.doc ul,
+.doc ol {
+  margin-top: 0.9rem;
+  padding-left: 1.35rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.doc table {
+  margin-top: 1rem;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--round);
+  overflow: hidden;
+}
+
+.doc th,
+.doc td {
+  text-align: left;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.doc th {
+  background: var(--sand);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.doc tr:last-child td {
+  border-bottom: none;
+}
+
+.doc .table-scroll {
+  overflow-x: auto;
+}
+
+.callout {
+  margin-top: 1.25rem;
+  background: var(--sand);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 1.1rem 1.35rem;
+  font-size: 14px;
+}
+
+.callout strong {
+  color: var(--ink);
+}
+
+/* ---------- 動き ---------- */
+
+@keyframes mofune-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+.float {
+  animation: mofune-float 3.6s ease-in-out infinite;
+}
+
+/* 動きを減らす設定の端末では止める(デザイン 1a の指示) */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .float {
+    animation: none;
+  }
+}
+
+/* ---------- 広い画面 ---------- */
+
+@media (min-width: 820px) {
+  .hero .wrap {
+    grid-template-columns: 1.15fr 0.85fr;
+  }
+  .security {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 3rem;
+  }
+}

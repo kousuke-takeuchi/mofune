@@ -3,3 +3,6 @@ dist/
 site/
 .DS_Store
 *.local
+
+# フォントの元データ置き場(生成物は public-site/fonts/ に入る)
+.fontcache/

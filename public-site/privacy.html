@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>プライバシーポリシー — Mofune</title>
+    <meta
+      name="description"
+      content="Mofune のプライバシーポリシー。Mofune はサーバーもデータベースも持たず、利用者のデータを受け取りません。"
+    />
+    <link rel="canonical" href="https://mofune.site/privacy.html" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/assets/site.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">
+          <svg class="mark" viewBox="0 0 200 190" aria-hidden="true">
+            <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
+            <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
+            <circle cx="78" cy="52" r="26" fill="#FFFFFF" />
+            <circle cx="124" cy="50" r="24" fill="#FFFFFF" />
+            <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
+            <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
+            <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
+            <circle cx="82" cy="88" r="6" fill="#3B322A" />
+            <circle cx="118" cy="88" r="6" fill="#3B322A" />
+          </svg>
+          Mofune
+        </a>
+        <nav class="site-nav">
+          <a href="/">トップ</a>
+          <a href="/setup-guide.html">導入手順書</a>
+          <a class="btn btn-primary" href="/app/">アプリを開く</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="doc">
+      <div class="wrap" style="max-width: 46rem">
+        <h1>プライバシーポリシー</h1>
+        <p class="updated">最終更新: 2026年8月8日</p>
+
+        <div class="callout">
+          <strong>要点。</strong>
+          Mofune はサーバーもデータベースも持ちません。お知らせ・写真・連絡先などのデータは、グループが用意した保管場所に暗号化された状態で置かれます。私たちはそれを受け取らず、読むこともできません。
+        </div>
+
+        <h2>1. 事業者</h2>
+        <p>
+          Mofune は個人が開発・公開しているオープンソースのソフトウェアです。ソースコードは
+          <a href="https://github.com/kousuke-takeuchi/mofune">GitHub リポジトリ</a>で公開しています。
+        </p>
+
+        <h2>2. 私たちが取得しない情報</h2>
+        <p>Mofune の運営者は、次のいずれも取得しません。</p>
+        <ul>
+          <li>お知らせの本文、添付した写真やPDF、フォームの回答</li>
+          <li>欠席・不在の連絡の内容</li>
+          <li>メンバーの氏名・表示名・メールアドレス・連絡先</li>
+          <li>ログインID・パスワード・暗号鍵</li>
+          <li>誰がいつ何を読んだかの記録</li>
+        </ul>
+        <p>
+          これらは仕組み上、私たちに届きません。データはグループが用意した保管場所へ、送信前に利用者の端末で暗号化されてから置かれます。復号に必要な鍵はグループの中だけにあります。
+        </p>
+
+        <h2>3. 端末に保存される情報</h2>
+        <p>
+          アプリは表示を速くするため、取得済みのお知らせや添付、未読の印を利用者の端末内
+          (ブラウザの IndexedDB) に保存します。これは端末の中だけの控えで、外部へ送信されません。パスワード・暗号鍵・保管場所の資格情報は端末に保存しません。
+        </p>
+
+        <h2>4. 保管場所の事業者について</h2>
+        <p>
+          データの置き場は各グループが選んで契約します。ファイルの大きさ・更新時刻・パスの形はその事業者から見えますが、中身は暗号化されているため読めません。保管場所の事業者による取り扱いは、そのサービスのプライバシーポリシーが適用されます。
+        </p>
+
+        <h2>5. このサイトについて</h2>
+        <ul>
+          <li>アクセス解析を設置していません。</li>
+          <li>広告を掲載していません。</li>
+          <li>クッキーを利用していません。</li>
+          <li>
+            フォントを含むすべてのファイルをこのサイトから配信しています。外部の CDN へ接続しないため、閲覧しただけで第三者に IP アドレスが渡ることはありません。
+          </li>
+          <li>
+            サイトは GitHub Pages で配信しているため、配信元である GitHub 社のアクセスログには通信の記録が残ります。
+          </li>
+        </ul>
+
+        <h2>6. 通知について</h2>
+        <p>
+          メールでの通知は、担当者の端末からメールアプリを開いて送る方式です。私たちのサーバーを経由しません。グループが任意で通知用の関数サービスを設置した場合も、中継されるのは「新しい連絡がある」という合図だけで、本文や個人情報は載せません。
+        </p>
+
+        <h2>7. 第三者への提供</h2>
+        <p>そもそも取得していないため、提供・販売・共有のいずれも行いません。</p>
+
+        <h2>8. お問い合わせ</h2>
+        <p>
+          ご質問は <a href="https://github.com/kousuke-takeuchi/mofune/issues">GitHub の Issues</a>
+          からお願いします。
+        </p>
+
+        <h2>9. 変更</h2>
+        <p>
+          内容を変更したときは、このページの最終更新日を改めます。重要な変更はリポジトリの変更履歴からも追えます。
+        </p>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <a class="brand" href="/">
+          <svg class="mark" viewBox="0 0 200 190" aria-hidden="true">
+            <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
+            <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
+            <circle cx="78" cy="52" r="26" fill="#FFFFFF" />
+            <circle cx="124" cy="50" r="24" fill="#FFFFFF" />
+            <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
+            <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
+            <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
+            <circle cx="82" cy="88" r="6" fill="#3B322A" />
+            <circle cx="118" cy="88" r="6" fill="#3B322A" />
+          </svg>
+          Mofune
+        </a>
+        <nav>
+          <a href="/privacy.html">プライバシーポリシー</a>
+          <a href="/setup-guide.html">導入手順書</a>
+          <a href="https://github.com/kousuke-takeuchi/mofune">GitHub</a>
+        </nav>
+        <p class="copy">グループのなかの連絡を、やわらかく、安全に。</p>
+      </div>
+    </footer>
+  </body>
+</html>
