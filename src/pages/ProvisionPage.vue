@@ -1,7 +1,13 @@
 <script setup lang="ts">
-// Task 5/6 で中身を入れる。
+import { useRouter } from 'vue-router'
+import ProvisionWizardView from '../ui/ProvisionWizardView.vue'
+
+const router = useRouter()
 </script>
 
 <template>
-  <div />
+  <ProvisionWizardView
+    @done="router.push({ name: 'login' })"
+    @cancel="router.push({ name: 'login' })"
+  />
 </template>
