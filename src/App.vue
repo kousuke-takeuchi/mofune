@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import LoginView from './ui/LoginView.vue'
+import ProvisionWizardView from './ui/ProvisionWizardView.vue'
 import TimelineView from './ui/TimelineView.vue'
 import MessageDetailView from './ui/MessageDetailView.vue'
 import ComposeView from './ui/ComposeView.vue'
@@ -27,6 +28,7 @@ const absenceListOpen = ref(false)
 const notifyMessageId = ref<string | null>(null)
 const emailConfirmed = ref(true)
 const adminPublicKey = ref<Bytes>(new Uint8Array(0))
+const provisioning = ref(false)
 
 async function onLogin(next: Session, root: string, adminKey: string): Promise<void> {
   session.value = next
@@ -40,7 +42,17 @@ async function onLogin(next: Session, root: string, adminKey: string): Promise<v
 
 <template>
   <main>
-    <LoginView v-if="!session || !storage" @login="onLogin" />
+    <ProvisionWizardView
+      v-if="(!session || !storage) && provisioning"
+      @done="provisioning = false"
+      @cancel="provisioning = false"
+    />
+    <template v-else-if="!session || !storage">
+      <LoginView @login="onLogin" />
+      <button type="button" data-test="provision" @click="provisioning = true">
+        グループを作る
+      </button>
+    </template>
     <SetupView
       v-else-if="!emailConfirmed"
       :session="session"
