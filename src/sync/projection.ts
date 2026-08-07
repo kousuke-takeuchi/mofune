@@ -1,6 +1,6 @@
 import { openAttachment } from '../content/attachments'
 import { openMessage } from '../content/messages'
-import type { CachedFile, CachedMessage, GroupDatabase } from '../db/group-db'
+import type { CachedAbsence, CachedFile, CachedMessage, GroupDatabase } from '../db/group-db'
 import type { StorageProvider } from '../storage/provider'
 import { filePath, messagePath } from '../storage/paths'
 import type { GroupEvent } from './events'
@@ -8,6 +8,7 @@ import type { GroupEvent } from './events'
 export interface ProjectionResult {
   messages: number
   files: number
+  absences: number
   /** 参照先がまだ届いていない等で解決できなかった数。異常ではない。 */
   missing: number
 }
@@ -26,7 +27,24 @@ export async function projectEvent(options: {
   keys: ReadonlyMap<string, CryptoKey>
   event: GroupEvent
 }): Promise<ProjectionResult> {
-  const result: ProjectionResult = { messages: 0, files: 0, missing: 0 }
+  const result: ProjectionResult = { messages: 0, files: 0, absences: 0, missing: 0 }
+
+  if (options.event.type === 'ABSENCE_REPORTED') {
+    const absence = options.event.payload['absence']
+    if (absence === null || typeof absence !== 'object') {
+      result.missing += 1
+      return result
+    }
+    const cached = absence as CachedAbsence
+    if (typeof cached.id !== 'string') {
+      result.missing += 1
+      return result
+    }
+    await options.db.absences.put(cached)
+    result.absences += 1
+    return result
+  }
+
   if (options.event.type !== 'MESSAGE_CREATED') {
     return result
   }

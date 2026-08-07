@@ -22,6 +22,16 @@ export interface CachedFile {
   cachedAt: string
 }
 
+export interface CachedAbsence {
+  id: string
+  kind: string
+  date: string
+  reason: string
+  note: string
+  author: string
+  at: string
+}
+
 export interface CachedRoster {
   groupId: string
   contents: RosterContents
@@ -50,9 +60,11 @@ export class GroupDatabase extends Dexie {
   roster!: Table<CachedRoster, string>
   outbox!: Table<OutboxItem, string>
   syncState!: Table<SyncState, string>
+  absences!: Table<CachedAbsence, string>
 
   constructor(groupId: string) {
     super(`mofune_${groupId}`)
+    // v1 の定義は消さない。既存端末の DB を移行するために必要。
     this.version(1).stores({
       messages: 'id, at',
       files: 'id, cachedAt',
@@ -60,6 +72,15 @@ export class GroupDatabase extends Dexie {
       roster: 'groupId',
       outbox: 'id, queuedAt',
       syncState: 'key',
+    })
+    this.version(2).stores({
+      messages: 'id, at',
+      files: 'id, cachedAt',
+      events: 'id',
+      roster: 'groupId',
+      outbox: 'id, queuedAt',
+      syncState: 'key',
+      absences: 'id, date',
     })
   }
 }

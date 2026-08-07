@@ -890,7 +890,7 @@ git commit -m "feat(group): let the admin update contacts and re-sign the roster
   })
 ```
 
-既存の `projectEvent` の戻り値を `toEqual({ messages: 0, files: 0, missing: 0 })` と比較しているテストは、`absences` が増えるので `toEqual({ messages: 0, files: 0, absences: 0, missing: 0 })` に直す。
+既存の `projectEvent` の戻り値を `toEqual({ messages: 0, files: 0, absences: 0, missing: 0 })` と比較しているテストは、`absences` が増えるので `toEqual({ messages: 0, files: 0, absences: 0, missing: 0 })` に直す。
 
 - [ ] **Step 2: テストを実行して失敗を確認する**
 
@@ -1055,7 +1055,6 @@ import { generateAesKey } from '../../src/crypto/symmetric'
 import { generateEcdhKeyPair } from '../../src/crypto/asymmetric'
 import { toBase64, utf8 } from '../../src/crypto/bytes'
 import { openEvent } from '../../src/sync/events'
-import type { Bytes } from '../../src/crypto/bytes'
 import type { Session } from '../../src/group/session'
 import type { RosterContents } from '../../src/crypto/roster'
 
@@ -1264,7 +1263,6 @@ Expected: FAIL — `Failed to resolve import "../../src/inbox/apply"`
 
 ```ts
 import type { Bytes } from '../crypto/bytes'
-import { fromUtf8 } from '../crypto/bytes'
 import { keyId } from '../crypto/keyring'
 import { STAFF_SCOPE } from '../crypto/roster'
 import { parseAbsenceReport } from '../content/absence'
@@ -1379,8 +1377,6 @@ export async function applyInbox(options: {
   return result
 }
 ```
-
-`fromUtf8` を使っていなければ import から外すこと(`noUnusedLocals`)。
 
 - [ ] **Step 4: テストを実行して成功を確認する**
 
