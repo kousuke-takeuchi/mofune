@@ -890,7 +890,7 @@ git commit -m "feat(group): let the admin update contacts and re-sign the roster
   })
 ```
 
-既存の `projectEvent` の戻り値を `toEqual({ messages: 0, files: 0, missing: 0 })` と比較しているテストは、`absences` が増えるので `toEqual({ messages: 0, files: 0, absences: 0, missing: 0 })` に直す。
+既存の `projectEvent` の戻り値を `toEqual({ messages: 0, files: 0, absences: 0, missing: 0 })` と比較しているテストは、`absences` が増えるので `toEqual({ messages: 0, files: 0, absences: 0, missing: 0 })` に直す。
 
 - [ ] **Step 2: テストを実行して失敗を確認する**
 

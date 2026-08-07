@@ -166,7 +166,7 @@ describe('projectEvent', () => {
       keys: session.groupKeys,
       event: other,
     })
-    expect(result).toEqual({ messages: 0, files: 0, missing: 0 })
+    expect(result).toEqual({ messages: 0, files: 0, absences: 0, missing: 0 })
   })
 
   it('reports a MESSAGE_CREATED event with no messageId as missing', async () => {
@@ -187,5 +187,81 @@ describe('projectEvent', () => {
       event: broken,
     })
     expect(result.missing).toBe(1)
+  })
+  it('projects an absence event into the absences table', async () => {
+    const { session, storage } = await postedEvent()
+    const db = openGroupDatabase('midori')
+    const event: GroupEvent = {
+      id: '20260808T073000Z-aaaa',
+      type: 'ABSENCE_REPORTED',
+      author: 'u_tanaka',
+      at: '2026-08-08T07:30:00.000Z',
+      payload: {
+        absence: {
+          id: 'ab_1',
+          kind: 'absent',
+          date: '2026-08-08',
+          reason: '体調不良',
+          note: '朝から熱があります',
+          author: 'u_sato',
+          at: '2026-08-08T07:30:00.000Z',
+        },
+      },
+    }
+    const result = await projectEvent({
+      db,
+      storage,
+      groupId: 'midori',
+      keys: session.groupKeys,
+      event,
+    })
+    expect(result.absences).toBe(1)
+    expect((await db.absences.get('ab_1'))?.note).toBe('朝から熱があります')
+  })
+
+  it('is idempotent for absence events', async () => {
+    const { session, storage } = await postedEvent()
+    const db = openGroupDatabase('midori')
+    const event: GroupEvent = {
+      id: '20260808T073000Z-bbbb',
+      type: 'ABSENCE_REPORTED',
+      author: 'u_tanaka',
+      at: '2026-08-08T07:30:00.000Z',
+      payload: {
+        absence: {
+          id: 'ab_2',
+          kind: 'late',
+          date: '2026-08-08',
+          reason: '',
+          note: '',
+          author: 'u_sato',
+          at: '2026-08-08T07:30:00.000Z',
+        },
+      },
+    }
+    await projectEvent({ db, storage, groupId: 'midori', keys: session.groupKeys, event })
+    await projectEvent({ db, storage, groupId: 'midori', keys: session.groupKeys, event })
+    expect(await db.absences.count()).toBe(1)
+  })
+
+  it('reports an absence event with no payload as missing', async () => {
+    const { session, storage } = await postedEvent()
+    const db = openGroupDatabase('midori')
+    const event: GroupEvent = {
+      id: '20260808T073000Z-cccc',
+      type: 'ABSENCE_REPORTED',
+      author: 'u_tanaka',
+      at: '2026-08-08T07:30:00.000Z',
+      payload: {},
+    }
+    const result = await projectEvent({
+      db,
+      storage,
+      groupId: 'midori',
+      keys: session.groupKeys,
+      event,
+    })
+    expect(result.missing).toBe(1)
+    expect(await db.absences.count()).toBe(0)
   })
 })

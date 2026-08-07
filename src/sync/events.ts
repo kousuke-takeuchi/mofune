@@ -6,7 +6,11 @@ import { randomBytes } from '../crypto/symmetric'
 
 export class EventFormatError extends Error {}
 
-export type EventType = 'MESSAGE_CREATED' | 'FILE_ADDED' | 'MEMBER_UPDATED'
+export type EventType =
+  | 'MESSAGE_CREATED'
+  | 'FILE_ADDED'
+  | 'MEMBER_UPDATED'
+  | 'ABSENCE_REPORTED'
 
 export interface GroupEvent {
   /** `{ISO8601基本形式}-{ランダム8桁hex}`。辞書順=時系列順。 */
@@ -18,7 +22,12 @@ export interface GroupEvent {
   payload: Record<string, unknown>
 }
 
-const EVENT_TYPES: readonly string[] = ['MESSAGE_CREATED', 'FILE_ADDED', 'MEMBER_UPDATED']
+const EVENT_TYPES: readonly string[] = [
+  'MESSAGE_CREATED',
+  'FILE_ADDED',
+  'MEMBER_UPDATED',
+  'ABSENCE_REPORTED',
+]
 
 /**
  * 時系列にソートできる ID。同一時刻の衝突はランダム部で避ける。

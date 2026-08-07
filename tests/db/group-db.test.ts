@@ -91,4 +91,31 @@ describe('group database', () => {
     await closeGroupDatabase('midori')
     expect(await openGroupDatabase('midori').outbox.count()).toBe(1)
   })
+  it('stores absences and finds them by id', async () => {
+    const db = openGroupDatabase('midori')
+    await db.absences.put({
+      id: 'ab_1',
+      kind: 'absent',
+      date: '2026-08-08',
+      reason: '体調不良',
+      note: '朝から熱があります',
+      author: 'u_sato',
+      at: '2026-08-08T07:30:00.000Z',
+    })
+    expect((await db.absences.get('ab_1'))?.reason).toBe('体調不良')
+  })
+
+  it('keeps absences out of the message table', async () => {
+    const db = openGroupDatabase('midori')
+    await db.absences.put({
+      id: 'ab_1',
+      kind: 'absent',
+      date: '2026-08-08',
+      reason: '',
+      note: '',
+      author: 'u_sato',
+      at: '2026-08-08T07:30:00.000Z',
+    })
+    expect(await db.messages.count()).toBe(0)
+  })
 })
