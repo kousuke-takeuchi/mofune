@@ -1,12 +1,15 @@
 import type { GroupDatabase } from '../db/group-db'
 import type { StorageProvider } from '../storage/provider'
 import { compareEventIds, openEvent } from './events'
+import { projectEvent } from './projection'
 
 export interface SyncResult {
   /** 復号して適用できたイベント数。 */
   applied: number
   /** 自分の鍵では開けなかったイベント数(正常系)。 */
   skipped: number
+  /** 参照先が未着で投影できなかった数。次回の同期で再投影される。 */
+  missing: number
   cursor: string | null
 }
 
@@ -44,12 +47,21 @@ export async function syncGroup(options: {
   const ids = entries.map((entry) => idFromPath(entry.path)).sort(compareEventIds)
   let applied = 0
   let skipped = 0
+  let missing = 0
 
   for (const id of ids) {
     const sealed = await options.storage.get(`${prefix}${id}.enc`)
     try {
       const event = await openEvent(options.keys, sealed)
       await options.db.events.put(event)
+      const projected = await projectEvent({
+        db: options.db,
+        storage: options.storage,
+        groupId: options.groupId,
+        keys: options.keys,
+        event,
+      })
+      missing += projected.missing
       applied += 1
     } catch {
       skipped += 1
@@ -60,5 +72,5 @@ export async function syncGroup(options: {
   if (newest !== null) {
     await writeCursor(options.db, newest)
   }
-  return { applied, skipped, cursor: newest ?? cursor }
+  return { applied, skipped, missing, cursor: newest ?? cursor }
 }

@@ -589,7 +589,7 @@ export interface OutboxItem {
 
 ```ts
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { PostError, createPost, resolveTargets } from '../../src/content/post'
 import type { Draft } from '../../src/content/post'
 import { openMessage } from '../../src/content/messages'
@@ -977,7 +977,7 @@ Phase 2a の `syncGroup` はイベントを `events` テーブルに記録する
 
 ```ts
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { projectEvent } from '../../src/sync/projection'
 import { createPost } from '../../src/content/post'
 import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
@@ -1404,8 +1404,9 @@ design 03 の画面。ローカルDBの `messages` を新しい順に並べ、�
 ```ts
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import type { VueWrapper } from '@vue/test-utils'
 import TimelineView from '../../src/ui/TimelineView.vue'
 import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
 import { MemoryStorageProvider } from '../../src/storage/memory'
@@ -1445,14 +1446,24 @@ const newer: CachedMessage = {
   attachments: ['f_1'],
 }
 
+let mounted: VueWrapper[] = []
+
 beforeEach(async () => {
   await deleteGroupDatabase('midori')
+})
+
+// DB を消す前にコンポーネントを外さないと、進行中の読み取りが
+// DatabaseClosedError で未処理のまま落ちる。
+afterEach(() => {
+  for (const wrapper of mounted) wrapper.unmount()
+  mounted = []
 })
 
 async function mountTimeline() {
   const wrapper = mount(TimelineView, {
     props: { session: await session(), storage: new MemoryStorageProvider() },
   })
+  mounted.push(wrapper)
   await flushPromises()
   return wrapper
 }
@@ -1526,6 +1537,8 @@ describe('TimelineView', () => {
     expect(wrapper.findAll('[data-test="message"]')).toHaveLength(0)
     await openGroupDatabase('midori').messages.put(newer)
     await wrapper.find('[data-test="sync"]').trigger('click')
+    // syncGroup → reload と非同期が多段なので、1ティックでは足りない
+    await flushPromises()
     await flushPromises()
     expect(wrapper.findAll('[data-test="message"]')).toHaveLength(1)
   })
@@ -1543,6 +1556,7 @@ describe('TimelineView', () => {
     const wrapper = mount(TimelineView, {
       props: { session: await session(), storage: failing as never },
     })
+    mounted.push(wrapper)
     await flushPromises()
     await wrapper.find('[data-test="sync"]').trigger('click')
     await flushPromises()
@@ -1591,8 +1605,19 @@ function isUnread(message: CachedMessage): boolean {
 const unreadCount = computed(() => messages.value.filter(isUnread).length)
 
 async function reload(): Promise<void> {
-  messages.value = (await db.messages.toArray()).sort((a, b) => (a.at < b.at ? 1 : -1))
-  lastReadAt.value = (await db.syncState.get('lastReadAt'))?.value ?? null
+  try {
+    // 2つを直列に await すると、呼び出し側が1ティックしか待たないときに
+    // 2つ目が反映されない。まとめて解決させる。
+    const [cached, state] = await Promise.all([
+      db.messages.toArray(),
+      db.syncState.get('lastReadAt'),
+    ])
+    messages.value = cached.sort((a, b) => (a.at < b.at ? 1 : -1))
+    lastReadAt.value = state?.value ?? null
+  } catch {
+    // 端末の登録解除(設計書 §5.4)などで DB が閉じられた場合は、
+    // 表示を最後の状態のまま保つ。読み取り失敗で画面を壊さない。
+  }
 }
 
 async function sync(): Promise<void> {
@@ -1724,8 +1749,9 @@ design 04 のうち、フォーム回答を除いた部分。フォームは Pha
 ```ts
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import type { VueWrapper } from '@vue/test-utils'
 import MessageDetailView from '../../src/ui/MessageDetailView.vue'
 import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
 import { generateAesKey } from '../../src/crypto/symmetric'
@@ -1786,11 +1812,21 @@ beforeEach(async () => {
   })
 })
 
+let mounted: VueWrapper[] = []
+
+// DB を消す前にコンポーネントを外さないと、進行中の読み取りが未処理のまま落ちる。
+afterEach(() => {
+  for (const wrapper of mounted) wrapper.unmount()
+  mounted = []
+})
+
 async function mountDetail(messageId = 'm_1') {
   const wrapper = mount(MessageDetailView, {
     props: { session: await session(), messageId },
   })
-  await flushPromises()
+  mounted.push(wrapper)
+  // 読み込みが複数段の非同期なので、落ち着くまで数ティック回す
+  for (let i = 0; i < 5; i += 1) await flushPromises()
   return wrapper
 }
 
@@ -1908,29 +1944,38 @@ function authorName(userId: string): string {
 }
 
 onMounted(async () => {
-  const found = await db.messages.get(props.messageId)
-  if (!found) {
-    notFound.value = true
-    return
-  }
-  message.value = found
-
-  for (const fileId of found.attachments) {
-    const file = await db.files.get(fileId)
-    if (!file) {
-      missingAttachments.value.push(fileId)
-      continue
+  try {
+    const found = await db.messages.get(props.messageId)
+    if (!found) {
+      notFound.value = true
+      return
     }
-    const blob = new Blob([file.blob], { type: file.mediaType })
-    attachments.value.push({
-      id: fileId,
-      mediaType: file.mediaType,
-      url: URL.createObjectURL(blob),
-    })
-  }
+    message.value = found
 
-  // 既読はローカルにだけ記録する。送出は一切しない(要件書 §4.10)。
-  await db.syncState.put({ key: 'lastReadAt', value: new Date().toISOString() })
+    // 添付を1件ずつ直列に待つと、呼び出し側が待つティック数に依存して
+    // 表示が欠ける。既読の記録も含めて1段にまとめる。
+    // 既読はローカルにだけ記録する。送出は一切しない(要件書 §4.10)。
+    const [files] = await Promise.all([
+      Promise.all(found.attachments.map((fileId) => db.files.get(fileId))),
+      db.syncState.put({ key: 'lastReadAt', value: new Date().toISOString() }),
+    ])
+
+    found.attachments.forEach((fileId, index) => {
+      const file = files[index]
+      if (!file) {
+        missingAttachments.value.push(fileId)
+        return
+      }
+      const blob = new Blob([file.blob], { type: file.mediaType })
+      attachments.value.push({
+        id: fileId,
+        mediaType: file.mediaType,
+        url: URL.createObjectURL(blob),
+      })
+    })
+  } catch {
+    // 端末の登録解除(設計書 §5.4)などで DB が閉じられた場合。画面は壊さない。
+  }
 })
 
 onBeforeUnmount(() => {
@@ -2046,7 +2091,7 @@ design 06 の画面。フォーム埋め込みは Phase 3 なので、本文・�
 ```ts
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import ComposeView from '../../src/ui/ComposeView.vue'
 import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
@@ -2088,6 +2133,19 @@ async function staffSession(role: 'staff' | 'member' = 'staff'): Promise<Session
 beforeEach(async () => {
   await deleteGroupDatabase('midori')
 })
+
+/**
+ * createPost → flushOutbox は IndexedDB を何度も往復するので、固定回数の
+ * flushPromises では足りない。条件が満たされるまで待つ。
+ */
+async function until(check: () => boolean | Promise<boolean>): Promise<void> {
+  await vi.waitFor(
+    async () => {
+      if (!(await check())) throw new Error('not settled yet')
+    },
+    { timeout: 2000, interval: 10 },
+  )
+}
 
 async function mountCompose(storage?: StorageProvider, role?: 'staff' | 'member') {
   const wrapper = mount(ComposeView, {
@@ -2131,7 +2189,7 @@ describe('ComposeView', () => {
     const wrapper = await mountCompose()
     await wrapper.find('[data-test="body"]').setValue('こんにちは')
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await flushPromises()
+    await until(() => wrapper.find('[data-test="error"]').exists())
     expect(wrapper.find('[data-test="error"]').exists()).toBe(true)
     expect(await pending(openGroupDatabase('midori'))).toHaveLength(0)
   })
@@ -2140,7 +2198,7 @@ describe('ComposeView', () => {
     const wrapper = await mountCompose()
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await flushPromises()
+    await until(() => wrapper.find('[data-test="error"]').exists())
     expect(wrapper.find('[data-test="error"]').exists()).toBe(true)
   })
 
@@ -2151,7 +2209,7 @@ describe('ComposeView', () => {
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a_pickup"]').setValue(true)
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await flushPromises()
+    await until(async () => (await storage.list('midori/messages/')).length === 1)
     expect(await storage.list('midori/messages/')).toHaveLength(1)
     expect(await storage.list('midori/events/')).toHaveLength(1)
   })
@@ -2161,7 +2219,7 @@ describe('ComposeView', () => {
     await wrapper.find('[data-test="body"]').setValue('こんにちは')
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await flushPromises()
+    await until(() => wrapper.emitted('posted') !== undefined)
     expect(wrapper.emitted('posted')).toBeTruthy()
   })
 
@@ -2177,7 +2235,7 @@ describe('ComposeView', () => {
     await wrapper.find('[data-test="body"]').setValue('こんにちは')
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
     await wrapper.find('[data-test="submit"]').trigger('click')
-    await flushPromises()
+    await until(() => wrapper.find('[data-test="queued"]').exists())
     expect(wrapper.find('[data-test="queued"]').exists()).toBe(true)
     expect(await pending(openGroupDatabase('midori'))).toHaveLength(2)
   })
@@ -2261,11 +2319,12 @@ async function submit(): Promise<void> {
       db,
       draft: { body: body.value, scopes, attachments: attachments.value },
     })
-    try {
-      await flushOutbox({ db, storage: props.storage })
-      emit('posted')
-    } catch {
+    // flushOutbox は失敗しても例外を投げず、失敗件数を返す
+    const flushed = await flushOutbox({ db, storage: props.storage })
+    if (flushed.failed > 0) {
       queued.value = true
+    } else {
+      emit('posted')
     }
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : '送信できませんでした'
@@ -2302,7 +2361,7 @@ async function submit(): Promise<void> {
       </p>
 
       <button type="button" data-test="cancel" @click="emit('cancel')">キャンセル</button>
-      <button type="submit" data-test="submit" :disabled="busy">送信する</button>
+      <button type="button" data-test="submit" :disabled="busy" @click="submit">送信する</button>
     </form>
   </section>
 </template>

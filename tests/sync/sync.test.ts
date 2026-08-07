@@ -155,6 +155,43 @@ describe('syncGroup', () => {
       keys: new Map(),
       db,
     })
-    expect(result).toEqual({ applied: 0, skipped: 0, cursor: null })
+    expect(result).toEqual({ applied: 0, skipped: 0, missing: 0, cursor: null })
+  })
+  it('projects the messages it applies into the local cache', async () => {
+    const { createPost } = await import('../../src/content/post')
+    const { openGroupDatabase } = await import('../../src/db/group-db')
+    const { flushOutbox } = await import('../../src/sync/outbox')
+    const storage = new MemoryStorageProvider()
+    const key = await generateAesKey()
+    const session = {
+      groupId: 'midori',
+      groupName: 'みどり台グループ',
+      userId: 'u_tanaka',
+      displayName: '田中 みか',
+      role: 'staff' as const,
+      scopes: ['sg_a'],
+      groupKeys: new Map([['sg_a:v1', key]]),
+      roster: { groupId: 'midori', generation: 1, subgroups: [], members: [] },
+      ecdhPrivate: new Uint8Array(0),
+      ecdsaPrivate: new Uint8Array(0),
+    }
+    const authorDb = openGroupDatabase('midori')
+    const result = await createPost({
+      session,
+      db: authorDb,
+      draft: { body: 'こんにちは', scopes: ['sg_a'], attachments: [] },
+    })
+    await flushOutbox({ db: authorDb, storage })
+    await deleteGroupDatabase('midori')
+
+    const readerDb = openGroupDatabase('midori')
+    const synced = await syncGroup({
+      storage,
+      groupId: 'midori',
+      keys: new Map([['sg_a:v1', key]]),
+      db: readerDb,
+    })
+    expect(synced.applied).toBe(1)
+    expect((await readerDb.messages.get(result.messageId))?.body).toBe('こんにちは')
   })
 })
