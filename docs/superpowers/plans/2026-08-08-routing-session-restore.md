@@ -95,13 +95,13 @@ src/main.ts                    createPinia / router を差す                   
 
 このタスクだけはテストを先に書かない。依存の追加はテストで表現できることが無く、次のタスクの前提にしかならないため。次のタスクで最初のテストが入る。
 
-- [ ] **Step 1: 依存を追加する**
+- [x] **Step 1: 依存を追加する**
 
 ```bash
 npm install vue-router pinia
 ```
 
-- [ ] **Step 2: 入っていることを確かめる**
+- [x] **Step 2: 入っていることを確かめる**
 
 ```bash
 node -e "console.log(require('./package.json').dependencies)"
@@ -109,7 +109,7 @@ node -e "console.log(require('./package.json').dependencies)"
 
 Expected: `vue-router` と `pinia` が並ぶ。
 
-- [ ] **Step 3: 既存のテストと型が壊れていないことを確かめる**
+- [x] **Step 3: 既存のテストと型が壊れていないことを確かめる**
 
 ```bash
 rtk proxy npx vitest run && npm run typecheck
@@ -117,7 +117,7 @@ rtk proxy npx vitest run && npm run typecheck
 
 Expected: 全て green。
 
-- [ ] **Step 4: コミット**
+- [x] **Step 4: コミット**
 
 ```bash
 git add package.json package-lock.json
@@ -143,7 +143,7 @@ git commit -m "build: add vue-router and pinia"
 
 **鍵は決してストアの外へ出さない。** 永続化するのは `rememberGroup` が書く接続コードとログインIDだけで、これは秘密情報ではない。
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [x] **Step 1: 失敗するテストを書く**
 
 `tests/stores/session.test.ts`:
 
@@ -302,7 +302,7 @@ describe('useGroupsStore', () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認する**
+- [x] **Step 2: テストを実行して失敗を確認する**
 
 ```bash
 rtk proxy npx vitest run tests/stores/session.test.ts
@@ -310,7 +310,7 @@ rtk proxy npx vitest run tests/stores/session.test.ts
 
 Expected: FAIL — `Failed to resolve import "../../src/stores/session"`
 
-- [ ] **Step 3: 実装する**
+- [x] **Step 3: 実装する**
 
 `src/stores/groups.ts`:
 
@@ -421,7 +421,7 @@ export const useSessionStore = defineStore('session', {
 })
 ```
 
-- [ ] **Step 4: テストを実行して成功を確認する**
+- [x] **Step 4: テストを実行して成功を確認する**
 
 ```bash
 rtk proxy npx vitest run tests/stores/session.test.ts && npm run typecheck
@@ -429,7 +429,7 @@ rtk proxy npx vitest run tests/stores/session.test.ts && npm run typecheck
 
 Expected: 10 tests passed、型チェックはエラーなし。
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/stores tests/stores
@@ -452,7 +452,7 @@ git commit -m "feat(stores): hold the session in pinia and remember groups on th
 
 **Task 5 の前にこのタスクを終える理由**は、ページ側が `router.push({ name: 'message' })` と名前で遷移するため、名前の一覧が先に決まっている必要があるから。
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [x] **Step 1: 失敗するテストを書く**
 
 `tests/router/routes.test.ts`:
 
@@ -531,7 +531,7 @@ describe('routes', () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認する**
+- [x] **Step 2: テストを実行して失敗を確認する**
 
 ```bash
 rtk proxy npx vitest run tests/router/routes.test.ts
@@ -539,7 +539,7 @@ rtk proxy npx vitest run tests/router/routes.test.ts
 
 Expected: FAIL — `Failed to resolve import "../../src/router"`
 
-- [ ] **Step 3: 実装する**
+- [x] **Step 3: 実装する**
 
 `src/router/index.ts`:
 
@@ -610,7 +610,7 @@ export function createAppRouter(): Router {
 }
 ```
 
-- [ ] **Step 4: テストを実行して成功を確認する**
+- [x] **Step 4: テストを実行して成功を確認する**
 
 ```bash
 rtk proxy npx vitest run tests/router/routes.test.ts && npm run typecheck
@@ -618,7 +618,7 @@ rtk proxy npx vitest run tests/router/routes.test.ts && npm run typecheck
 
 Expected: 5 tests passed、型チェックはエラーなし。
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/router tests/router
@@ -639,7 +639,7 @@ git commit -m "feat(router): map every screen to a hash url"
 
 ガードのテストは、ページの中身に触れずに `router.push` の行き先だけを見る。ページはまだ実装が無いので、**このタスクのテストでは全ルートの component を差し替える**。`router.addRoute` で同じ name のルートを上書きすると component だけ入れ替えられる。
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [x] **Step 1: 失敗するテストを書く**
 
 `tests/router/guards.test.ts`:
 
@@ -796,7 +796,7 @@ describe('safeNext', () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認する**
+- [x] **Step 2: テストを実行して失敗を確認する**
 
 ```bash
 rtk proxy npx vitest run tests/router/guards.test.ts
@@ -804,7 +804,7 @@ rtk proxy npx vitest run tests/router/guards.test.ts
 
 Expected: FAIL — `safeNext` が `src/router` に無い。
 
-- [ ] **Step 3: 実装する**
+- [x] **Step 3: 実装する**
 
 `src/router/index.ts` の末尾に足し、`createAppRouter` から呼ぶ:
 
@@ -874,7 +874,7 @@ export function createAppRouter(): Router {
 }
 ```
 
-- [ ] **Step 4: テストを実行して成功を確認する**
+- [x] **Step 4: テストを実行して成功を確認する**
 
 ```bash
 rtk proxy npx vitest run tests/router 2>&1 | tail -20 && npm run typecheck
@@ -882,7 +882,7 @@ rtk proxy npx vitest run tests/router 2>&1 | tail -20 && npm run typecheck
 
 Expected: 20 tests passed、型チェックはエラーなし。
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/router tests/router
@@ -907,7 +907,7 @@ git commit -m "feat(router): guard the screens and remember where to return"
 
 `HomePage` は描画しない。ガードが `home` を必ず他所へ飛ばすので、到達しても空でよい。
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [x] **Step 1: 失敗するテストを書く**
 
 `tests/pages/UnlockPage.test.ts`:
 
@@ -1021,7 +1021,7 @@ describe('UnlockPage', () => {
 })
 ```
 
-- [ ] **Step 2: テストを実行して失敗を確認する**
+- [x] **Step 2: テストを実行して失敗を確認する**
 
 ```bash
 rtk proxy npx vitest run tests/pages/UnlockPage.test.ts
@@ -1029,7 +1029,7 @@ rtk proxy npx vitest run tests/pages/UnlockPage.test.ts
 
 Expected: FAIL — `Failed to resolve import "../../src/pages/UnlockPage.vue"`
 
-- [ ] **Step 3: 実装する**
+- [x] **Step 3: 実装する**
 
 `src/ui/UnlockView.vue`:
 
@@ -1235,7 +1235,7 @@ const router = useRouter()
 </template>
 ```
 
-- [ ] **Step 4: テストを実行して成功を確認する**
+- [x] **Step 4: テストを実行して成功を確認する**
 
 ```bash
 rtk proxy npx vitest run tests/pages tests/stores && npm run typecheck
@@ -1243,7 +1243,7 @@ rtk proxy npx vitest run tests/pages tests/stores && npm run typecheck
 
 Expected: UnlockPage 6 tests + stores 10 tests が passed、型チェックはエラーなし。
 
-- [ ] **Step 5: コミット**
+- [x] **Step 5: コミット**
 
 ```bash
 git add src/ui/UnlockView.vue src/pages src/stores tests/pages
@@ -1273,7 +1273,7 @@ git commit -m "feat(ui): ask only for the password when returning to a known gro
 
 ページは全部同じ形になる。ストアから `session` と `storage` を取り、無ければ何も描かない(ガードが弾くので実際には起きないが、型の非 null 化のために要る)。
 
-- [ ] **Step 1: 失敗するテストを書く**
+- [x] **Step 1: 失敗するテストを書く**
 
 `tests/pages/TimelinePage.test.ts`:
 
@@ -1347,7 +1347,7 @@ describe('TimelinePage', () => {
 
 `TimelineView` に `name` は付いていないので、`findComponent({ name: 'TimelineView' })` が効くよう、`src/ui/TimelineView.vue` に `defineOptions({ name: 'TimelineView' })` を足す。**これは既存テストを壊さない**(props も emit も変えていない)。
 
-- [ ] **Step 2: テストを実行して失敗を確認する**
+- [x] **Step 2: テストを実行して失敗を確認する**
 
 ```bash
 rtk proxy npx vitest run tests/pages/TimelinePage.test.ts
@@ -1355,7 +1355,7 @@ rtk proxy npx vitest run tests/pages/TimelinePage.test.ts
 
 Expected: FAIL — `Failed to resolve import "../../src/pages/TimelinePage.vue"`
 
-- [ ] **Step 3: 実装する**
+- [x] **Step 3: 実装する**
 
 `src/ui/TimelineView.vue` の `<script setup>` の先頭に足す:
 
@@ -1615,7 +1615,7 @@ import { createAppRouter } from './router'
 createApp(App).use(createPinia()).use(createAppRouter()).mount('#app')
 ```
 
-- [ ] **Step 4: 全体の検証**
+- [x] **Step 4: 全体の検証**
 
 ```bash
 rtk proxy npx vitest run && npm run typecheck && npm run build
@@ -1623,7 +1623,7 @@ rtk proxy npx vitest run && npm run typecheck && npm run build
 
 Expected: すべて成功。既存の `tests/ui/*.test.ts` 10本も緑のまま。
 
-- [ ] **Step 5: バンドルの増分を記録する**
+- [x] **Step 5: バンドルの増分を記録する**
 
 ```bash
 npm run build 2>&1 | grep gzip
@@ -1631,7 +1631,7 @@ npm run build 2>&1 | grep gzip
 
 出力の gzip 値を、この計画の「完了条件」の下に追記する。
 
-- [ ] **Step 6: コミット**
+- [x] **Step 6: コミット**
 
 ```bash
 git add src/pages src/App.vue src/main.ts src/ui/TimelineView.vue tests/pages
