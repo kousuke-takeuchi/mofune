@@ -15,7 +15,7 @@
 Phase 1 / 2a / 2b の Global Constraints をすべて引き継ぐ。特に:
 
 - 暗号プリミティブは Web Crypto API のみ。例外は Argon2id (hash-wasm) のみ
-- **バイト列の型は `src/crypto/bytes.ts` の `Bytes`**(= `Uint8Array<ArrayBuffer>`)。型注釈上の `Uint8Array` は `Bytes` と読み替える(`new Uint8Array(...)` はそのまま)。テストの `as Uint8Array` も `as Bytes`
+- **バイト列の型は `src/crypto/bytes.ts` の `Bytes`**(= `Uint8Array<ArrayBuffer>`)。型注釈上の `Uint8Array` は `Bytes` と読み替える(`new Uint8Array(...)` はそのまま)。テストの `as Bytes` も `as Bytes`
 - 秘密鍵・パスワード・ストレージ資格情報を IndexedDB / localStorage に保存してはならない
 - ロールは `admin` / `staff` / `member`。UI 表示は管理者 / 担当者 / 参加者
 - **参加者からの上りに staff スコープ鍵を使ってはならない**(設計書 §4.6)。受信者の ECDH 公開鍵へ ECIES でラップする
@@ -900,7 +900,7 @@ describe('submitToInbox', () => {
     const { session, staff } = await memberSession()
     const db = openGroupDatabase('midori')
     await submitToInbox({ session, db, grant: grantWith(1), plaintext: utf8('体調不良'), now })
-    const body = (await pending(db))[0]?.body as Uint8Array
+    const body = (await pending(db))[0]?.body as Bytes
     expect(fromUtf8(body)).not.toContain('体調不良')
     expect(fromUtf8(await openAsRecipient('u_tanaka', staff.privateKey, body))).toBe('体調不良')
   })
@@ -1143,7 +1143,7 @@ describe('collectInbox', () => {
     )
     const result = await collectInbox({ storage, session })
     expect(result.items).toHaveLength(1)
-    expect(fromUtf8(result.items[0]?.body as Uint8Array)).toBe('体調不良のため欠席します')
+    expect(fromUtf8(result.items[0]?.body as Bytes)).toBe('体調不良のため欠席します')
     expect(result.items[0]?.key).toBe('midori/inbox/u_sato/aaaa.enc')
   })
 
@@ -1169,7 +1169,7 @@ describe('collectInbox', () => {
     await storage.put('midori/inbox/u_sato/a.enc', await sealForRecipients(recipients, utf8('a')))
     const result = await collectInbox({ storage, session })
     expect(result.items).toHaveLength(1)
-    expect(fromUtf8(result.items[0]?.body as Uint8Array)).toBe('a')
+    expect(fromUtf8(result.items[0]?.body as Bytes)).toBe('a')
   })
 
   it('counts packets it cannot open instead of failing', async () => {
@@ -1479,7 +1479,7 @@ describe('sendAbsenceReport', () => {
     const queued = await pending(db)
     expect(queued).toHaveLength(1)
     expect(queued[0]?.kind).toBe('inbox')
-    const body = queued[0]?.body as Uint8Array
+    const body = queued[0]?.body as Bytes
     expect(fromUtf8(body)).not.toContain('体調不良')
 
     const opened = parseAbsenceReport(
@@ -1783,7 +1783,7 @@ describe('sendEmailRegistration', () => {
 
     const queued = await pending(db)
     expect(queued).toHaveLength(1)
-    const body = queued[0]?.body as Uint8Array
+    const body = queued[0]?.body as Bytes
     // 連絡先は参加者どうしに見えてはならない(要件書 §5.3)
     expect(fromUtf8(body)).not.toContain('sakura@example.com')
 
