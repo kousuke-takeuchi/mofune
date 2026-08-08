@@ -15,6 +15,7 @@ import { flushOutbox } from '../sync/outbox'
 const props = defineProps<{ session: Session; storage: StorageProvider }>()
 const emit = defineEmits<{ posted: [messageId: string]; cancel: [] }>()
 
+const title = ref('')
 const body = ref('')
 const selected = ref<Record<string, boolean>>({})
 const attachments = ref<DraftAttachment[]>([])
@@ -93,6 +94,7 @@ async function submit(): Promise<void> {
       session: props.session,
       db,
       draft: {
+        title: title.value,
         body: body.value,
         scopes,
         attachments: attachments.value,
@@ -144,6 +146,11 @@ async function submit(): Promise<void> {
           {{ option.label }}
         </label>
       </fieldset>
+
+      <label>
+        見出し
+        <input data-test="title" v-model="title" placeholder="来週の集まりについて" />
+      </label>
 
       <label>
         本文

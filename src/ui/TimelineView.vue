@@ -14,6 +14,10 @@ const props = defineProps<{ session: Session; storage: StorageProvider }>()
 const emit = defineEmits<{ open: [messageId: string] }>()
 
 const messages = ref<CachedMessage[]>([])
+/** メッセージ id -> 端末に届いている画像の URL。届いていない添付は出さない。 */
+const thumbs = ref<Record<string, string[]>>({})
+/** サムネイルに出す最大枚数。残りは枚数で示す (原稿 03)。 */
+const THUMB_LIMIT = 3
 const lastReadAt = ref<string | null>(null)
 const syncError = ref('')
 const syncing = ref(false)
@@ -26,6 +30,26 @@ function isUnread(message: CachedMessage): boolean {
 }
 
 const unreadCount = computed(() => messages.value.filter(isUnread).length)
+
+/** 端末に控えてある画像だけを URL にする。無い添付は黙って出さない。 */
+async function loadThumbs(): Promise<void> {
+  for (const url of Object.values(thumbs.value).flat()) URL.revokeObjectURL(url)
+  const next: Record<string, string[]> = {}
+  for (const message of messages.value) {
+    const urls: string[] = []
+    for (const fileId of message.attachments.slice(0, THUMB_LIMIT)) {
+      const file = await db.files.get(fileId)
+      if (!file || !file.mediaType.startsWith('image/')) continue
+      urls.push(URL.createObjectURL(new Blob([file.blob], { type: file.mediaType })))
+    }
+    if (urls.length > 0) next[message.id] = urls
+  }
+  thumbs.value = next
+}
+
+function hiddenCount(message: CachedMessage): number {
+  return Math.max(0, message.attachments.length - THUMB_LIMIT)
+}
 
 /** 表示している絞り込み。「要回答」はフォームを作れるようになってから。 */
 const tab = ref<'all' | 'unread'>('all')
@@ -43,6 +67,7 @@ async function reload(): Promise<void> {
     ])
     messages.value = cached.sort((a, b) => (a.at < b.at ? 1 : -1))
     lastReadAt.value = state?.value ?? null
+    await loadThumbs()
   } catch {
     // 端末の登録解除(設計書 §5.4)などで DB が閉じられた場合は、
     // 表示を最後の状態のまま保つ。読み取り失敗で画面を壊さない。
@@ -121,8 +146,24 @@ onMounted(reload)
         @click="emit('open', message.id)"
       >
         <time>{{ formatWhen(message.at) }}</time>
+        <h2 v-if="message.title" class="message-title">{{ message.title }}</h2>
         <p>{{ message.body }}</p>
-        <span v-if="message.attachments.length > 0" data-test="has-attachment">添付あり</span>
+        <div v-if="thumbs[message.id]" class="thumbs">
+          <img
+            v-for="(url, index) in thumbs[message.id]"
+            :key="index"
+            data-test="thumb"
+            :src="url"
+            alt=""
+          />
+          <span v-if="hiddenCount(message) > 0" class="thumb-more" data-test="thumb-more">
+            +{{ hiddenCount(message) }}
+          </span>
+        </div>
+        <span
+          v-else-if="message.attachments.length > 0"
+          data-test="has-attachment"
+        >添付あり</span>
       </li>
     </ul>
   </section>

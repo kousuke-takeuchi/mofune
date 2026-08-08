@@ -699,3 +699,46 @@ section h2 {
   font-size: 14px;
   color: var(--amber-ink);
 }
+
+/* ---------- お知らせの見出しと添付 ---------- */
+
+.message-title {
+  font-size: 16px;
+  margin: 2px 0 4px;
+}
+
+/* 端末に届いている画像だけを並べる (原稿 03) */
+.thumbs {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.thumbs img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--sand);
+}
+
+.thumb-more {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: var(--sand-deep);
+  color: var(--amber-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 主ボタンはテラコッタ (原稿 01/04/05/06)。琥珀は選択状態などに使う。 */
+button.primary {
+  background: var(--terracotta);
+}
+
+button.primary:hover:not(:disabled) {
+  background: #b4552a;
+}

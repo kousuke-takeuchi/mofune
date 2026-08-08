@@ -37,6 +37,7 @@ async function staffSession(): Promise<Session> {
 }
 
 const draft: Draft = {
+  title: '',
   body: '来週の集まりについて',
   scopes: ['sg_a', 'sg_a_pickup'],
   attachments: [{ name: '案内図.png', mediaType: 'image/png', bytes: utf8('png-bytes') }],
@@ -185,7 +186,7 @@ describe('createPost', () => {
     const session = await staffSession()
     const db = openGroupDatabase('midori')
     await expect(
-      createPost({ session, db, draft: { body: '   ', scopes: ['sg_a'], attachments: [] } }),
+      createPost({ session, db, draft: { title: '', body: '   ', scopes: ['sg_a'], attachments: [] } }),
     ).rejects.toThrow(PostError)
   })
 

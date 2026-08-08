@@ -120,6 +120,7 @@ onBeforeUnmount(() => {
 
     <article v-else-if="message">
       <p>{{ authorName(message.author) }}・{{ formatWhen(message.at) }}</p>
+      <h2 v-if="message.title" data-test="title">{{ message.title }}</h2>
       <p data-test="body">{{ message.body }}</p>
 
       <div v-for="attachment in attachments" :key="attachment.id">

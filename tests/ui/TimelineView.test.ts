@@ -199,4 +199,38 @@ describe('TimelineView', () => {
     await wrapper.find('[data-test="tab-unread"]').trigger('click')
     expect(wrapper.find('[data-test="empty"]').exists()).toBe(true)
   })
+
+  it('shows a title above the body when the post has one', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.put({ ...newer, title: '来週の集まりについて' })
+    const wrapper = await mountTimeline()
+    expect(wrapper.find('[data-test="message"] .message-title').text()).toBe('来週の集まりについて')
+  })
+
+  it('shows a thumbnail for each cached image, up to three', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.put({ ...newer, attachments: ['f_1', 'f_2', 'f_3', 'f_4'] })
+    for (const id of ['f_1', 'f_2', 'f_3', 'f_4']) {
+      await db.files.put({
+        id,
+        mediaType: 'image/png',
+        size: 3,
+        blob: new Uint8Array([1, 2, 3]),
+        cachedAt: '2026-08-07T00:00:00.000Z',
+      })
+    }
+    const wrapper = await mountTimeline()
+    await vi.waitFor(() => {
+      if (wrapper.findAll('[data-test="thumb"]').length !== 3) throw new Error('not yet')
+    })
+    // 4枚目以降は枚数で示す (原稿 03 の「+9」)
+    expect(wrapper.find('[data-test="thumb-more"]').text()).toContain('1')
+  })
+
+  it('does not promise a thumbnail it has not received yet', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.put({ ...newer, attachments: ['f_missing'] })
+    const wrapper = await mountTimeline()
+    expect(wrapper.findAll('[data-test="thumb"]')).toHaveLength(0)
+  })
 })

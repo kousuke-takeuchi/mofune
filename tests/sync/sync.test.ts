@@ -180,7 +180,7 @@ describe('syncGroup', () => {
     const result = await createPost({
       session,
       db: authorDb,
-      draft: { body: 'こんにちは', scopes: ['sg_a'], attachments: [] },
+      draft: { title: '', body: 'こんにちは', scopes: ['sg_a'], attachments: [] },
     })
     await flushOutbox({ db: authorDb, storage })
     await deleteGroupDatabase('midori')
