@@ -71,6 +71,7 @@ export async function projectEvent(options: {
     scopes: message.scopes,
     author: message.author,
     at: message.at,
+    ...(message.title ? { title: message.title } : {}),
     body: message.body,
     attachments: message.attachments.map((attachment) => attachment.fileId),
     ...(message.form ? { form: message.form } : {}),

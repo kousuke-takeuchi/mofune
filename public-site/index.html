@@ -88,8 +88,25 @@
             </ul>
           </div>
 
-          <div class="mock" aria-hidden="true">
-            <svg class="mock-mascot float" viewBox="0 0 200 190">
+          <div class="stage" aria-hidden="true">
+          <div class="phone">
+          <div class="mock">
+            <div class="row">
+              <div class="avatar" aria-hidden="true">み</div>
+              <div class="titles">
+                <p class="mock-title">みどり台グループ</p>
+                <p class="mock-meta">Aチーム · 8/7</p>
+              </div>
+            </div>
+            <p class="mock-note">今週の写真を共有しました</p>
+            <div class="mock-form">
+              <p class="label">アンケート</p>
+              <p class="q">来週の集まり、参加できますか?</p>
+              <div class="mock-choices"><span>はい</span><span>いいえ</span></div>
+            </div>
+          </div>
+          </div>
+            <svg class="stage-mascot" viewBox="0 0 200 190">
               <ellipse cx="100" cy="152" rx="60" ry="10" fill="#3B322A" opacity=".07" />
               <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
               <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
@@ -98,22 +115,12 @@
               <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
               <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
               <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
-              <path d="M74 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
-              <path d="M110 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+              <circle cx="82" cy="88" r="6" fill="#3B322A" />
+              <circle cx="118" cy="88" r="6" fill="#3B322A" />
               <ellipse cx="64" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
               <ellipse cx="136" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
               <path d="M92 100 q8 8 16 0" stroke="#3B322A" stroke-width="3.4" fill="none" stroke-linecap="round" />
             </svg>
-            <div>
-              <p class="mock-title">みどり台グループ</p>
-              <p class="mock-meta">Aチーム · 8/7</p>
-            </div>
-            <p class="mock-note">今週の写真を共有しました</p>
-            <div class="mock-form">
-              <p class="label">アンケート</p>
-              <p class="q">来週の集まり、参加できますか?</p>
-              <div class="mock-choices"><span>はい</span><span>いいえ</span></div>
-            </div>
           </div>
         </div>
       </section>
@@ -284,12 +291,12 @@
                 <p class="who">送る人</p>
                 <p class="what">端末内で暗号化</p>
               </div>
-              <p class="flow-arrow">↓</p>
-              <div class="flow-step">
+              <p class="flow-arrow">→</p>
+              <div class="flow-step storage">
                 <p class="who">グループの保管場所</p>
                 <p class="what">中身は読めない</p>
               </div>
-              <p class="flow-arrow">↓</p>
+              <p class="flow-arrow">→</p>
               <div class="flow-step">
                 <p class="who">受け取る人</p>
                 <p class="what">鍵で開いて読む</p>
@@ -375,10 +382,12 @@
           <div class="grid how-grid">
             <div class="how-card">
               <p class="num">1. 送信者の端末</p>
+              <div class="how-device"><span class="lock" aria-hidden="true">🔒</span></div>
               <h3>お知らせを作る</h3>
               <p>担当者の端末で暗号化してから送ります。</p>
             </div>
-            <div class="how-card">
+            <p class="how-arrow" aria-hidden="true">⇢</p>
+            <div class="how-card dark">
               <p class="num">2. グループの保管場所</p>
               <h3>データの置き場</h3>
               <p>グループのアカウントで1つ選ぶだけ。上り用の受信箱 (inbox) も同じ中に置きます。</p>
@@ -389,8 +398,10 @@
                 <li>Dropbox</li>
               </ul>
             </div>
+            <p class="how-arrow" aria-hidden="true">⇢</p>
             <div class="how-card">
               <p class="num">3. 参加者の端末</p>
+              <div class="how-device"><span class="lock" aria-hidden="true">🔓</span></div>
               <h3>アプリで読む</h3>
               <p>差分を取って、端末の中で鍵を外して表示します。</p>
             </div>
@@ -414,12 +425,29 @@
       <section class="section">
         <div class="wrap">
           <div class="cta">
-            <h2>今日のお知らせから、はじめませんか。</h2>
-            <p>まずは1グループだけの試験運用もできます。</p>
-            <div class="cta-actions">
-              <a class="btn btn-primary" href="/app/">グループを作る</a>
-              <a class="btn btn-ghost" href="/setup-guide.html">導入手順書を見る</a>
+            <div class="cta-text">
+              <h2>今日のお知らせから、はじめませんか。</h2>
+              <p>まずは1グループだけの試験運用もできます。</p>
+              <div class="cta-actions">
+                <a class="btn btn-primary" href="/app/">グループを作る</a>
+                <a class="btn btn-ghost" href="/setup-guide.html">導入手順書を見る</a>
+              </div>
             </div>
+            <svg class="cta-mascot" viewBox="0 0 200 190" aria-hidden="true">
+              <ellipse cx="100" cy="152" rx="60" ry="10" fill="#3B322A" opacity=".07" />
+              <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
+              <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
+              <circle cx="78" cy="52" r="26" fill="#FFFFFF" />
+              <circle cx="124" cy="50" r="24" fill="#FFFFFF" />
+              <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
+              <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
+              <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
+              <circle cx="82" cy="88" r="6" fill="#3B322A" />
+              <circle cx="118" cy="88" r="6" fill="#3B322A" />
+              <ellipse cx="64" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+              <ellipse cx="136" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+              <path d="M92 100 q8 8 16 0" stroke="#3B322A" stroke-width="3.4" fill="none" stroke-linecap="round" />
+            </svg>
           </div>
         </div>
       </section>

@@ -10,6 +10,7 @@ export interface CachedMessage {
   scopes: string[]
   author: string
   at: string
+  title?: string
   body: string
   /** files/ に置かれた添付の id。 */
   attachments: string[]

@@ -14,6 +14,8 @@ export interface MessageContent {
   scopes: string[]
   author: string
   at: string
+  /** 一覧で太字に出す見出し。付けない投稿もある。 */
+  title?: string
   body: string
   attachments: AttachmentRef[]
   /** 埋め込みフォーム。お知らせと同じ鍵で封緘されるので、読める人だけが見える。 */

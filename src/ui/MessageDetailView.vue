@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import type { CachedMessage } from '../db/group-db'
 import { openGroupDatabase } from '../db/group-db'
 import AppBar from './AppBar.vue'
 import { formatWhen } from './format'
-import { isClosed } from '../content/forms'
+import { formKind, isClosed } from '../content/forms'
 import { sendFormResponse } from '../content/form-exchange'
 import { flushOutbox } from '../sync/outbox'
 import type { StorageProvider } from '../storage/provider'
@@ -53,6 +53,13 @@ async function answer(): Promise<void> {
   }
 }
 
+/** 記述式は書いた内容が答え。選択式は選ばないと送れない。 */
+const cannotAnswer = computed(() => {
+  const form = message.value?.form
+  if (!form) return true
+  return formKind(form) === 'text' ? note.value.trim() === '' : choice.value === ''
+})
+
 const message = ref<CachedMessage | null>(null)
 const attachments = ref<ResolvedAttachment[]>([])
 const missingAttachments = ref<string[]>([])
@@ -65,6 +72,22 @@ function authorName(userId: string): string {
     props.session.roster.members.find((member) => member.userId === userId)?.displayName ?? '不明'
   )
 }
+
+const ROLE_LABEL: Record<string, string> = { admin: '管理', staff: '担当' }
+
+/** 「Aチーム・8/7 9:12・田中 みか(担当)」の一行 (原稿 04)。 */
+const meta = computed(() => {
+  const current = message.value
+  if (!current) return ''
+  const names = props.session.roster.subgroups
+    .filter((subgroup) => current.scopes.includes(subgroup.id))
+    .map((subgroup) => subgroup.name)
+  const audience = names.length > 0 ? names.join('・') : '全員'
+  const role = props.session.roster.members.find((member) => member.userId === current.author)?.role
+  const label = role ? ROLE_LABEL[role] : undefined
+  const who = label ? `${authorName(current.author)}(${label})` : authorName(current.author)
+  return `${audience}・${formatWhen(current.at)}・${who}`
+})
 
 onMounted(async () => {
   try {
@@ -119,7 +142,8 @@ onBeforeUnmount(() => {
     <p v-if="notFound" data-test="not-found">このお知らせは見つかりませんでした。</p>
 
     <article v-else-if="message">
-      <p>{{ authorName(message.author) }}・{{ formatWhen(message.at) }}</p>
+      <p class="meta" data-test="meta">{{ meta }}</p>
+      <h2 v-if="message.title" data-test="title">{{ message.title }}</h2>
       <p data-test="body">{{ message.body }}</p>
 
       <div v-for="attachment in attachments" :key="attachment.id">
@@ -137,31 +161,33 @@ onBeforeUnmount(() => {
       </p>
 
       <section v-if="message.form" data-test="form">
-        <h2>{{ message.form.question }}</h2>
-        <p v-if="message.form.dueAt" class="hint">
-          {{ formatWhen(message.form.dueAt) }} まで
-        </p>
+        <div class="form-head" data-test="form-head">
+          <h2>{{ message.form.question }}</h2>
+          <p v-if="message.form.dueAt" class="hint">
+            {{ formatWhen(message.form.dueAt) }} まで
+          </p>
+        </div>
 
         <p v-if="isClosed(message.form)" data-test="form-closed">
           回答の締切を過ぎました。
         </p>
         <p v-else-if="answered" data-test="form-thanks">回答を送りました。ありがとうございます。</p>
         <template v-else>
-          <fieldset>
+          <fieldset v-if="message.form.choices.length > 0" class="choices">
             <legend>回答</legend>
-            <button
-              v-for="option in message.form.choices"
-              :key="option"
-              type="button"
-              data-test="form-choice"
-              :aria-pressed="choice === option"
-              @click="choice = option"
-            >
+            <label v-for="option in message.form.choices" :key="option" class="choice">
+              <input
+                type="radio"
+                name="form-choice"
+                data-test="form-choice"
+                :value="option"
+                v-model="choice"
+              />
               {{ option }}
-            </button>
+            </label>
           </fieldset>
           <label v-if="message.form.allowNote">
-            ひとこと(任意)
+            {{ message.form.choices.length > 0 ? 'ひとこと(任意)' : 'お答えをどうぞ' }}
             <textarea data-test="form-note" v-model="note"></textarea>
           </label>
           <p class="hint">この回答は、質問した人だけが読めます。</p>
@@ -170,7 +196,7 @@ onBeforeUnmount(() => {
             type="button"
             class="primary"
             data-test="form-submit"
-            :disabled="answering || choice === ''"
+            :disabled="answering || cannotAnswer"
             @click="answer"
           >
             回答を送る

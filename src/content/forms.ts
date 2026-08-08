@@ -8,8 +8,15 @@ export class FormError extends Error {}
 /** 出欠を訊くときの既定の選択肢。 */
 export const DEFAULT_ATTENDANCE_CHOICES = ['参加します', '欠席します']
 
+/**
+ * 問いの種類 (原稿 06)。出欠と選択式は選ばせる。記述式は書いてもらう。
+ * 古いお知らせには入っていないので、読むときは formKind() を通す。
+ */
+export type FormKind = 'attendance' | 'choice' | 'text'
+
 export interface FormDefinition {
   id: string
+  kind?: FormKind
   question: string
   choices: string[]
   allowNote: boolean
@@ -37,19 +44,27 @@ export function newFormId(): string {
   return `f_${toHex(randomBytes(8))}`
 }
 
+/** 種類の入っていない古いフォームは出欠として扱う。 */
+export function formKind(form: FormDefinition): FormKind {
+  return form.kind ?? 'attendance'
+}
+
 export function buildForm(options: {
   session: Session
+  kind?: FormKind
   question: string
   choices: string[]
   allowNote: boolean
   dueAt: string | null
 }): FormDefinition {
+  const kind = options.kind ?? 'attendance'
   const question = options.question.trim()
   if (question.length === 0) {
     throw new FormError('質問を入れてください')
   }
-  const choices = options.choices.map((choice) => choice.trim()).filter(Boolean)
-  if (choices.length < 2) {
+  const choices =
+    kind === 'text' ? [] : options.choices.map((choice) => choice.trim()).filter(Boolean)
+  if (kind !== 'text' && choices.length < 2) {
     // 選べないものは問いではない
     throw new FormError('選択肢は2つ以上にしてください')
   }
@@ -63,9 +78,11 @@ export function buildForm(options: {
 
   return {
     id: newFormId(),
+    kind,
     question,
     choices,
-    allowNote: options.allowNote,
+    // 記述式は書く欄が答えそのもの。閉じられないようにする
+    allowNote: kind === 'text' ? true : options.allowNote,
     dueAt: options.dueAt,
     recipient: { userId: me.userId, ecdhPublic: me.ecdhPublic },
   }

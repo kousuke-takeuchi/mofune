@@ -199,4 +199,99 @@ describe('TimelineView', () => {
     await wrapper.find('[data-test="tab-unread"]').trigger('click')
     expect(wrapper.find('[data-test="empty"]').exists()).toBe(true)
   })
+
+  it('shows a title above the body when the post has one', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.put({ ...newer, title: '来週の集まりについて' })
+    const wrapper = await mountTimeline()
+    expect(wrapper.find('[data-test="message"] .message-title').text()).toBe('来週の集まりについて')
+  })
+
+  it('shows a thumbnail for each cached image, up to three', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.put({ ...newer, attachments: ['f_1', 'f_2', 'f_3', 'f_4'] })
+    for (const id of ['f_1', 'f_2', 'f_3', 'f_4']) {
+      await db.files.put({
+        id,
+        mediaType: 'image/png',
+        size: 3,
+        blob: new Uint8Array([1, 2, 3]),
+        cachedAt: '2026-08-07T00:00:00.000Z',
+      })
+    }
+    const wrapper = await mountTimeline()
+    await vi.waitFor(() => {
+      if (wrapper.findAll('[data-test="thumb"]').length !== 3) throw new Error('not yet')
+    })
+    // 4枚目以降は枚数で示す (原稿 03 の「+9」)
+    expect(wrapper.find('[data-test="thumb-more"]').text()).toContain('1')
+  })
+
+  it('does not promise a thumbnail it has not received yet', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.put({ ...newer, attachments: ['f_missing'] })
+    const wrapper = await mountTimeline()
+    expect(wrapper.findAll('[data-test="thumb"]')).toHaveLength(0)
+  })
+})
+
+describe('the header and the cards, as the design draws them', () => {
+  it('puts the subgroups I belong to under the group name', async () => {
+    const wrapper = mount(TimelineView, {
+      props: {
+        session: {
+          ...(await session()),
+          roster: {
+            groupId: 'midori',
+            generation: 1,
+            subgroups: [
+              { id: 'sg_a', name: 'Aチーム', parent: null },
+              { id: 'sg_b', name: 'Bチーム', parent: null },
+            ],
+            members: [],
+          },
+        } as Session,
+        storage: new MemoryStorageProvider(),
+      },
+    })
+    mounted.push(wrapper)
+    await flushPromises()
+
+    const subtitle = wrapper.get('[data-test="belongs-to"]').text()
+    expect(subtitle).toContain('Aチーム')
+    expect(subtitle).toContain('佐藤 さくら')
+    expect(subtitle).not.toContain('Bチーム')
+  })
+
+  it('shows when the last sync happened', async () => {
+    const db = openGroupDatabase('midori')
+    await db.syncState.put({ key: 'lastSyncedAt', value: '2026-08-07T09:12:00.000Z' })
+    const wrapper = await mountTimeline()
+    expect(wrapper.get('[data-test="sync-chip"]').text()).toContain('同期済み')
+  })
+
+  it('says it has never synced when it has not', async () => {
+    const wrapper = await mountTimeline()
+    expect(wrapper.get('[data-test="sync-chip"]').text()).toContain('未同期')
+  })
+
+  it('marks a post that wants an answer, and offers the button in the card', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.put({
+      ...newer,
+      form: { id: 'fm_1', kind: 'attendance', question: '来ますか', choices: ['行く', '行かない'] },
+    } as CachedMessage)
+    const wrapper = await mountTimeline()
+
+    expect(wrapper.get('[data-test="needs-answer"]').text()).toContain('要回答')
+    await wrapper.get('[data-test="answer"]').trigger('click')
+    expect(wrapper.emitted('open')?.[0]).toEqual(['m_new'])
+  })
+
+  it('does not mark a plain post', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.put(newer)
+    const wrapper = await mountTimeline()
+    expect(wrapper.find('[data-test="needs-answer"]').exists()).toBe(false)
+  })
 })

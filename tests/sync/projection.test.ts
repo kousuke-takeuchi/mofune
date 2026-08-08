@@ -45,7 +45,7 @@ async function postedEvent(): Promise<{
     session,
     db,
     draft: {
-      body: '来週の集まりについて',
+      title: '', body: '来週の集まりについて',
       scopes: ['sg_a'],
       attachments: [{ name: '案内図.png', mediaType: 'image/png', bytes: utf8('png-bytes') }],
     },

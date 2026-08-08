@@ -249,3 +249,31 @@ describe('ComposeView', () => {
     expect(wrapper.emitted('posted')).toBeFalsy()
   })
 })
+
+describe('the compose screen, as the design draws it', () => {
+  it('shows how many people each audience covers', async () => {
+    const wrapper = await mountCompose()
+    const labels = wrapper.findAll('[data-test="scope-label"]').map((el) => el.text())
+    expect(labels.some((label) => label.includes('名'))).toBe(true)
+  })
+
+  it('offers the three kinds of form', async () => {
+    const wrapper = await mountCompose()
+    await wrapper.get('[data-test="with-form"]').setValue(true)
+    const kinds = wrapper.findAll('[data-test="form-kind"]').map((el) => el.attributes('data-kind'))
+    expect(kinds).toEqual(['attendance', 'choice', 'text'])
+  })
+
+  it('hides the choices when the form asks people to write', async () => {
+    const wrapper = await mountCompose()
+    await wrapper.get('[data-test="with-form"]').setValue(true)
+    await wrapper.find('[data-test="form-kind"][data-kind="text"]').trigger('click')
+    expect(wrapper.findAll('[data-test="form-choice"]')).toHaveLength(0)
+  })
+
+  it('separates attaching a photo from attaching a PDF', async () => {
+    const wrapper = await mountCompose()
+    expect(wrapper.get('[data-test="attach"]').attributes('accept')).toContain('image/')
+    expect(wrapper.get('[data-test="attach-pdf"]').attributes('accept')).toContain('pdf')
+  })
+})

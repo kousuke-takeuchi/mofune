@@ -286,15 +286,57 @@ li time {
   color: var(--faint);
 }
 
-/* 未読のお知らせは左端に印を付ける。色だけに頼らない。 */
 li[data-test='message'] {
   cursor: pointer;
-  border-left: 4px solid transparent;
 }
 
-li[data-test='message'][data-unread='true'] {
-  border-left-color: var(--amber);
-  background: var(--sand-deep);
+/* 未読は行頭に点を置く (原稿 03)。色だけに頼らないよう aria-label も付ける */
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+}
+
+.card-head time {
+  display: inline-block;
+}
+
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--amber);
+  flex: none;
+}
+
+.chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--sand);
+  border: 1px solid transparent;
+  color: var(--amber-ink);
+}
+
+.needs-answer {
+  margin-left: auto;
+  background: var(--terracotta, #c4643c);
+  color: #fff;
+}
+
+/* カードの中から直に答えられるようにする (原稿 03) */
+button.answer {
+  margin-top: 10px;
+  width: 100%;
+}
+
+button.sync-chip {
+  padding: 4px 11px;
+  font-size: 11px;
+  border-radius: 999px;
 }
 
 /* ---------- 状態の表示 ---------- */
@@ -489,8 +531,22 @@ button.wide {
   border-color: transparent;
   background: transparent;
   color: var(--muted);
-  font-size: 12.5px;
-  padding: 8px 4px;
+  font-size: 11.5px;
+  padding: 6px 4px;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+
+/* アイコン + ラベルの2段にする (原稿 03)。線画なので塗りは持たせない */
+.bottom-nav svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .bottom-nav button[aria-current='page'] {
@@ -680,9 +736,9 @@ details > *:last-child {
 }
 
 .tabs button[aria-pressed='true'] {
-  background: var(--card);
-  color: var(--ink);
-  border-color: var(--line);
+  background: var(--ink);
+  color: var(--cream);
+  border-color: transparent;
 }
 
 /* ---------- 設定の並び ---------- */
@@ -698,4 +754,237 @@ section h2 {
   margin-top: 10px;
   font-size: 14px;
   color: var(--amber-ink);
+}
+
+/* ---------- お知らせの見出しと添付 ---------- */
+
+.message-title {
+  font-size: 16px;
+  margin: 2px 0 4px;
+}
+
+/* 端末に届いている画像だけを並べる (原稿 03) */
+.thumbs {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.thumbs img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--sand);
+}
+
+.thumb-more {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: var(--sand-deep);
+  color: var(--amber-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 主ボタンはテラコッタ (原稿 01/04/05/06)。琥珀は選択状態などに使う。 */
+button.primary {
+  background: var(--terracotta);
+}
+
+button.primary:hover:not(:disabled) {
+  background: #b4552a;
+}
+
+/* ---------- お知らせ詳細 (原稿 04) ---------- */
+
+.meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* 締切は質問の右に並べる */
+.form-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.form-head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+/* 回答はラジオの行。選ぶと枠に色が付く */
+fieldset.choices {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.choice:has(input:checked) {
+  border-color: var(--terracotta);
+  background: var(--sand);
+}
+
+.choice input {
+  accent-color: var(--terracotta);
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- れんらく (原稿 05) ---------- */
+
+/* 「種類」だけは暗色で塗る。理由のチップと役割が違うため */
+fieldset.dark-choice button[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: transparent;
+  color: var(--cream);
+}
+
+/* 主となる操作は画面の下端に置く (原稿 05 / 06) */
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, rgba(251, 247, 240, 0), var(--bg) 24%);
+}
+
+/* ---------- お知らせ作成 (原稿 06) ---------- */
+
+/* 宛先は人数付きのチップ。チェックボックス自体は隠さず小さく置く */
+.scope-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.scope-chip:has(input:checked) {
+  background: var(--sand);
+  border-color: var(--terracotta);
+  color: var(--amber-ink);
+}
+
+.scope-chip input {
+  accent-color: var(--terracotta);
+}
+
+/* 添付は「写真」「PDF」の2つに分ける。中の file 入力は隠す */
+.attach-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.attach-button input {
+  display: none;
+}
+
+/* ---------- 初回の設定 (原稿 02) ---------- */
+
+.steps {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.steps p {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--amber-ink);
+}
+
+.step-bar {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 5px;
+}
+
+.step-bar span {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--sand-deep);
+}
+
+.step-bar span[data-done='true'] {
+  background: var(--terracotta);
+}
+
+.agree {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.agree input {
+  accent-color: var(--terracotta);
+  width: 18px;
+  height: 18px;
+}
+
+/* 「届くかどうかの確認」はクリーム地のカードにまとめる */
+.check-card {
+  display: grid;
+  gap: 8px;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.check-card h2 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+/* ラベルの右端に小さな操作を置く (原稿 01「表示」) */
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.label-row button {
+  font-size: 12px;
+  padding: 2px 4px;
+  color: var(--terracotta);
 }

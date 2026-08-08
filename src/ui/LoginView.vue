@@ -13,6 +13,7 @@ const emit = defineEmits<{ login: [session: Session, root: string, adminPublicKe
 const code = ref(props.initialCode)
 const email = ref('')
 const password = ref('')
+const revealed = ref(false)
 const error = ref('')
 const busy = ref(false)
 
@@ -88,11 +89,16 @@ async function submit(): Promise<void> {
     </label>
 
     <label>
-      パスワード
+      <span class="label-row">
+        パスワード
+        <button type="button" class="quiet" data-test="reveal" @click="revealed = !revealed">
+          {{ revealed ? '隠す' : '表示' }}
+        </button>
+      </span>
       <input
         v-model="password"
         data-test="password"
-        type="password"
+        :type="revealed ? 'text' : 'password'"
         autocomplete="current-password"
       />
     </label>

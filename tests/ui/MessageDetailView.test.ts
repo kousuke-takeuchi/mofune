@@ -153,3 +153,109 @@ describe('MessageDetailView', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:stub')
   })
 })
+
+describe('the detail screen, as the design draws it', () => {
+  it('names the audience and the role in the meta line', async () => {
+    const wrapper = mount(MessageDetailView, {
+      props: {
+        storage: new MemoryStorageProvider(),
+        session: {
+          ...(await session()),
+          roster: {
+            groupId: 'midori',
+            generation: 1,
+            subgroups: [{ id: 'sg_a', name: 'Aチーム', parent: null }],
+            members: [
+              {
+                userId: 'u_tanaka',
+                displayName: '田中 みか',
+                role: 'staff',
+                scopes: ['sg_a'],
+                ecdhPublic: 'AAAA',
+                ecdsaPublic: 'aaaa',
+              },
+            ],
+          },
+        } as Session,
+        messageId: 'm_1',
+      },
+    })
+    mounted.push(wrapper)
+    for (let i = 0; i < 5; i += 1) await flushPromises()
+
+    const meta = wrapper.get('[data-test="meta"]').text()
+    expect(meta).toContain('Aチーム')
+    expect(meta).toContain('田中 みか')
+    expect(meta).toContain('担当')
+  })
+
+  it('offers the choices as radio rows', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.update('m_1', {
+      form: {
+        id: 'fm_1',
+        kind: 'attendance',
+        question: '来ますか',
+        choices: ['行く', '行かない'],
+        allowNote: false,
+        dueAt: '2026-08-12T09:00:00.000Z',
+        recipient: { userId: 'u_tanaka', ecdhPublic: 'AAAA' },
+      },
+    })
+    const wrapper = await mountDetail()
+
+    const radios = wrapper.findAll('[data-test="form-choice"]')
+    expect(radios).toHaveLength(2)
+    expect(radios[0]?.attributes('type')).toBe('radio')
+
+    await radios[0]?.setValue()
+    expect(wrapper.get('[data-test="form-submit"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('puts the due date beside the question', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.update('m_1', {
+      form: {
+        id: 'fm_1',
+        kind: 'attendance',
+        question: '来ますか',
+        choices: ['行く'],
+        allowNote: false,
+        dueAt: '2026-08-12T09:00:00.000Z',
+        recipient: { userId: 'u_tanaka', ecdhPublic: 'AAAA' },
+      },
+    })
+    const wrapper = await mountDetail()
+    expect(wrapper.get('[data-test="form-head"]').text()).toContain('まで')
+  })
+})
+
+describe('a 記述式 form', () => {
+  beforeEach(async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.update('m_1', {
+      form: {
+        id: 'fm_1',
+        kind: 'text',
+        question: 'ご意見をどうぞ',
+        choices: [],
+        allowNote: true,
+        dueAt: null,
+        recipient: { userId: 'u_tanaka', ecdhPublic: 'AAAA' },
+      },
+    })
+  })
+
+  it('asks to write rather than to choose', async () => {
+    const wrapper = await mountDetail()
+    expect(wrapper.findAll('[data-test="form-choice"]')).toHaveLength(0)
+    expect(wrapper.find('[data-test="form-note"]').exists()).toBe(true)
+  })
+
+  it('keeps the send button off until something is written', async () => {
+    const wrapper = await mountDetail()
+    expect(wrapper.get('[data-test="form-submit"]').attributes('disabled')).toBeDefined()
+    await wrapper.get('[data-test="form-note"]').setValue('助かっています')
+    expect(wrapper.get('[data-test="form-submit"]').attributes('disabled')).toBeUndefined()
+  })
+})

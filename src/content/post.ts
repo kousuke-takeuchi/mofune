@@ -21,6 +21,8 @@ export interface DraftAttachment {
 }
 
 export interface Draft {
+  /** 見出し。空なら付けない。 */
+  title: string
   body: string
   /** 素のスコープ id。世代は resolveTargets が付ける。 */
   scopes: string[]
@@ -96,6 +98,7 @@ export async function createPost(options: {
     scopes: [...new Set(draft.scopes)],
     author: session.userId,
     at,
+    ...(draft.title.trim() ? { title: draft.title.trim() } : {}),
     body: draft.body,
     attachments,
     ...(draft.form ? { form: draft.form } : {}),

@@ -9,12 +9,14 @@ import type { Session } from '../group/session'
 import { ALL_SCOPE } from '../crypto/roster'
 import type { StorageProvider } from '../storage/provider'
 import { DEFAULT_ATTENDANCE_CHOICES, buildForm } from '../content/forms'
+import type { FormKind } from '../content/forms'
 import { rebuildEventIndex } from '../sync/event-index'
 import { flushOutbox } from '../sync/outbox'
 
 const props = defineProps<{ session: Session; storage: StorageProvider }>()
 const emit = defineEmits<{ posted: [messageId: string]; cancel: [] }>()
 
+const title = ref('')
 const body = ref('')
 const selected = ref<Record<string, boolean>>({})
 const attachments = ref<DraftAttachment[]>([])
@@ -31,13 +33,36 @@ const options = computed(() => {
   const held = new Set(
     [...props.session.groupKeys.keys()].map((id) => id.slice(0, id.lastIndexOf(':v'))),
   )
-  const list: { id: string; label: string }[] = []
-  if (held.has(ALL_SCOPE)) list.push({ id: ALL_SCOPE, label: 'グループ全体' })
+  const members = props.session.roster.members
+  const list: { id: string; label: string; count: number }[] = []
+  if (held.has(ALL_SCOPE)) {
+    list.push({ id: ALL_SCOPE, label: 'グループ全体', count: members.length })
+  }
   for (const subgroup of props.session.roster.subgroups) {
-    if (held.has(subgroup.id)) list.push({ id: subgroup.id, label: subgroup.name })
+    if (!held.has(subgroup.id)) continue
+    list.push({
+      id: subgroup.id,
+      label: subgroup.name,
+      count: members.filter((member) => member.scopes.includes(subgroup.id)).length,
+    })
   }
   return list
 })
+
+const FORM_KINDS: { value: FormKind; label: string }[] = [
+  { value: 'attendance', label: '出欠' },
+  { value: 'choice', label: '選択式' },
+  { value: 'text', label: '記述式' },
+]
+
+const formKind = ref<FormKind>('attendance')
+
+/** 種類を変えると選択肢の初期値も変わる。記述式では選択肢を使わない。 */
+function chooseKind(kind: FormKind): void {
+  formKind.value = kind
+  if (kind === 'attendance') choices.value = [...DEFAULT_ATTENDANCE_CHOICES]
+  if (kind === 'choice' && choices.value.length === 0) choices.value = ['', '']
+}
 
 const withForm = ref(false)
 const question = ref('')
@@ -83,6 +108,7 @@ async function submit(): Promise<void> {
     const form = withForm.value
       ? buildForm({
           session: props.session,
+          kind: formKind.value,
           question: question.value,
           choices: choices.value,
           allowNote: allowNote.value,
@@ -93,6 +119,7 @@ async function submit(): Promise<void> {
       session: props.session,
       db,
       draft: {
+        title: title.value,
         body: body.value,
         scopes,
         attachments: attachments.value,
@@ -133,7 +160,7 @@ async function submit(): Promise<void> {
     <form v-else @submit.prevent="submit">
       <fieldset>
         <legend>届ける相手</legend>
-        <label v-for="option in options" :key="option.id">
+        <label v-for="option in options" :key="option.id" class="scope-chip">
           <input
             type="checkbox"
             data-test="scope-option"
@@ -141,25 +168,37 @@ async function submit(): Promise<void> {
             :value="option.id"
             v-model="selected[option.id]"
           />
-          {{ option.label }}
+          <span data-test="scope-label">{{ option.label }} {{ option.count }}名</span>
         </label>
       </fieldset>
+
+      <label>
+        見出し
+        <input data-test="title" v-model="title" placeholder="来週の集まりについて" />
+      </label>
 
       <label>
         本文
         <textarea data-test="body" v-model="body"></textarea>
       </label>
 
-      <label>
-        写真やPDFを添付
-        <input
-          type="file"
-          data-test="attach"
-          multiple
-          accept="image/*,application/pdf"
-          @change="pickFiles"
-        />
-      </label>
+      <fieldset>
+        <legend>添付</legend>
+        <label class="attach-button">
+          写真を添付
+          <input type="file" data-test="attach" multiple accept="image/*" @change="pickFiles" />
+        </label>
+        <label class="attach-button">
+          PDFを添付
+          <input
+            type="file"
+            data-test="attach-pdf"
+            multiple
+            accept="application/pdf"
+            @change="pickFiles"
+          />
+        </label>
+      </fieldset>
 
       <ul v-if="attachments.length > 0">
         <li v-for="(attachment, index) in attachments" :key="index" data-test="attachment">
@@ -178,11 +217,25 @@ async function submit(): Promise<void> {
       </label>
 
       <template v-if="withForm">
+        <fieldset class="dark-choice">
+          <legend>種類</legend>
+          <button
+            v-for="kind in FORM_KINDS"
+            :key="kind.value"
+            type="button"
+            data-test="form-kind"
+            :data-kind="kind.value"
+            :aria-pressed="formKind === kind.value"
+            @click="chooseKind(kind.value)"
+          >
+            {{ kind.label }}
+          </button>
+        </fieldset>
         <label>
           質問
           <input data-test="form-question" v-model="question" />
         </label>
-        <fieldset>
+        <fieldset v-if="formKind !== 'text'">
           <legend>選択肢</legend>
           <div v-for="(_, index) in choices" :key="index" class="row">
             <input data-test="form-choice" v-model="choices[index]" />
@@ -196,8 +249,10 @@ async function submit(): Promise<void> {
             </button>
           </div>
         </fieldset>
-        <button type="button" data-test="add-choice" @click="addChoice">選択肢を足す</button>
-        <label>
+        <button v-if="formKind !== 'text'" type="button" data-test="add-choice" @click="addChoice">
+          選択肢を足す
+        </button>
+        <label v-if="formKind !== 'text'">
           <input type="checkbox" data-test="allow-note" v-model="allowNote" />
           ひとこと欄を出す
         </label>
@@ -213,7 +268,11 @@ async function submit(): Promise<void> {
         オフラインのため送信待ちにしました。オンラインに戻ると自動で送信されます。
       </p>
 
-      <button type="button" class="primary" data-test="submit" :disabled="busy" @click="submit">送信する</button>
+      <div class="sticky-actions">
+        <button type="button" class="primary" data-test="submit" :disabled="busy" @click="submit">
+          送信して通知する
+        </button>
+      </div>
     </form>
   </section>
 </template>
