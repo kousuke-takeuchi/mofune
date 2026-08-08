@@ -50,13 +50,21 @@ export async function rebuildEventIndex(options: {
  * イベント ID を並べる。一覧できるプロバイダなら実物から、できないなら索引から。
  * 索引がまだ無いグループでは空を返す。読めないことと空であることを、
  * 参加者に区別させても仕方がない。
+ *
+ * `after` を渡すと、一覧できる側では**それ以降だけを頼む**。全件を持ってきて
+ * 手元で捨てると、イベントが増えるほど毎回の同期が重くなる。
  */
 export async function listEventIds(options: {
   storage: StorageProvider
   groupId: string
+  /** ここまでは済んでいるイベント ID。 */
+  after?: string
 }): Promise<string[]> {
+  const prefix = `${options.groupId}/events/`
   if (options.storage.capabilities.list) {
-    const entries = await options.storage.list(`${options.groupId}/events/`)
+    // 一覧の並びはパスなので、カーソルもパスに直して渡す
+    const from = options.after === undefined ? undefined : `${prefix}${options.after}.enc`
+    const entries = await options.storage.list(prefix, from)
     return entries.map((entry) => idFromPath(entry.path)).sort()
   }
 
@@ -71,7 +79,9 @@ export async function listEventIds(options: {
   try {
     const file = JSON.parse(fromUtf8(raw)) as EventIndexFile
     if (file.v !== EVENT_INDEX_VERSION || !Array.isArray(file.ids)) return []
-    return [...file.ids].sort()
+    const ids = [...file.ids].sort()
+    // 索引は丸ごとしか読めないので、絞るのは手元で
+    return options.after === undefined ? ids : ids.filter((id) => id > (options.after as string))
   } catch {
     return []
   }

@@ -175,7 +175,15 @@ function handleRequest(request, deps) {
     if (!mofuneKeyBelongsTo(body.group_id, body.prefix)) {
       return { status: 400, body: { error: 'bad prefix' } }
     }
-    return { status: 200, body: { entries: deps.objects.list(body.prefix) } }
+    var entries = deps.objects.list(body.prefix)
+    if (typeof body.after === 'string' && body.after !== '') {
+      var newer = []
+      for (var k = 0; k < entries.length; k += 1) {
+        if (entries[k].key > body.after) newer.push(entries[k])
+      }
+      entries = newer
+    }
+    return { status: 200, body: { entries: entries } }
   }
 
   if (path === '/delete' && method === 'POST') {

@@ -91,7 +91,12 @@ export class FunctionStorageProvider implements StorageProvider {
   }
 
   async list(prefix: string, after?: string): Promise<StorageEntry[]> {
-    const body = await this.call('/list', { group_id: this.groupId, prefix })
+    // 絞りは関数側でも行う。全件返してから手元で捨てると往復が太る
+    const body = await this.call('/list', {
+      group_id: this.groupId,
+      prefix,
+      ...(after === undefined ? {} : { after }),
+    })
     const entries = Array.isArray(body.entries) ? (body.entries as Array<Record<string, unknown>>) : []
     return entries
       .map((entry) => ({

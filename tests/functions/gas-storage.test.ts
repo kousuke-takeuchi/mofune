@@ -177,3 +177,22 @@ describe('POST /inbox', () => {
     expect(files.data.size).toBe(0)
   })
 })
+
+describe('POST /list with a cursor', () => {
+  it('returns only what comes after it, so the client does not fetch the past again', () => {
+    files.data.set('g_midori/events/e_1.enc', base64('a'))
+    files.data.set('g_midori/events/e_2.enc', base64('b'))
+    files.data.set('g_midori/events/e_3.enc', base64('c'))
+
+    const result = call('/list', {
+      group_id: 'g_midori',
+      prefix: 'g_midori/events/',
+      after: 'g_midori/events/e_1.enc',
+    })
+
+    expect((result.body.entries as Array<{ key: string }>).map((entry) => entry.key)).toEqual([
+      'g_midori/events/e_2.enc',
+      'g_midori/events/e_3.enc',
+    ])
+  })
+})

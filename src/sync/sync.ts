@@ -1,3 +1,4 @@
+import type { Bytes } from '../crypto/bytes'
 import type { GroupDatabase } from '../db/group-db'
 import type { StorageProvider } from '../storage/provider'
 import { compareEventIds, openEvent } from './events'
@@ -27,6 +28,34 @@ export async function readLastSyncedAt(db: GroupDatabase): Promise<string | null
   return (await db.syncState.get('lastSyncedAt'))?.value ?? null
 }
 
+/** 同時に走らせる本数。増やしても回線と相手側の上限で止まる。 */
+const FETCH_CONCURRENCY = 4
+
+/**
+ * まとめて取りに行き、頼んだ順に並べて返す。取れなかったものは null。
+ * 例外にしないのは、1件の欠けで残りを捨てないため。
+ */
+async function fetchInOrder(
+  ids: string[],
+  fetch: (id: string) => Promise<Bytes>,
+): Promise<Array<{ id: string; sealed: Bytes | null }>> {
+  const results: Array<{ id: string; sealed: Bytes | null }> = []
+  for (let start = 0; start < ids.length; start += FETCH_CONCURRENCY) {
+    const batch = ids.slice(start, start + FETCH_CONCURRENCY)
+    const settled = await Promise.all(
+      batch.map(async (id) => {
+        try {
+          return { id, sealed: await fetch(id) }
+        } catch {
+          return { id, sealed: null }
+        }
+      }),
+    )
+    results.push(...settled)
+  }
+  return results
+}
+
 /**
  * カーソル以降のイベントだけを取得して適用する。
  *
@@ -43,16 +72,31 @@ export async function syncGroup(options: {
   const cursor = await readCursor(options.db)
   const prefix = `${options.groupId}/events/`
   // 参加者の経路は一覧を返せないので、索引から取る (event-index.ts)
-  const all = await listEventIds({ storage: options.storage, groupId: options.groupId })
+  const all = await listEventIds({
+    storage: options.storage,
+    groupId: options.groupId,
+    ...(cursor === null ? {} : { after: cursor }),
+  })
   const ids = all
     .filter((id) => cursor === null || compareEventIds(id, cursor) > 0)
     .sort(compareEventIds)
   let applied = 0
   let skipped = 0
   let missing = 0
+  let lastDone: string | null = null
 
-  for (const id of ids) {
-    const sealed = await options.storage.get(`${prefix}${id}.enc`)
+  /*
+   * 本文の取得はまとめて走らせる。1件ずつ待つと、往復の回数ぶん待たされる
+   * (初回の同期がとくに遅い)。ただし**適用は並びどおり**に行う。順番が崩れると、
+   * 同じものを2度書いたり、カーソルの意味が壊れたりする。
+   */
+  const fetched = await fetchInOrder(ids, (id) => options.storage.get(`${prefix}${id}.enc`))
+
+  for (const { id, sealed } of fetched) {
+    if (sealed === null) {
+      // 取れなかったものは次の同期で拾う。カーソルはここで止める
+      break
+    }
     try {
       const event = await openEvent(options.keys, sealed)
       await options.db.events.put(event)
@@ -68,9 +112,10 @@ export async function syncGroup(options: {
     } catch {
       skipped += 1
     }
+    lastDone = id
   }
 
-  const newest = ids.length > 0 ? (ids[ids.length - 1] as string) : null
+  const newest = lastDone
   if (newest !== null) {
     await writeCursor(options.db, newest)
   }
