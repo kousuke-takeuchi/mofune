@@ -59,7 +59,7 @@ async function remember(groupId: string): Promise<void> {
       pepper: 'p',
       adminPublicKey: 'k',
     }),
-    loginId: 'watanabe',
+    email: 'watanabe@example.invalid',
     lastLoginAt: 1,
   })
 }

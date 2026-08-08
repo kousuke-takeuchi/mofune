@@ -14,14 +14,14 @@ const router = useRouter()
 const session = useSessionStore()
 const groups = useGroupsStore()
 
-const loginId = ref('')
+const email = ref('')
 const lastSyncedAt = ref<string | null>(null)
 
 onMounted(async () => {
   const groupId = session.groupId
   if (!groupId) return
   lastSyncedAt.value = await readLastSyncedAt(openGroupDatabase(groupId))
-  loginId.value = (await getGroup(groupId))?.loginId ?? ''
+  email.value = (await getGroup(groupId))?.email ?? ''
 })
 
 /** ログアウトしても端末の記録は残す。次はパスワードだけで戻れる。 */
@@ -49,7 +49,7 @@ function go(place: NavPlace): void {
   <div v-if="session.session" class="stack">
     <SettingsView
       :session="session.session"
-      :login-id="loginId"
+      :email="email"
       :last-synced-at="lastSyncedAt"
       @sign-out="signOut"
       @forget-device="forgetDevice"

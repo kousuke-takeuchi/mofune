@@ -11,6 +11,7 @@ import { keyringPath, keystorePath } from '../storage/paths'
 import { serializeKeyringFile } from '../crypto/keyring'
 import type { StorageProvider } from '../storage/provider'
 import type { ConnectionCode } from './connection-code'
+import { normalizeEmail } from './email-id'
 import { INITIAL_GENERATION } from './provision'
 import { loadRosterFile } from './roster-update'
 import {
@@ -29,12 +30,12 @@ export class MembershipError extends Error {}
 // 名簿と鍵束の書き換えは roster-writer が受け持つ
 
 export interface NewMemberInput {
-  loginId: string
   displayName: string
   role: Role
   /** 末端のサブグループ id のみ。all・祖先・staff は resolveScopes が付ける。 */
   scopes: string[]
   password: string
+  /** ログインの識別子でもある。 */
   email: string
 }
 
@@ -49,7 +50,7 @@ interface Context {
 async function placeKeystore(options: {
   storage: StorageProvider
   groupId: string
-  loginId: string
+  email: string
   userId: string
   pair: { ecdh: RawKeyPair; ecdsa: RawKeyPair }
   password: string
@@ -63,7 +64,7 @@ async function placeKeystore(options: {
     options.kdf,
   )
   await options.storage.put(
-    await keystorePath(options.groupId, options.loginId),
+    await keystorePath(options.groupId, options.email),
     serializeKeystoreFile(keystore),
   )
 }
@@ -79,17 +80,19 @@ export async function addMember(
 ): Promise<{ userId: string }> {
   assertAdmin(context.session, MembershipError)
 
-  const wanted = context.member.loginId.trim().toLowerCase()
-  if (wanted.length === 0) {
-    throw new MembershipError('ログインIDを入れてください')
+  let wanted: string
+  try {
+    wanted = normalizeEmail(context.member.email)
+  } catch (cause) {
+    throw new MembershipError(cause instanceof Error ? cause.message : String(cause))
   }
-  // ログインIDはキーストアのファイル名になる。重複すると先の人を上書きしてしまう。
+  // アドレスはキーストアのファイル名になる。重複すると先の人を上書きしてしまう。
   const taken = await context.storage
     .get(await keystorePath(context.code.groupId, wanted))
     .then(() => true)
     .catch(() => false)
   if (taken) {
-    throw new MembershipError(`ログインID "${wanted}" はすでに使われています`)
+    throw new MembershipError(`${wanted} はすでに使われています`)
   }
 
   const generation = INITIAL_GENERATION
@@ -114,7 +117,7 @@ export async function addMember(
   await placeKeystore({
     storage: context.storage,
     groupId: context.code.groupId,
-    loginId: wanted,
+    email: wanted,
     userId,
     pair: { ecdh, ecdsa },
     password: context.member.password,
@@ -175,7 +178,7 @@ export async function addMember(
  * 古い端末に残った未送信の投函は開けなくなる。
  */
 export async function reissuePassword(
-  context: Context & { userId: string; loginId: string; password: string },
+  context: Context & { userId: string; email: string; password: string },
 ): Promise<void> {
   assertAdmin(context.session, MembershipError)
 
@@ -203,7 +206,7 @@ export async function reissuePassword(
   await placeKeystore({
     storage: context.storage,
     groupId: context.code.groupId,
-    loginId: context.loginId.trim().toLowerCase(),
+    email: normalizeEmail(context.email),
     userId: context.userId,
     pair: { ecdh, ecdsa },
     password: context.password,

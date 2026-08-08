@@ -34,7 +34,7 @@ interface SessionState {
  * いま解錠されているセッション1つ。リロードで消える。
  *
  * 鍵とパスワードは永続化しない(要件書 §5)。端末に残すのは接続コードと
- * ログインIDだけで、再開時はパスワードだけを訊く。
+ * メールアドレスだけで、再開時はパスワードだけを訊く。
  */
 /**
  * 担当者・管理者のための書き込みプロバイダを組み立てる。
@@ -84,10 +84,10 @@ export const useSessionStore = defineStore('session', {
       await useGroupsStore().load()
     },
 
-    async signIn(code: ConnectionCode, loginId: string, password: string): Promise<void> {
+    async signIn(code: ConnectionCode, email: string, password: string): Promise<void> {
       const storage = new HttpStorageProvider(code.root)
-      const session = await login({ code, loginId, password, storage })
-      await rememberGroup({ code, groupName: session.groupName, loginId, at: Date.now() })
+      const session = await login({ code, email, password, storage })
+      await rememberGroup({ code, groupName: session.groupName, email, at: Date.now() })
       await this.adopt(session, code.root, code.adminPublicKey)
     },
 
@@ -96,7 +96,7 @@ export const useSessionStore = defineStore('session', {
       if (!stored) {
         throw new UnknownGroupError('この端末にはこのグループの記録がありません')
       }
-      await this.signIn(stored.code, stored.loginId, password)
+      await this.signIn(stored.code, stored.email, password)
     },
 
     signOut(): void {

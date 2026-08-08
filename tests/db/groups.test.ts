@@ -26,11 +26,11 @@ beforeEach(async () => {
 
 describe('group registry', () => {
   it('remembers a group and reads it back as a decoded connection code', async () => {
-    await rememberGroup({ code: midori, groupName: 'みどり台グループ', loginId: 'sato', at: 1000 })
+    await rememberGroup({ code: midori, groupName: 'みどり台グループ', email: 'sato@example.invalid', at: 1000 })
     const stored = await getGroup('midori')
     expect(stored?.code).toEqual(midori)
     expect(stored?.groupName).toBe('みどり台グループ')
-    expect(stored?.loginId).toBe('sato')
+    expect(stored?.email).toBe('sato@example.invalid')
   })
 
   it('returns undefined for an unknown group', async () => {
@@ -38,36 +38,36 @@ describe('group registry', () => {
   })
 
   it('lists groups with the most recently used first', async () => {
-    await rememberGroup({ code: midori, groupName: 'みどり台', loginId: 'sato', at: 1000 })
-    await rememberGroup({ code: aozora, groupName: 'うめ', loginId: 'sato', at: 2000 })
+    await rememberGroup({ code: midori, groupName: 'みどり台', email: 'sato@example.invalid', at: 1000 })
+    await rememberGroup({ code: aozora, groupName: 'うめ', email: 'sato@example.invalid', at: 2000 })
     expect((await listGroups()).map((group) => group.groupId)).toEqual(['aozora', 'midori'])
   })
 
   it('updates an existing group instead of duplicating it', async () => {
-    await rememberGroup({ code: midori, groupName: 'みどり台', loginId: 'sato', at: 1000 })
-    await rememberGroup({ code: midori, groupName: 'みどり台グループ', loginId: 'tanaka', at: 3000 })
+    await rememberGroup({ code: midori, groupName: 'みどり台', email: 'sato@example.invalid', at: 1000 })
+    await rememberGroup({ code: midori, groupName: 'みどり台グループ', email: 'tanaka@example.invalid', at: 3000 })
     const groups = await listGroups()
     expect(groups).toHaveLength(1)
     expect(groups[0]?.groupName).toBe('みどり台グループ')
-    expect(groups[0]?.loginId).toBe('tanaka')
+    expect(groups[0]?.email).toBe('tanaka@example.invalid')
   })
 
   it('forgets a group', async () => {
-    await rememberGroup({ code: midori, groupName: 'みどり台', loginId: 'sato', at: 1000 })
+    await rememberGroup({ code: midori, groupName: 'みどり台', email: 'sato@example.invalid', at: 1000 })
     await forgetGroup('midori')
     expect(await listGroups()).toHaveLength(0)
   })
 
   it('never persists a password field', async () => {
-    await rememberGroup({ code: midori, groupName: 'みどり台', loginId: 'sato', at: 1000 })
+    await rememberGroup({ code: midori, groupName: 'みどり台', email: 'sato@example.invalid', at: 1000 })
     const raw = await registryDb.groups.get('midori')
     expect(JSON.stringify(raw)).not.toContain('password')
     expect(Object.keys(raw ?? {}).sort()).toEqual([
       'code',
+      'email',
       'groupId',
       'groupName',
       'lastLoginAt',
-      'loginId',
     ])
   })
 })

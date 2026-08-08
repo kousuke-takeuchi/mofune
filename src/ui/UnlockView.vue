@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-defineProps<{ groupName: string; loginId: string; busy: boolean; error: string }>()
+defineProps<{ groupName: string; email: string; busy: boolean; error: string }>()
 const emit = defineEmits<{ unlock: [password: string]; switchGroup: []; forget: [] }>()
 
 const password = ref('')
@@ -26,7 +26,7 @@ const password = ref('')
         <path d="M92 100 q8 8 16 0" stroke="#3B322A" stroke-width="3.4" fill="none" stroke-linecap="round" />
       </svg>
       <h1>おかえりなさい</h1>
-      <p class="hint">{{ groupName }} — {{ loginId }}</p>
+      <p class="hint">{{ groupName }} — {{ email }}</p>
     </div>
 
     <label>

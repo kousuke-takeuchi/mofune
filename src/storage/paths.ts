@@ -14,11 +14,11 @@ export function keyringPath(groupId: string, generation: number): string {
 }
 
 /**
- * ログイン ID をそのままパスに出すと、公開ストレージ上で在籍者を
- * 列挙できてしまう。ハッシュしてから配置する。
+ * ログインの識別子はメールアドレス。そのままパスに出すと、公開ストレージ上で
+ * 在籍者のアドレスを列挙できてしまうのでハッシュしてから配置する。
  */
-export async function keystorePath(groupId: string, loginId: string): Promise<string> {
-  const digest = await sha256(utf8(`${groupId}:${loginId.trim().toLowerCase()}`))
+export async function keystorePath(groupId: string, email: string): Promise<string> {
+  const digest = await sha256(utf8(`${groupId}:${email.trim().toLowerCase()}`))
   return `${groupId}/users/${toHex(digest)}.json`
 }
 

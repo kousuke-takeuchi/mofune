@@ -5,7 +5,7 @@ import type { Session } from '../group/session'
 
 const props = defineProps<{
   session: Session
-  loginId: string
+  email: string
   lastSyncedAt: string | null
 }>()
 const emit = defineEmits<{ signOut: []; forgetDevice: []; registerEmail: [] }>()
@@ -35,7 +35,7 @@ const syncedLabel = computed(() => {
       <div class="avatar" aria-hidden="true">{{ session.displayName.slice(0, 1) }}</div>
       <div class="titles">
         <h1>{{ session.displayName }}</h1>
-        <p>{{ loginId }} · {{ session.groupName }}</p>
+        <p>{{ email }} · {{ session.groupName }}</p>
       </div>
       <p class="badge">{{ roleLabel }}</p>
     </header>

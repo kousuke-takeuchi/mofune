@@ -27,7 +27,7 @@ async function remember(): Promise<void> {
       pepper: 'p',
       adminPublicKey: 'k',
     }),
-    loginId: 'watanabe',
+    email: 'watanabe@example.invalid',
     lastLoginAt: 1,
   })
 }
@@ -58,7 +58,7 @@ describe('UnlockPage', () => {
       if (!wrapper.find('[data-test="password"]').exists()) throw new Error('not loaded')
     })
     expect(wrapper.find('[data-test="code"]').exists()).toBe(false)
-    expect(wrapper.find('[data-test="login-id"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="email"]').exists()).toBe(false)
   })
 
   it('returns to the screen the visitor came from', async () => {

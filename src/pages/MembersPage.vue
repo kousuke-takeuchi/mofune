@@ -64,7 +64,7 @@ async function onAdd(member: NewMemberInput): Promise<void> {
       member,
     })
     await refresh()
-    notice.value = `${member.displayName} さんを追加しました。接続コード・ログインID・初期パスワードを紙で渡してください。`
+    notice.value = `${member.displayName} さんを追加しました。接続コードと初期パスワードを紙で渡してください。`
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : '追加できませんでした'
   } finally {
@@ -117,7 +117,7 @@ async function onMove(target: { userId: string; scopes: string[] }): Promise<voi
 
 async function onReissue(target: {
   userId: string
-  loginId: string
+  email: string
   password: string
 }): Promise<void> {
   if (!session.session || !session.writer || !code.value || !settings.value) return

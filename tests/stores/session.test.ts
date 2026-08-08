@@ -23,7 +23,6 @@ async function buildGroup(): Promise<{ code: ConnectionCode; storage: MemoryStor
     subgroups: [],
     members: [
       {
-        loginId: 'watanabe',
         displayName: '渡辺 けい',
         role: 'admin',
         scopes: [],
@@ -70,7 +69,7 @@ describe('useSessionStore', () => {
     const { code, storage } = await buildGroup()
     routeFetchTo(storage)
     const session = useSessionStore()
-    await session.signIn(code, 'watanabe', 'admin-pass')
+    await session.signIn(code, 'watanabe@example.invalid', 'admin-pass')
     expect(session.isSignedIn).toBe(true)
     expect(session.groupId).toBe('midori')
     expect(session.role).toBe('admin')
@@ -79,7 +78,7 @@ describe('useSessionStore', () => {
   it('remembers the group on the device so it can be unlocked later', async () => {
     const { code, storage } = await buildGroup()
     routeFetchTo(storage)
-    await useSessionStore().signIn(code, 'watanabe', 'admin-pass')
+    await useSessionStore().signIn(code, 'watanabe@example.invalid', 'admin-pass')
     const groups = useGroupsStore()
     await groups.load()
     expect(groups.groups.map((group) => group.groupId)).toEqual(['midori'])
@@ -89,7 +88,7 @@ describe('useSessionStore', () => {
   it('unlocks with the password alone once the group is remembered', async () => {
     const { code, storage } = await buildGroup()
     routeFetchTo(storage)
-    await useSessionStore().signIn(code, 'watanabe', 'admin-pass')
+    await useSessionStore().signIn(code, 'watanabe@example.invalid', 'admin-pass')
 
     // リロード相当。ストアを作り直すとセッションは消える。
     setActivePinia(createPinia())
@@ -104,7 +103,7 @@ describe('useSessionStore', () => {
   it('refuses to unlock with the wrong password', async () => {
     const { code, storage } = await buildGroup()
     routeFetchTo(storage)
-    await useSessionStore().signIn(code, 'watanabe', 'admin-pass')
+    await useSessionStore().signIn(code, 'watanabe@example.invalid', 'admin-pass')
 
     setActivePinia(createPinia())
     await expect(useSessionStore().unlock('midori', 'wrong')).rejects.toThrow()
@@ -118,7 +117,7 @@ describe('useSessionStore', () => {
     const { code, storage } = await buildGroup()
     routeFetchTo(storage)
     const session = useSessionStore()
-    await session.signIn(code, 'watanabe', 'admin-pass')
+    await session.signIn(code, 'watanabe@example.invalid', 'admin-pass')
     session.signOut()
     expect(session.isSignedIn).toBe(false)
     expect(session.storage).toBeNull()
@@ -128,7 +127,7 @@ describe('useSessionStore', () => {
     const { code, storage } = await buildGroup()
     routeFetchTo(storage)
     const session = useSessionStore()
-    await session.signIn(code, 'watanabe', 'admin-pass')
+    await session.signIn(code, 'watanabe@example.invalid', 'admin-pass')
     expect(session.emailConfirmed).toBe(true)
   })
 })
@@ -143,7 +142,7 @@ describe('useGroupsStore', () => {
   it('forgets a group on request', async () => {
     const { code, storage } = await buildGroup()
     routeFetchTo(storage)
-    await useSessionStore().signIn(code, 'watanabe', 'admin-pass')
+    await useSessionStore().signIn(code, 'watanabe@example.invalid', 'admin-pass')
     const groups = useGroupsStore()
     await groups.load()
     await groups.forget('midori')
