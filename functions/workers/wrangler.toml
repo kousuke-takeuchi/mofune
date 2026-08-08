@@ -1,0 +1,14 @@
+name = "mofune-push"
+main = "src/index.ts"
+compatibility_date = "2026-08-08"
+
+# 購読名簿の置き場。中身は「どの端末を起こすか」だけで、本文の鍵は入らない。
+[[kv_namespaces]]
+binding = "MOFUNE"
+id = "ここに wrangler kv namespace create MOFUNE で出た id を書く"
+
+[vars]
+VAPID_SUBJECT = "mailto:あなたのアドレス"
+
+# VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / TOKENS は wrangler secret put で入れる。
+# TOKENS は {"g_xxxx":"グループごとの合言葉"} の JSON。
