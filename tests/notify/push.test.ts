@@ -49,12 +49,12 @@ describe('buildPushRegistration', () => {
   it('survives a round trip through the inbox', () => {
     const registration = buildPushRegistration({ session: session(), subscription })
     const bytes = new TextEncoder().encode(JSON.stringify(registration))
-    expect(parsePushRegistration(bytes as Uint8Array)).toEqual(registration)
+    expect(parsePushRegistration(bytes as never)).toEqual(registration)
   })
 
   it('refuses something that is not a registration', () => {
     const bytes = new TextEncoder().encode(JSON.stringify({ hello: 'world' }))
-    expect(() => parsePushRegistration(bytes as Uint8Array)).toThrow(PushError)
+    expect(() => parsePushRegistration(bytes as never)).toThrow(PushError)
   })
 })
 

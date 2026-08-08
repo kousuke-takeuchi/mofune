@@ -54,7 +54,7 @@ const contacts: ContactBook = {
   // u_new はまだ登録していない
 }
 
-const settings: NotificationSettings = { mutedScopes: [], channels: ['mailto'] }
+const settings: NotificationSettings = { mutedScopes: [], channels: ['mailto'], functionToken: '' }
 
 describe('resolveAudience', () => {
   it('reaches everyone in the addressed scope', () => {
@@ -103,14 +103,14 @@ describe('resolveAudience', () => {
   })
 
   it('drops a scope that is muted', () => {
-    const muted: NotificationSettings = { mutedScopes: ['sg_a'], channels: ['mailto'] }
+    const muted: NotificationSettings = { mutedScopes: ['sg_a'], channels: ['mailto'], functionToken: '' }
     const audience = resolveAudience({ roster, contacts, settings: muted, scopes: ['sg_a'] })
     expect(audience.reachable).toEqual([])
     expect(audience.muted).toEqual(['sg_a'])
   })
 
   it('still reaches people through a scope that is not muted', () => {
-    const muted: NotificationSettings = { mutedScopes: ['sg_a'], channels: ['mailto'] }
+    const muted: NotificationSettings = { mutedScopes: ['sg_a'], channels: ['mailto'], functionToken: '' }
     const audience = resolveAudience({
       roster,
       contacts,

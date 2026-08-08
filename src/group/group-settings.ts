@@ -124,6 +124,9 @@ export async function readGroupSettings(options: {
   // 合言葉は後から足した項目。古い設定を読めなくしない
   return {
     ...settings,
-    notifications: { functionToken: '', ...settings.notifications },
+    notifications: {
+      ...settings.notifications,
+      functionToken: settings.notifications.functionToken ?? '',
+    },
   }
 }
