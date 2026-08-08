@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import LoginView from '../../src/ui/LoginView.vue'
 import { provisionGroup, writeObjects } from '../../src/group/provision'
 import { encodeConnectionCode } from '../../src/group/connection-code'
@@ -161,5 +161,51 @@ describe('showing the password (原稿 01)', () => {
     expect(wrapper.get('[data-test="password"]').attributes('type')).toBe('password')
     await wrapper.get('[data-test="reveal"]').trigger('click')
     expect(wrapper.get('[data-test="password"]').attributes('type')).toBe('text')
+  })
+})
+
+describe('a QR that carries the whole login', () => {
+  it('logs in on its own, so nothing has to be typed', async () => {
+    const { code, storage } = await buildGroup()
+    routeFetchTo(storage)
+    const wrapper = mount(LoginView, {
+      props: {
+        initialLink: {
+          code,
+          email: 'watanabe@example.invalid',
+          password: 'admin-pass',
+        },
+      },
+    })
+
+    await vi.waitFor(() => expect(wrapper.emitted('login')).toBeTruthy(), { timeout: 4000 })
+    const [session] = wrapper.emitted('login')?.[0] as [{ displayName: string }]
+    expect(session.displayName).toBe('渡辺 けい')
+  })
+
+  it('says what went wrong instead of failing quietly', async () => {
+    const { code, storage } = await buildGroup()
+    routeFetchTo(storage)
+    const wrapper = mount(LoginView, {
+      props: {
+        initialLink: { code, email: 'watanabe@example.invalid', password: 'wrong-pass' },
+      },
+    })
+
+    await vi.waitFor(() => expect(wrapper.find('[data-test="error"]').exists()).toBe(true), {
+      timeout: 4000,
+    })
+    expect(wrapper.emitted('login')).toBeFalsy()
+    // 打ち直せる状態で残す
+    expect(wrapper.find('[data-test="password"]').exists()).toBe(true)
+  })
+
+  it('only fills the form when the QR carries the code alone', async () => {
+    const { code } = await buildGroup()
+    const wrapper = mount(LoginView, { props: { initialLink: { code } } })
+    await flushPromises()
+
+    expect((wrapper.get('[data-test="code"]').element as HTMLTextAreaElement).value).toBe(code)
+    expect(wrapper.emitted('login')).toBeFalsy()
   })
 })

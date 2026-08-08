@@ -1,22 +1,60 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { ConnectionCodeError, decodeConnectionCode } from '../group/connection-code'
 import type { ConnectionCode } from '../group/connection-code'
+import type { JoinLink } from '../group/join-url'
+import { parseJoinText } from '../group/join-url'
+import QrScanner from './QrScanner.vue'
 import type { Session } from '../group/session'
 import { login } from '../group/session'
 import { readProviderFor } from '../storage/factory'
 import { rememberGroup } from '../db/groups'
 
-const props = withDefaults(defineProps<{ initialCode?: string }>(), { initialCode: '' })
+const props = withDefaults(
+  defineProps<{
+    initialCode?: string
+    /** QR やリンクが運んできたもの。全部揃っていればそのまま入る。 */
+    initialLink?: JoinLink | null
+  }>(),
+  { initialCode: '', initialLink: null },
+)
 const emit = defineEmits<{ login: [session: Session, code: ConnectionCode] }>()
 
-// QR から来た人は接続コードが入った状態で始まる
-const code = ref(props.initialCode)
-const email = ref('')
-const password = ref('')
+// QR から来た人は入力済みの状態で始まる
+const code = ref(props.initialLink?.code ?? props.initialCode)
+const email = ref(props.initialLink?.email ?? '')
+const password = ref(props.initialLink?.password ?? '')
 const revealed = ref(false)
 const error = ref('')
 const busy = ref(false)
+const scanning = ref(false)
+
+/**
+ * 読み取った紙の中身で埋める。ひとりぶんが揃っていればそのまま入る。
+ * 関係のない QR なら、その場で言う (黙って何も起きないのが一番困る)。
+ */
+function onScanned(text: string): void {
+  scanning.value = false
+  const link = parseJoinText(text)
+  if (!link) {
+    error.value = 'この QR コードは Mofune のものではないようです'
+    return
+  }
+  error.value = ''
+  code.value = link.code
+  if (link.email !== undefined) email.value = link.email
+  if (link.password !== undefined) password.value = link.password
+  if (link.email !== undefined && link.password !== undefined) void submit()
+}
+
+/**
+ * ひとりぶんの情報が揃った QR なら、読み取っただけで入る。
+ * 打ち直しを減らすのが目的なので、ここで手を止めさせない。
+ */
+onMounted(() => {
+  const link = props.initialLink
+  if (link?.email && link.password) void submit()
+})
 
 async function submit(): Promise<void> {
   error.value = ''
@@ -113,6 +151,12 @@ async function submit(): Promise<void> {
     <button type="submit" class="primary" :disabled="busy">
       {{ busy ? '確認しています…' : 'ログイン' }}
     </button>
+
+    <button type="button" class="wide" data-test="scan" @click="scanning = true">
+      QRコードを読み取る
+    </button>
+
+    <QrScanner v-if="scanning" @read="onScanned" @close="scanning = false" />
 
     <p class="hint center">パスワードを忘れた場合は管理者へ</p>
   </form>

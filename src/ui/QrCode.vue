@@ -7,6 +7,9 @@ const props = withDefaults(
   { label: 'QRコード', correction: 'M' },
 )
 
+/** 規格が求める四隅の余白 (マス数)。詰めると読めない読み取り器がある。 */
+const QUIET_ZONE = 4
+
 interface Rendered {
   count: number
   /** 塗るマスの座標。1マス1px として viewBox で拡大する。 */
@@ -32,22 +35,36 @@ const rendered = computed<Rendered | null>(() => {
   }
   return { count, dark }
 })
+
+/**
+ * 1マスが 3px を下回ると、携帯のカメラでは追えなくなる
+ * (`tests/ui/qr-readable.test.ts` で確かめている)。密度に応じて広げる。
+ */
+const pixelSize = computed(() => {
+  const count = rendered.value === null ? 0 : rendered.value.count + QUIET_ZONE * 2
+  return Math.max(240, count * 3.4)
+})
 </script>
 
 <template>
   <figure v-if="rendered" class="qr">
     <svg
-      :viewBox="`0 0 ${rendered.count} ${rendered.count}`"
+      :viewBox="`0 0 ${rendered.count + QUIET_ZONE * 2} ${rendered.count + QUIET_ZONE * 2}`"
+      :style="{ width: `${pixelSize}px` }"
       role="img"
       :aria-label="label"
       shape-rendering="crispEdges"
     >
-      <rect :width="rendered.count" :height="rendered.count" fill="#FFFFFF" />
+      <rect
+        :width="rendered.count + QUIET_ZONE * 2"
+        :height="rendered.count + QUIET_ZONE * 2"
+        fill="#FFFFFF"
+      />
       <rect
         v-for="(module, index) in rendered.dark"
         :key="index"
-        :x="module.x"
-        :y="module.y"
+        :x="module.x + QUIET_ZONE"
+        :y="module.y + QUIET_ZONE"
         width="1"
         height="1"
         fill="#3B322A"

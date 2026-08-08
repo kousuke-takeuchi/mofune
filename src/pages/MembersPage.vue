@@ -10,6 +10,7 @@ import { removeMember } from '../group/rotation'
 import { createSubgroup, setMemberScopes } from '../group/subgroups'
 import { getGroup } from '../db/groups'
 import type { ConnectionCode } from '../group/connection-code'
+import { encodeConnectionCode } from '../group/connection-code'
 import type { StorageSettings } from '../group/storage-credentials'
 import { readStorageSettings } from '../group/storage-credentials'
 import { useSessionStore } from '../stores/session'
@@ -200,6 +201,7 @@ async function onReissue(target: {
     :notice="notice"
     @add="onAdd"
     :current-user-id="session.session?.userId ?? ''"
+    :connection-code="code ? encodeConnectionCode(code) : undefined"
     @create-subgroup="onCreateSubgroup"
     @remove="onRemove"
     @bulk-move="onBulkMove"

@@ -37,6 +37,20 @@ function mountView(busy = false) {
   })
 }
 
+/** 配り物のテストは接続コードを渡した状態で見る。 */
+function mountWith(props: { connectionCode?: string }) {
+  return mount(MembersView, {
+    props: {
+      roster,
+      busy: false,
+      error: '',
+      notice: '',
+      currentUserId: 'u_admin',
+      ...props,
+    },
+  })
+}
+
 describe('MembersView', () => {
   it('lists who is in the group with their role', () => {
     const rows = mountView().findAll('[data-test="member"]')
@@ -200,5 +214,36 @@ describe('MembersView', () => {
     const wrapper = mountView()
     await wrapper.find('[data-test="bulk-move"]').trigger('click')
     expect(wrapper.emitted('bulkMove')).toBeFalsy()
+  })
+})
+
+describe('handing the new member their QR', () => {
+  it('shows a QR that carries the whole login, so nothing has to be typed', async () => {
+    const wrapper = mountWith({ connectionCode: 'CODE' })
+
+    await wrapper.get('[data-test="new-display-name"]').setValue('佐藤 さくら')
+    await wrapper.get('[data-test="new-email"]').setValue('sato@example.com')
+    await wrapper.get('[data-test="new-password"]').setValue('first-pass')
+    await wrapper.get('[data-test="add"]').trigger('click')
+
+    const handout = wrapper.get('[data-test="handout"]')
+    expect(handout.text()).toContain('佐藤 さくら')
+    expect(handout.text()).toContain('sato@example.com')
+    // 読み取れば入れるので、紙の扱いに注意を書く
+    expect(handout.text()).toContain('本人以外')
+    expect(wrapper.find('[data-test="handout-qr"]').exists()).toBe(true)
+  })
+
+  it('does not show a QR before anyone has been added', () => {
+    expect(mountWith({ connectionCode: 'CODE' }).find('[data-test="handout"]').exists()).toBe(false)
+  })
+
+  it('shows nothing to hand out when the group has no connection code at hand', async () => {
+    const wrapper = mountWith({})
+    await wrapper.get('[data-test="new-display-name"]').setValue('佐藤 さくら')
+    await wrapper.get('[data-test="new-email"]').setValue('sato@example.com')
+    await wrapper.get('[data-test="new-password"]').setValue('first-pass')
+    await wrapper.get('[data-test="add"]').trigger('click')
+    expect(wrapper.find('[data-test="handout-qr"]').exists()).toBe(false)
   })
 })

@@ -632,7 +632,8 @@ section > form {
 }
 
 .qr svg {
-  width: min(260px, 70vw);
+  /* 幅は QrCode.vue が密度から決める。画面より大きくならないようにだけ抑える */
+  max-width: 86vw;
   height: auto;
 }
 

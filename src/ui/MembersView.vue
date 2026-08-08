@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import AppBar from './AppBar.vue'
 import type { Role, RosterContents, RosterMember } from '../crypto/roster'
+import { buildJoinUrl, currentAppBaseUrl } from '../group/join-url'
+import QrCode from './QrCode.vue'
 
 const props = defineProps<{
   roster: RosterContents
@@ -10,6 +12,11 @@ const props = defineProps<{
   notice: string
   /** いま操作している人。自分を外す導線は出さない。 */
   currentUserId: string
+  /**
+   * このグループの接続コード。渡されているときだけ、追加した人へ配る
+   * QR を出せる (端末に記録が無いグループでは出せない)。
+   */
+  connectionCode?: string
 }>()
 const emit = defineEmits<{
   add: [member: { displayName: string; role: Role; scopes: string[]; password: string; email: string }]
@@ -57,11 +64,28 @@ function placesOf(member: RosterMember): string {
   return names.length > 0 ? names.join('・') : '未所属'
 }
 
+/**
+ * 追加した人へ渡すもの。読み取れば入れるので、名前と宛先も一緒に出して
+ * 「誰に渡す紙か」を取り違えないようにする。パスワードは画面に出さない
+ * (QR の中にはある)。
+ */
+const handout = ref<{ displayName: string; email: string; url: string } | null>(null)
+
 function add(): void {
   formError.value = ''
   if (!displayName.value.trim() || !email.value.trim() || !password.value) {
     formError.value = '表示名・メールアドレス・初期パスワードを入れてください'
     return
+  }
+  if (props.connectionCode) {
+    handout.value = {
+      displayName: displayName.value.trim(),
+      email: email.value.trim(),
+      url: buildJoinUrl(props.connectionCode, currentAppBaseUrl(), {
+        email: email.value.trim(),
+        password: password.value,
+      }),
+    }
   }
   emit('add', {
     displayName: displayName.value.trim(),
@@ -359,6 +383,19 @@ function confirmReissue(): void {
     </fieldset>
 
     <p v-if="formError" data-test="form-error">{{ formError }}</p>
+
+    <div v-if="handout" class="check-card" data-test="handout">
+      <h2>{{ handout.displayName }} さんへ渡すもの</h2>
+      <p class="hint">{{ handout.email }}</p>
+      <QrCode data-test="handout-qr" :text="handout.url" :size="200" />
+      <p class="hint">
+        この QR は読み取るだけでログインできます。<strong>本人以外に見せないでください</strong>。
+        印刷して手渡しし、画面に映したまま席を離れないようにしてください。
+      </p>
+      <button type="button" class="quiet" data-test="handout-done" @click="handout = null">
+        渡しました
+      </button>
+    </div>
 
     <button type="button" class="primary" data-test="add" :disabled="busy" @click="add">
       追加する

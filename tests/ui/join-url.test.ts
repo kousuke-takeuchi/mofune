@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { buildJoinUrl, connectionCodeFromQuery } from '../../src/group/join-url'
+import {
+  buildJoinUrl,
+  connectionCodeFromQuery,
+  parseJoinLink,
+  parseJoinText,
+} from '../../src/group/join-url'
 
 describe('buildJoinUrl', () => {
   it('points at the login screen of the app that is running', () => {
@@ -32,5 +37,68 @@ describe('connectionCodeFromQuery', () => {
 
   it('trims the whitespace a mail client may have wrapped in', () => {
     expect(connectionCodeFromQuery('  CODE \n')).toBe('CODE')
+  })
+})
+
+describe('a link that carries the whole login', () => {
+  it('packs the code, the address and the first password into one parameter', () => {
+    const url = buildJoinUrl('CODE', 'https://mofune.site/app/', {
+      email: 'sato@example.com',
+      password: 'first-pass',
+    })
+    // 3つ別々のパラメータにすると、1つだけ欠けた URL が回りやすい
+    expect(url.startsWith('https://mofune.site/app/#/login?j=')).toBe(true)
+    expect(url).not.toContain('sato@example.com')
+    expect(url).not.toContain('first-pass')
+
+    expect(parseJoinLink({ j: new URL(url).hash.split('j=')[1] as string })).toEqual({
+      code: 'CODE',
+      email: 'sato@example.com',
+      password: 'first-pass',
+    })
+  })
+
+  it('still understands the older link that carries only the code', () => {
+    expect(parseJoinLink({ c: 'CODE' })).toEqual({ code: 'CODE' })
+  })
+
+  it('returns nothing when the link carries neither', () => {
+    expect(parseJoinLink({})).toBeNull()
+    expect(parseJoinLink({ j: 'not-base64url!!' })).toBeNull()
+  })
+
+  it('refuses a packed link that is missing a piece, rather than half-filling the form', () => {
+    const half = btoa(JSON.stringify({ c: 'CODE', e: 'sato@example.com' }))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '')
+    expect(parseJoinLink({ j: half })).toEqual({ code: 'CODE', email: 'sato@example.com' })
+  })
+})
+
+describe('parseJoinText (what a scanner hands over)', () => {
+  it('reads a link that carries the whole login', () => {
+    const url = buildJoinUrl('CODE', 'https://mofune.site/app/', {
+      email: 'sato@example.com',
+      password: 'first-pass',
+    })
+    expect(parseJoinText(url)).toEqual({
+      code: 'CODE',
+      email: 'sato@example.com',
+      password: 'first-pass',
+    })
+  })
+
+  it('reads a link that carries only the code', () => {
+    expect(parseJoinText('https://mofune.site/app/#/login?c=CODE')).toEqual({ code: 'CODE' })
+  })
+
+  it('takes a bare connection code, because some papers print just that', () => {
+    expect(parseJoinText('  CODE-ONLY ')).toEqual({ code: 'CODE-ONLY' })
+  })
+
+  it('says nothing for a QR that has nothing to do with us', () => {
+    expect(parseJoinText('https://example.com/hello')).toBeNull()
+    expect(parseJoinText('   ')).toBeNull()
   })
 })
