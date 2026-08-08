@@ -4,6 +4,7 @@ import { PRODUCTION_KDF } from '../crypto/kdf'
 import { unlockKeyring, parseKeyringFile } from '../crypto/keyring'
 import { createKeystore, serializeKeystoreFile } from '../crypto/keystore'
 import { S3StorageProvider } from '../storage/s3'
+import { WebdavStorageProvider } from '../storage/webdav'
 import type { StorageProvider } from '../storage/provider'
 import { keyringPath, keystorePath, manifestPath } from '../storage/paths'
 import { decodeManifest } from './manifest'
@@ -89,7 +90,12 @@ export async function restoreFromRecoveryKit(options: {
 
   const writer = options.createWriter
     ? options.createWriter(settings)
-    : new S3StorageProvider(toProviderConfig(settings))
+    : settings.provider === 'webdav'
+      ? new WebdavStorageProvider({
+          baseUrl: settings.baseUrl,
+          credentials: { username: settings.username, password: settings.password },
+        })
+      : new S3StorageProvider(toProviderConfig(settings))
 
   const file = await createKeystore(
     kit.contents,

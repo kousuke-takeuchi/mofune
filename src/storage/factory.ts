@@ -8,6 +8,7 @@ import { FunctionStorageProvider } from './function'
 import { HttpStorageProvider } from './http'
 import type { StorageProvider } from './provider'
 import { S3StorageProvider } from './s3'
+import { WebdavStorageProvider } from './webdav'
 
 /**
  * 接続コードから、その置き場に合った経路を組み立てる。
@@ -19,6 +20,10 @@ export function readProviderFor(code: ConnectionCode): StorageProvider {
   // Drive は Apps Script の所有者権限で読み書きする。root はその /exec の URL
   if (code.provider === 'gdrive') {
     return new FunctionStorageProvider({ functionUrl: code.root, groupId: code.groupId })
+  }
+  // WebDAV は公開共有の起点にパスを継ぎ足して読む。一覧も取れる
+  if (code.provider === 'webdav') {
+    return new WebdavStorageProvider({ baseUrl: code.root })
   }
   return new HttpStorageProvider(code.root)
 }
@@ -58,6 +63,12 @@ export async function writerFor(options: {
       groupId: session.groupId,
       keys: session.groupKeys,
     })
+    if (settings.provider === 'webdav') {
+      return new WebdavStorageProvider({
+        baseUrl: settings.baseUrl,
+        credentials: { username: settings.username, password: settings.password },
+      })
+    }
     return new S3StorageProvider(toProviderConfig(settings))
   } catch {
     // 資格情報がまだ置かれていないグループもある。読むだけなら支障はない

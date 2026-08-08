@@ -13,10 +13,10 @@ import { MemoryStorageProvider } from '../../src/storage/memory'
 import { generateEcdhKeyPair } from '../../src/crypto/asymmetric'
 import { toBase64 } from '../../src/crypto/bytes'
 import type { Session } from '../../src/group/session'
-import type { StorageSettings } from '../../src/group/storage-credentials'
+import type { S3StorageSettings } from '../../src/group/storage-credentials'
 import type { RosterContents } from '../../src/crypto/roster'
 
-const settings: StorageSettings = {
+const settings: S3StorageSettings = {
   provider: 's3',
   endpoint: 'https://example.invalid',
   region: 'auto',

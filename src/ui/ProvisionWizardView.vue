@@ -6,7 +6,7 @@ import { randomBytes } from '../crypto/symmetric'
 import type { CheckResult } from '../group/connection-check'
 import type { SetupResult } from '../group/setup'
 import { SetupError, setUpGroup } from '../group/setup'
-import type { StorageSettings } from '../group/storage-credentials'
+import type { S3StorageSettings, StorageSettings } from '../group/storage-credentials'
 import { toProviderConfig } from '../group/storage-credentials'
 import QrCode from './QrCode.vue'
 import { buildJoinUrl, currentAppBaseUrl } from '../group/join-url'
@@ -60,7 +60,8 @@ function toStorageStep(): void {
   step.value = 2
 }
 
-function buildStorage(settings: StorageSettings): StorageProvider {
+/** ウィザードで作れるのは今のところ S3 互換の置き場だけ (画面もその形)。 */
+function buildStorage(settings: S3StorageSettings): StorageProvider {
   return props.createStorage
     ? props.createStorage(settings)
     : new S3StorageProvider(toProviderConfig(settings))

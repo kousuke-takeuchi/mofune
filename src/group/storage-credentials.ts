@@ -7,7 +7,23 @@ import type { StorageProvider } from '../storage/provider'
 
 export class StorageCredentialsError extends Error {}
 
-export interface StorageSettings {
+/**
+ * WebDAV (Nextcloud・NAS) の置き場。参加者は publicBaseUrl を資格情報なしで読み、
+ * 担当者は同じ場所へ Basic 認証で書く。
+ */
+export interface WebdavStorageSettings {
+  provider: 'webdav'
+  /** 書き込みに使う起点。共有フォルダの WebDAV URL。 */
+  baseUrl: string
+  /** 参加者が資格情報なしで読む起点。公開共有の URL で、接続コードの root になる。 */
+  publicBaseUrl: string
+  username: string
+  password: string
+}
+
+export type StorageSettings = S3StorageSettings | WebdavStorageSettings
+
+export interface S3StorageSettings {
   provider: 's3'
   /** 読み書きに使う S3 API のエンドポイント。SigV4 で署名する。 */
   endpoint: string
@@ -62,7 +78,7 @@ export async function readStorageSettings(options: {
   }
 }
 
-export function toProviderConfig(settings: StorageSettings): S3ProviderConfig {
+export function toProviderConfig(settings: S3StorageSettings): S3ProviderConfig {
   return {
     endpoint: settings.endpoint,
     region: settings.region,

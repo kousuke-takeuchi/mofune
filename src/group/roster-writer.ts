@@ -177,6 +177,8 @@ export async function issueGrantFor(options: {
 }): Promise<void> {
   const member = options.roster.members.find((candidate) => candidate.userId === options.userId)
   if (!member || member.role !== 'member') return
+  // presigned URL を作れない置き場では枠を配らない。上りは関数層が受ける
+  if (options.settings.provider !== 's3') return
   await publishGrants({
     storage: options.storage,
     groupId: options.groupId,

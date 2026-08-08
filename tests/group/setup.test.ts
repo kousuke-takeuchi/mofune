@@ -128,7 +128,8 @@ describe('setUpGroup', () => {
       groupId: 'midori',
       keys: session.groupKeys,
     })
-    expect(stored.bucket).toBe('mofune')
+    expect(stored.provider).toBe('s3')
+    expect(stored.provider === 's3' && stored.bucket).toBe('mofune')
   })
 
   it('writes the default group settings', async () => {

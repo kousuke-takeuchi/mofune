@@ -3,6 +3,7 @@ import { readProviderFor, writerFor } from '../../src/storage/factory'
 import { FunctionStorageProvider } from '../../src/storage/function'
 import { HttpStorageProvider } from '../../src/storage/http'
 import { S3StorageProvider } from '../../src/storage/s3'
+import { WebdavStorageProvider } from '../../src/storage/webdav'
 import type { ConnectionCode } from '../../src/group/connection-code'
 import { MemoryStorageProvider } from '../../src/storage/memory'
 import { generateAesKey } from '../../src/crypto/symmetric'
@@ -57,6 +58,44 @@ describe('readProviderFor', () => {
     // 公開バケットと違い、この経路は一覧が取れる
     expect(provider.capabilities.list).toBe(true)
     expect(provider.capabilities.write).toBe(false)
+  })
+})
+
+describe('a group that lives on WebDAV', () => {
+  it('reads the public share by appending the path', () => {
+    const provider = readProviderFor(
+      code({ provider: 'webdav', root: 'https://nas.invalid/public.php/dav/files/TOKEN' }),
+    )
+    expect(provider).toBeInstanceOf(WebdavStorageProvider)
+    expect(provider.capabilities.list).toBe(true)
+    // presigned URL が無いので、参加者が自分で置く道は無い
+    expect(provider.capabilities.inbox).toBe(false)
+  })
+
+  it('writes with the basic auth kept in the sealed settings', async () => {
+    const { session, staffKey } = await staffSession()
+    const storage = new MemoryStorageProvider()
+    await writeStorageSettings({
+      storage,
+      groupId: 'g_midori',
+      generation: 1,
+      staffKey,
+      settings: {
+        provider: 'webdav',
+        baseUrl: 'https://nas.invalid/remote.php/dav/files/mofune',
+        publicBaseUrl: 'https://nas.invalid/public.php/dav/files/TOKEN',
+        username: 'mofune',
+        password: 'secret',
+      },
+    })
+
+    const writer = await writerFor({
+      code: code({ provider: 'webdav', root: 'https://nas.invalid/public.php/dav/files/TOKEN' }),
+      session,
+      storage,
+    })
+    expect(writer).toBeInstanceOf(WebdavStorageProvider)
+    expect(writer?.capabilities.write).toBe(true)
   })
 })
 

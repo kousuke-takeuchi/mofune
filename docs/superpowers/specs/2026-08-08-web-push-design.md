@@ -79,3 +79,25 @@ ES256 の署名だけは自前で持てないので jsrsasign を同じプロジ
   届いた人にもメールを出すことになる。関数が知るのは不透明な userId だけ
 - ローカル検証は `functions/workers/src/handler.ts` を esbuild で束ね、素の
   node で 8788 番に立てた。ブラウザからの preflight を含む CORS もこれで確かめた
+
+## 置き場の判定 (2026-08-08 に整理)
+
+置き場に必要なのは2つだけ。**パスから URL を組み立てられること**と、
+**参加者が資格情報なしに1つ置けること** (presigned か、関数層の引換券)。
+
+| 置き場 | 判定 |
+|---|---|
+| S3 互換 (R2 / B2 / Wasabi / MinIO / Storj / Supabase / GCS 互換API) | いまの `S3StorageProvider` がそのまま使える見込み。要確認は公開読み・CORS・presigned の3点 |
+| WebDAV (Nextcloud / NAS) | 実装済み。**公開共有の起点にパスを継ぎ足せる**のが決め手。presigned が無いので上りは関数層の引換券 |
+| Google Drive | 実装済み。Apps Script が**所有者権限で動く**ため OAuth が誰にも要らない |
+| Box / OneDrive / SharePoint / Dropbox | 見送り。共有リンクがファイルごとの不透明な URL で、パスから組み立てられない。書きは OAuth 専用で、関数に預けるとしても Drive のような「OAuth ゼロ」にならない |
+| iCloud Drive | 不可。公開 API が無い |
+| GitHub / GitLab のリポジトリ | 技術的には可・運用で不可。履歴が永久に残り添付を消せない |
+
+WebDAV で実装のうえ気をつけた点:
+
+- **親フォルダが無いと PUT は 409**。S3 のようにキーを置くだけでは済まないので、
+  断られたら上から順に掘って置き直す (掘った階層は覚えて二度掘らない)
+- 一覧は `PROPFIND` の `Depth: 1`。答えには**フォルダ自身が必ず入る**ので外す
+- `DOMParser` は実行環境に無いことがあるため、名前空間の接頭辞に寛容な取り出しを自作した
+- `capabilities.inbox` は false。参加者が自分で置く道が無いことを型で示す

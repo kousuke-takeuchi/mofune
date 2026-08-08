@@ -99,6 +99,10 @@ async function refreshStatus(): Promise<void> {
 
 async function publish(): Promise<void> {
   if (!settings.value) return
+  if (settings.value.provider !== 's3') {
+    error.value = 'この置き場では投函枠を配りません。参加者からの連絡は関数層が受けます。'
+    return
+  }
   error.value = ''
   busy.value = true
   try {

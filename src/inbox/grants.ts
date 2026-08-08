@@ -2,7 +2,7 @@ import type { Bytes } from '../crypto/bytes'
 import { fromUtf8, toHex, utf8 } from '../crypto/bytes'
 import type { RosterContents } from '../crypto/roster'
 import { randomBytes } from '../crypto/symmetric'
-import type { StorageSettings } from '../group/storage-credentials'
+import type { S3StorageSettings } from '../group/storage-credentials'
 import { presignUrl } from '../storage/s3/presign'
 import type { StorageProvider } from '../storage/provider'
 import { openAsRecipient, sealForRecipients } from './uplink'
@@ -44,7 +44,7 @@ export async function issueGrant(options: {
   groupId: string
   userId: string
   ecdhPublic: string
-  settings: StorageSettings
+  settings: S3StorageSettings
   now?: Date
 }): Promise<{ grant: InboxGrant; sealed: Bytes }> {
   const now = options.now ?? new Date()
@@ -85,11 +85,19 @@ export async function issueGrant(options: {
 }
 
 /** 参加者全員ぶんの枠を配る。担当者・管理者は資格情報を持つので配らない。 */
+/**
+ * 投函枠を配れる置き場かどうか。presigned URL を作れるのは S3 互換だけで、
+ * WebDAV や Drive では関数層の引換券に頼る。
+ */
+export function canIssueGrants(settings: { provider: string }): boolean {
+  return settings.provider === 's3'
+}
+
 export async function publishGrants(options: {
   storage: StorageProvider
   groupId: string
   roster: RosterContents
-  settings: StorageSettings
+  settings: S3StorageSettings
   now?: Date
 }): Promise<string[]> {
   const issued: string[] = []
