@@ -80,3 +80,37 @@ describe('subscribeThisDevice', () => {
     )
   })
 })
+
+describe('when the browser never answers', () => {
+  it('gives up on the permission prompt instead of hanging forever', async () => {
+    vi.stubGlobal('Notification', {
+      permission: 'default',
+      // 応答が返らない環境がある (プロンプトが出ない・閉じられた)
+      requestPermission: () => new Promise<NotificationPermission>(() => {}),
+    })
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        getRegistration: async () => ({}),
+        ready: Promise.resolve({ pushManager: { subscribe: async () => ({ toJSON: () => ({}) }) } }),
+      },
+    })
+    vi.useFakeTimers()
+    const pending = subscribeThisDevice({ vapidPublicKey: VALID_KEY, timeoutMs: 20_000 })
+    const assertion = expect(pending).rejects.toThrow(SubscribeError)
+    await vi.advanceTimersByTimeAsync(20_100)
+    await assertion
+    vi.useRealTimers()
+  })
+
+  it('says to add the app to the home screen when no service worker is registered', async () => {
+    vi.stubGlobal('Notification', { permission: 'granted', requestPermission: async () => 'granted' })
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        getRegistration: async () => undefined,
+        // 登録が無いと ready は永久に解決しない。触らせない
+        ready: new Promise(() => {}),
+      },
+    })
+    await expect(subscribeThisDevice({ vapidPublicKey: VALID_KEY })).rejects.toThrow(SubscribeError)
+  })
+})

@@ -15,6 +15,23 @@ export function applicationServerKey(publicKey: string): Uint8Array {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0))
 }
 
+/** 待っても返ってこない相手に、いつまでも付き合わない。 */
+function withTimeout<T>(work: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new SubscribeError(message)), ms)
+    work.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (cause: unknown) => {
+        clearTimeout(timer)
+        reject(cause instanceof Error ? cause : new SubscribeError(String(cause)))
+      },
+    )
+  })
+}
+
 interface PushCapableManager {
   subscribe: (options: {
     userVisibleOnly: boolean
@@ -24,10 +41,22 @@ interface PushCapableManager {
 }
 
 async function pushManager(): Promise<PushCapableManager> {
-  const worker = (navigator as Navigator & { serviceWorker?: { ready: Promise<unknown> } })
-    .serviceWorker
+  const worker = (
+    navigator as Navigator & {
+      serviceWorker?: {
+        ready: Promise<unknown>
+        getRegistration?: () => Promise<unknown>
+      }
+    }
+  ).serviceWorker
   if (!worker) {
     throw new SubscribeError('このブラウザでは通知を受け取れません')
+  }
+  // 登録が無いと ready は永久に解決しない。先に有無を確かめる
+  if (worker.getRegistration && !(await worker.getRegistration())) {
+    throw new SubscribeError(
+      'この端末ではまだアプリが登録されていません。ホーム画面に追加してから、もう一度お試しください',
+    )
   }
   const registration = (await worker.ready) as { pushManager?: PushCapableManager }
   if (!registration.pushManager) {
@@ -44,23 +73,30 @@ async function pushManager(): Promise<PushCapableManager> {
  */
 export async function subscribeThisDevice(options: {
   vapidPublicKey: string
+  /** 許可の応答が返らない環境があるので、待つ時間に上限を置く。 */
+  timeoutMs?: number
 }): Promise<PushSubscriptionRecord> {
   const notification = (globalThis as { Notification?: typeof Notification }).Notification
   if (!notification) {
     throw new SubscribeError('このブラウザでは通知を受け取れません')
   }
 
+  // 先に受け皿を確かめる。無いまま許可だけ求めても、答えを活かせない
+  const manager = await pushManager()
+
   const permission =
     notification.permission === 'granted'
       ? 'granted'
-      : await notification.requestPermission()
+      : await withTimeout(
+          Promise.resolve(notification.requestPermission()),
+          options.timeoutMs ?? 60_000,
+          '通知の許可を確認できませんでした。端末の設定から Mofune の通知を許可してください',
+        )
   if (permission !== 'granted') {
     throw new SubscribeError(
       '通知が許可されていません。端末の設定から Mofune の通知を許可してください',
     )
   }
-
-  const manager = await pushManager()
   const subscription = await manager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: applicationServerKey(options.vapidPublicKey),
