@@ -300,7 +300,9 @@ describe('choosing where the group lives (原稿 10)', () => {
 
     await wrapper.find('[data-test="storage-kind"][data-kind="webdav"]').trigger('click')
     expect(wrapper.find('[data-test="dav-username"]').exists()).toBe(true)
-    expect(wrapper.find('[data-test="function-url"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="access-key-id"]').exists()).toBe(false)
+    // WebDAV でも上りを受ける関数は任意で入れられる
+    expect(wrapper.find('[data-test="function-url"]').exists()).toBe(true)
   })
 
   it('opens a group in Drive through the function', async () => {
@@ -349,5 +351,44 @@ describe('choosing where the group lives (原稿 10)', () => {
     await wrapper.find('[data-test="storage-kind"][data-kind="gdrive"]').trigger('click')
     await wrapper.get('[data-test="next"]').trigger('click')
     expect(wrapper.get('[data-test="error"]').text()).toContain('関数')
+  })
+})
+
+describe('a WebDAV group and the uplink', () => {
+  it('records the function so the staff can hand out tickets', async () => {
+    const seen: unknown[] = []
+    const wrapper = await atStorageStep({ onSettings: (settings) => seen.push(settings) })
+
+    await wrapper.find('[data-test="storage-kind"][data-kind="webdav"]').trigger('click')
+    await wrapper.get('[data-test="dav-url"]').setValue('https://nas.invalid/remote.php/dav/files/mofune')
+    await wrapper.get('[data-test="public-base-url"]').setValue(DAV_PUBLIC)
+    await wrapper.get('[data-test="dav-username"]').setValue('mofune')
+    await wrapper.get('[data-test="dav-password"]').setValue('nas-secret')
+    await wrapper.get('[data-test="function-url"]').setValue('https://script.google.com/macros/s/AK/exec')
+    await wrapper.get('[data-test="function-token"]').setValue('shared-secret')
+    await wrapper.get('[data-test="next"]').trigger('click')
+    await settled(wrapper)
+
+    expect(seen[0]).toMatchObject({
+      provider: 'webdav',
+      functionUrl: 'https://script.google.com/macros/s/AK/exec',
+      token: 'shared-secret',
+    })
+  })
+
+  it('opens without a function, and then simply has no uplink', async () => {
+    const seen: unknown[] = []
+    const wrapper = await atStorageStep({ onSettings: (settings) => seen.push(settings) })
+
+    await wrapper.find('[data-test="storage-kind"][data-kind="webdav"]').trigger('click')
+    await wrapper.get('[data-test="dav-url"]').setValue('https://nas.invalid/remote.php/dav/files/mofune')
+    await wrapper.get('[data-test="public-base-url"]').setValue(DAV_PUBLIC)
+    await wrapper.get('[data-test="dav-username"]').setValue('mofune')
+    await wrapper.get('[data-test="dav-password"]').setValue('nas-secret')
+    await wrapper.get('[data-test="next"]').trigger('click')
+    await settled(wrapper)
+
+    expect(seen[0]).not.toHaveProperty('functionUrl')
+    expect(wrapper.find('[data-test="connection-code"]').exists()).toBe(true)
   })
 })

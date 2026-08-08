@@ -65,7 +65,7 @@ beforeAll(async () => {
           tokens: { g_midori: TOKEN },
           vapidPublicKey: 'BPUB',
           sendPush: () => 201,
-          drive: {
+          objects: {
             get: (key: string) => files.get(key) ?? null,
             put: (key: string, value: string) => void files.set(key, value),
             remove: (key: string) => void files.delete(key),

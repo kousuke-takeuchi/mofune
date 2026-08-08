@@ -27,7 +27,7 @@ beforeEach(() => {
     tokens: { g_midori: 'shared-secret' },
     vapidPublicKey: 'BPUB',
     sendPush: () => 201,
-    drive: {
+    objects: {
       get: (key: string) => files.data.get(key) ?? null,
       put: (key: string, body: string) => void files.data.set(key, body),
       remove: (key: string) => void files.data.delete(key),

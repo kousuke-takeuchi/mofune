@@ -88,7 +88,7 @@ ES256 の署名だけは自前で持てないので jsrsasign を同じプロジ
 | 置き場 | 判定 |
 |---|---|
 | S3 互換 (R2 / B2 / Wasabi / MinIO / Storj / Supabase / GCS 互換API) | いまの `S3StorageProvider` がそのまま使える見込み。要確認は公開読み・CORS・presigned の3点 |
-| WebDAV (Nextcloud / NAS) | 実装済み。**公開共有の起点にパスを継ぎ足せる**のが決め手。presigned が無いので上りは関数層の引換券 |
+| WebDAV (Nextcloud / NAS) | 実装済み。**公開共有の起点にパスを継ぎ足せる**のが決め手。presigned が無いので上りは関数層の引換券 (関数に NAS の資格情報を持たせる。任意) |
 | Google Drive | 実装済み。Apps Script が**所有者権限で動く**ため OAuth が誰にも要らない |
 | Box / OneDrive / SharePoint / Dropbox | 見送り。共有リンクがファイルごとの不透明な URL で、パスから組み立てられない。書きは OAuth 専用で、関数に預けるとしても Drive のような「OAuth ゼロ」にならない |
 | iCloud Drive | 不可。公開 API が無い |

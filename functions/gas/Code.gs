@@ -12,6 +12,9 @@
  *   VAPID_SUBJECT      mailto:あなたのアドレス
  *   TOKENS             {"g_xxxx":"グループごとの合言葉"} の JSON
  *   DRIVE_FOLDER_ID    Drive を置き場にするときだけ。グループのフォルダの ID
+ *   WEBDAV_BASE_URL    WebDAV の置き場で上りを受けるときだけ。書き込み用の URL
+ *   WEBDAV_USERNAME    同上
+ *   WEBDAV_PASSWORD    同上
  */
 
 /* eslint-disable */
@@ -155,6 +158,84 @@ function mofuneDrive() {
   }
 }
 
+/**
+ * WebDAV (Nextcloud・NAS) を置き場にするグループの受け口。
+ *
+ * この場合、アプリは NAS を直に読み書きする。関数が要るのは**上りだけ**で、
+ * 参加者は資格情報を持てないため、引換券を確かめて代わりに置く役をする。
+ *
+ * WebDAV は親フォルダが無いと PUT を断る (409)。断られたら上から順に掘る。
+ */
+function mofuneWebdavConfig() {
+  var props = mofuneProps()
+  var baseUrl = props.getProperty('WEBDAV_BASE_URL')
+  if (!baseUrl) return null
+  return {
+    baseUrl: baseUrl.replace(/\/+$/, ''),
+    headers: {
+      Authorization:
+        'Basic ' +
+        Utilities.base64Encode(
+          props.getProperty('WEBDAV_USERNAME') + ':' + props.getProperty('WEBDAV_PASSWORD'),
+        ),
+    },
+  }
+}
+
+function mofuneWebdav(config) {
+  function url(key) {
+    return config.baseUrl + '/' + key
+  }
+  function send(method, key, payload) {
+    var options = { method: method, headers: config.headers, muteHttpExceptions: true }
+    if (payload) {
+      options.payload = payload
+      options.contentType = 'application/octet-stream'
+    }
+    return UrlFetchApp.fetch(url(key), options)
+  }
+  function makeFolders(key) {
+    var parts = key.split('/')
+    parts.pop()
+    var walked = ''
+    for (var i = 0; i < parts.length; i += 1) {
+      walked = walked === '' ? parts[i] : walked + '/' + parts[i]
+      send('mkcol', walked)
+    }
+  }
+  return {
+    get: function (key) {
+      var response = send('get', key)
+      if (response.getResponseCode() >= 300) return null
+      return Utilities.base64Encode(response.getBlob().getBytes())
+    },
+    put: function (key, base64Body) {
+      var payload = Utilities.newBlob(Utilities.base64Decode(base64Body))
+      var response = send('put', key, payload)
+      var code = response.getResponseCode()
+      if (code === 409 || code === 404) {
+        makeFolders(key)
+        response = send('put', key, payload)
+        code = response.getResponseCode()
+      }
+      if (code >= 300) throw new Error('webdav put failed with ' + code)
+    },
+    remove: function (key) {
+      send('delete', key)
+    },
+    list: function () {
+      // 一覧はアプリが NAS を直に見る。関数側では使わない
+      return []
+    },
+  }
+}
+
+/** 置き場は WebDAV の設定があればそちら、無ければ Drive。 */
+function mofuneObjects() {
+  var webdav = mofuneWebdavConfig()
+  return webdav ? mofuneWebdav(webdav) : mofuneDrive()
+}
+
 /** 投函の引換券。担当者が同じ計算で作ったものだけを通す。 */
 function mofuneVerifyTicket(key, ticket) {
   var tokens = mofuneTokens()
@@ -174,7 +255,7 @@ function mofuneDeps() {
     tokens: mofuneTokens(),
     vapidPublicKey: mofuneProps().getProperty('VAPID_PUBLIC_KEY'),
     sendPush: mofuneSendPush,
-    drive: mofuneDrive(),
+    objects: mofuneObjects(),
     verifyTicket: mofuneVerifyTicket,
   }
 }

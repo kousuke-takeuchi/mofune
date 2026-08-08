@@ -153,7 +153,7 @@ function handleRequest(request, deps) {
     if (!mofuneKeyBelongsTo(query.group_id, query.key)) {
       return { status: 400, body: { error: 'bad key' } }
     }
-    var found = deps.drive.get(query.key)
+    var found = deps.objects.get(query.key)
     if (found === null || found === undefined) {
       return { status: 404, body: { error: 'not found' } }
     }
@@ -167,7 +167,7 @@ function handleRequest(request, deps) {
     if (!mofuneKeyBelongsTo(body.group_id, body.key)) {
       return { status: 400, body: { error: 'bad key' } }
     }
-    deps.drive.put(body.key, body.body)
+    deps.objects.put(body.key, body.body)
     return { status: 200, body: { ok: true } }
   }
 
@@ -175,7 +175,7 @@ function handleRequest(request, deps) {
     if (!mofuneKeyBelongsTo(body.group_id, body.prefix)) {
       return { status: 400, body: { error: 'bad prefix' } }
     }
-    return { status: 200, body: { entries: deps.drive.list(body.prefix) } }
+    return { status: 200, body: { entries: deps.objects.list(body.prefix) } }
   }
 
   if (path === '/delete' && method === 'POST') {
@@ -185,7 +185,7 @@ function handleRequest(request, deps) {
     if (!mofuneKeyBelongsTo(body.group_id, body.key)) {
       return { status: 400, body: { error: 'bad key' } }
     }
-    deps.drive.remove(body.key)
+    deps.objects.remove(body.key)
     return { status: 200, body: { ok: true } }
   }
 
@@ -203,7 +203,7 @@ function handleRequest(request, deps) {
     if (typeof body.ticket !== 'string' || !deps.verifyTicket(body.key, body.ticket)) {
       return { status: 401, body: { error: 'unauthorized' } }
     }
-    deps.drive.put(body.key, body.body)
+    deps.objects.put(body.key, body.body)
     return { status: 200, body: { ok: true } }
   }
 

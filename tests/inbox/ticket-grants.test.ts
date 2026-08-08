@@ -1,6 +1,12 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { issueTicketGrant, publishGrants, readGrant, grantPath } from '../../src/inbox/grants'
+import {
+  canIssueGrants,
+  issueTicketGrant,
+  publishGrants,
+  readGrant,
+  grantPath,
+} from '../../src/inbox/grants'
 import { submitToInbox } from '../../src/inbox/submit'
 import { flushOutbox } from '../../src/sync/outbox'
 import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
@@ -180,5 +186,42 @@ describe('posting with a ticket', () => {
 
     expect(flushed.failed).toBe(1)
     expect(await db.outbox.count()).toBe(1)
+  })
+})
+
+describe('a WebDAV group that has a function for the uplink', () => {
+  const webdav = {
+    provider: 'webdav' as const,
+    baseUrl: 'https://nas.invalid/remote.php/dav/files/mofune',
+    publicBaseUrl: 'https://nas.invalid/public.php/dav/files/TOKEN',
+    username: 'mofune',
+    password: 'nas-secret',
+    functionUrl: 'https://script.google.com/macros/s/AK/exec',
+    token: 'shared-secret',
+  }
+
+  it('can hand out tickets, because the function writes on the participant behalf', async () => {
+    const { roster, storage, member } = await world()
+
+    const issued = await publishGrants({ storage, groupId: 'g_midori', roster, settings: webdav })
+
+    expect(issued).toEqual(['u_sato'])
+    const grant = await readGrant({
+      storage,
+      groupId: 'g_midori',
+      userId: 'u_sato',
+      ecdhPrivate: member.privateKey,
+    })
+    const first = grant.slots[0]
+    if (first?.kind !== 'ticket') throw new Error('expected a ticket slot')
+    expect(first.functionUrl).toBe(webdav.functionUrl)
+    // NAS のパスワードは参加者へ渡らない
+    expect(JSON.stringify(grant)).not.toContain('nas-secret')
+  })
+
+  it('cannot hand out anything when no function is set up', () => {
+    const { functionUrl, token, ...withoutFunction } = webdav
+    expect(canIssueGrants(withoutFunction)).toBe(false)
+    expect(canIssueGrants(webdav)).toBe(true)
   })
 })

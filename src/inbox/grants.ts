@@ -2,11 +2,7 @@ import type { Bytes } from '../crypto/bytes'
 import { fromUtf8, toHex, utf8 } from '../crypto/bytes'
 import type { RosterContents } from '../crypto/roster'
 import { randomBytes } from '../crypto/symmetric'
-import type {
-  FunctionStorageSettings,
-  S3StorageSettings,
-  StorageSettings,
-} from '../group/storage-credentials'
+import type { S3StorageSettings, StorageSettings } from '../group/storage-credentials'
 import { inboxTicket } from '../storage/function'
 import { presignUrl } from '../storage/s3/presign'
 import type { StorageProvider } from '../storage/provider'
@@ -116,7 +112,8 @@ export async function issueTicketGrant(options: {
   groupId: string
   userId: string
   ecdhPublic: string
-  settings: FunctionStorageSettings
+  /** 投函を受ける関数。置き場そのものが関数でも、上りだけ関数でも同じ形。 */
+  settings: { functionUrl: string; token: string }
   now?: Date
 }): Promise<{ grant: InboxGrant; sealed: Bytes }> {
   const now = options.now ?? new Date()
@@ -148,10 +145,35 @@ export async function issueTicketGrant(options: {
  * 投函枠を配れる置き場かどうか。
  * WebDAV は、関数に置き場への書き込みを任せない限り配れない。
  */
-export function canIssueGrants(
+export function canIssueGrants(settings: StorageSettings): boolean {
+  if (settings.provider === 's3' || settings.provider === 'gdrive') return true
+  // WebDAV は、上りを受ける関数が決まっているときだけ配れる
+  return (
+    settings.provider === 'webdav' &&
+    typeof settings.functionUrl === 'string' &&
+    settings.functionUrl !== '' &&
+    typeof settings.token === 'string' &&
+    settings.token !== ''
+  )
+}
+
+/** 引換券の宛先。無い置き場では null。 */
+export function uplinkFunctionOf(
   settings: StorageSettings,
-): settings is S3StorageSettings | FunctionStorageSettings {
-  return settings.provider === 's3' || settings.provider === 'gdrive'
+): { functionUrl: string; token: string } | null {
+  if (settings.provider === 'gdrive') {
+    return { functionUrl: settings.functionUrl, token: settings.token }
+  }
+  if (
+    settings.provider === 'webdav' &&
+    typeof settings.functionUrl === 'string' &&
+    typeof settings.token === 'string' &&
+    settings.functionUrl !== '' &&
+    settings.token !== ''
+  ) {
+    return { functionUrl: settings.functionUrl, token: settings.token }
+  }
+  return null
 }
 
 /** 参加者全員ぶんの枠を配る。担当者・管理者は資格情報を持つので配らない。 */
@@ -159,21 +181,32 @@ export async function publishGrants(options: {
   storage: StorageProvider
   groupId: string
   roster: RosterContents
-  settings: S3StorageSettings | FunctionStorageSettings
+  settings: StorageSettings
   now?: Date
 }): Promise<string[]> {
+  const uplink = uplinkFunctionOf(options.settings)
+  if (!uplink && options.settings.provider !== 's3') {
+    throw new GrantError('この置き場では投函枠を配れません')
+  }
+
   const issued: string[] = []
   for (const member of options.roster.members) {
     if (member.role !== 'member') continue
-    const issue = options.settings.provider === 'gdrive' ? issueTicketGrant : issueGrant
-    const { sealed } = await issue({
-      groupId: options.groupId,
-      userId: member.userId,
-      ecdhPublic: member.ecdhPublic,
-      // 上の分岐で型は揃っている
-      settings: options.settings as never,
-      now: options.now,
-    })
+    const { sealed } = uplink
+      ? await issueTicketGrant({
+          groupId: options.groupId,
+          userId: member.userId,
+          ecdhPublic: member.ecdhPublic,
+          settings: uplink,
+          now: options.now,
+        })
+      : await issueGrant({
+          groupId: options.groupId,
+          userId: member.userId,
+          ecdhPublic: member.ecdhPublic,
+          settings: options.settings as S3StorageSettings,
+          now: options.now,
+        })
     await options.storage.put(grantPath(options.groupId, member.userId), sealed)
     issued.push(member.userId)
   }

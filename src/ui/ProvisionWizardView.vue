@@ -132,6 +132,13 @@ function collectSettings(): { settings: StorageSettings } | { missing: string } 
         publicBaseUrl: publicBaseUrl.value.trim().replace(/\/+$/, ''),
         username: davUsername.value.trim(),
         password: davPassword.value,
+        // 上りを受ける関数は任意。無いと参加者からの連絡が使えない
+        ...(functionUrl.value.trim() && functionToken.value
+          ? {
+              functionUrl: functionUrl.value.trim().replace(/\/+$/, ''),
+              token: functionToken.value,
+            }
+          : {}),
       },
     }
   }
@@ -313,6 +320,22 @@ function back(): void {
         <label>
           パスワード
           <input type="password" data-test="dav-password" v-model="davPassword" />
+        </label>
+
+        <h2>参加者からの連絡 (任意)</h2>
+        <p class="hint">
+          WebDAV には「参加者が1つだけ置ける URL」の仕組みがありません。参加者からの
+          欠席連絡やフォーム回答を受けたい場合は、<code>functions/gas/</code> の関数を
+          置いて、その URL と合言葉をここに入れてください。関数が引換券を確かめて
+          代わりに書き込みます。空のままでも、お知らせの配信は使えます。
+        </p>
+        <label>
+          関数の URL
+          <input data-test="function-url" v-model="functionUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+        </label>
+        <label>
+          合言葉
+          <input data-test="function-token" v-model="functionToken" />
         </label>
       </template>
 

@@ -13,6 +13,14 @@ export class StorageCredentialsError extends Error {}
  */
 export interface WebdavStorageSettings {
   provider: 'webdav'
+  /**
+   * 上りを受ける関数 (任意)。WebDAV には presigned URL が無いので、
+   * 参加者からの投函はここへ引換券つきで送り、関数が代わりに置く。
+   * 置かない場合、参加者からの連絡は使えない。
+   */
+  functionUrl?: string
+  /** 関数の合言葉。NAS のパスワードとは別物で、参加者へは渡らない。 */
+  token?: string
   /** 書き込みに使う起点。共有フォルダの WebDAV URL。 */
   baseUrl: string
   /** 参加者が資格情報なしで読む起点。公開共有の URL で、接続コードの root になる。 */
