@@ -3,6 +3,7 @@ import { keyId } from '../crypto/keyring'
 import { STAFF_SCOPE } from '../crypto/roster'
 import { parseAbsenceReport } from '../content/absence'
 import { parseEmailRegistration } from '../group/email-registration'
+import { applyPasswordChange, parsePasswordChange } from '../group/password-change'
 import type { PushRegistration } from '../notify/push'
 import { parsePushRegistration } from '../notify/push'
 import type { Session } from '../group/session'
@@ -13,7 +14,7 @@ import { collectInbox, discardInboxItem } from './collect'
 
 export class ApplyError extends Error {}
 
-export type SubmissionKind = 'absence' | 'email' | 'push' | 'unknown'
+export type SubmissionKind = 'absence' | 'email' | 'push' | 'password' | 'unknown'
 
 export interface ApplyResult {
   absences: number
@@ -24,11 +25,18 @@ export interface ApplyResult {
   unreadable: number
   /** 名簿へ反映すべき連絡先。適用は管理者の作業(Task 2)。 */
   pendingContactUpdates: Array<{ userId: string; email: string }>
+  /** 本人が選んだパスワードに差し替えた件数。 */
+  passwordsChanged: number
   pushSubscriptions: number
   /** 関数へ渡すべき購読。渡せたら discardPush() を呼ぶ。 */
   pendingPushRegistrations: PushRegistration[]
   /** 購読の投函物を消す。関数へ渡せたときだけ呼ぶ。 */
   discardPush: () => Promise<void>
+}
+
+/** 受信箱の置き場所から持ち主を読む (`{group}/inbox/{userId}/...`)。 */
+function ownerOf(key: string): string {
+  return key.split('/')[2] ?? ''
 }
 
 export function classifySubmission(body: Bytes): SubmissionKind {
@@ -41,6 +49,12 @@ export function classifySubmission(body: Bytes): SubmissionKind {
   try {
     parsePushRegistration(body)
     return 'push'
+  } catch {
+    // 次を試す
+  }
+  try {
+    parsePasswordChange(body)
+    return 'password'
   } catch {
     // 次を試す
   }
@@ -84,6 +98,7 @@ export async function applyInbox(options: {
     unknown: 0,
     unreadable: collected.unreadable,
     pendingContactUpdates: [],
+    passwordsChanged: 0,
     pushSubscriptions: 0,
     pendingPushRegistrations: [],
     discardPush: async () => {
@@ -124,6 +139,28 @@ export async function applyInbox(options: {
       })
       await discardInboxItem({ storage: options.storage, key: item.key })
       result.emails += 1
+      continue
+    }
+
+    if (kind === 'password') {
+      /*
+       * 本人が選んだパスワードへ差し替える。鍵は変わらないので過去のお知らせも
+       * そのまま読める。名乗りと受信箱の持ち主が違うものは消さずに残す
+       * (担当者が気づけるように)。
+       */
+      try {
+        await applyPasswordChange({
+          storage: options.storage,
+          groupId: options.session.groupId,
+          change: parsePasswordChange(item.body),
+          userId: ownerOf(item.key),
+        })
+      } catch {
+        result.unknown += 1
+        continue
+      }
+      await discardInboxItem({ storage: options.storage, key: item.key })
+      result.passwordsChanged += 1
       continue
     }
 

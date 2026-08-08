@@ -181,3 +181,21 @@ describe('safeNext', () => {
     expect(safeNext(['/a', '/b'])).toBeNull()
   })
 })
+
+describe('changing the password while still locked out', () => {
+  it('is allowed, because the paper password should not linger', async () => {
+    await remember('midori')
+    signedInAs('member', false)
+    const app = router()
+    await app.push('/g/midori/password')
+    expect(app.currentRoute.value.name).toBe('password')
+  })
+
+  it('still sends the rest of the app to the first-run screen', async () => {
+    await remember('midori')
+    signedInAs('member', false)
+    const app = router()
+    await app.push('/g/midori/absence')
+    expect(app.currentRoute.value.name).toBe('setup')
+  })
+})

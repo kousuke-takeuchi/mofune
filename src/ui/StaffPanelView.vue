@@ -38,6 +38,7 @@ const appliedAbsences = ref<number | null>(null)
 const needsAdmin = ref(false)
 const notificationToken = ref('')
 const status = ref<OperationStatus | null>(null)
+const passwordsChanged = ref(0)
 const pushHandedOver = ref<number | null>(null)
 const pushProblem = ref('')
 
@@ -165,6 +166,7 @@ async function process(): Promise<void> {
   try {
     const result = await applyInbox({ storage: props.storage, session: props.session })
     appliedAbsences.value = result.absences
+    passwordsChanged.value = result.passwordsChanged
 
     // 購読は関数へ渡してから消す。渡す前に消すと二度と戻せない
     if (result.pendingPushRegistrations.length > 0) {
@@ -237,6 +239,9 @@ async function process(): Promise<void> {
         </button>
       </div>
 
+      <p v-if="passwordsChanged > 0" data-test="passwords-changed">
+        {{ passwordsChanged }} 名のパスワードを、本人が決めたものに差し替えました。
+      </p>
       <p v-if="pushHandedOver !== null" data-test="push-handed-over">
         通知の購読を {{ pushHandedOver }} 件、関数へ渡しました。
       </p>

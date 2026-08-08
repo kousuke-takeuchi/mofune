@@ -23,6 +23,7 @@ describe('routes', () => {
         '/g/:groupId/messages/:messageId/notify',
         '/g/:groupId/messages/:messageId/results',
         '/g/:groupId/panel',
+    '/g/:groupId/password',
         '/g/:groupId/group-settings',
         '/g/:groupId/members',
         '/g/:groupId/settings',

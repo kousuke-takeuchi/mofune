@@ -101,6 +101,12 @@ const routes: RouteRecordRaw[] = [
     meta: { staffOnly: true },
   },
   {
+    // 参加者が自分のパスワードを決め直す。担当者が受け取ったときに切り替わる
+    path: '/g/:groupId/password',
+    name: 'password',
+    component: () => import('../pages/PasswordChangePage.vue'),
+  },
+  {
     path: '/g/:groupId/settings',
     name: 'settings',
     component: () => import('../pages/SettingsPage.vue'),
@@ -162,8 +168,17 @@ export function installGuards(router: Router): void {
       return { name: 'timeline', params: { groupId } }
     }
 
-    // メールアドレス未登録の参加者は、登録が済むまで主要機能をロックする(要件書 §4.6)
-    if (session.role === 'member' && !session.emailConfirmed && to.name !== 'setup') {
+    /*
+     * メールアドレス未登録の参加者は、登録が済むまで主要機能をロックする
+     * (要件書 §4.6)。ただしパスワードの変更は通す。紙に書かれた最初の
+     * パスワードを早く変えたい人を、登録の完了まで待たせる理由がない。
+     */
+    if (
+      session.role === 'member' &&
+      !session.emailConfirmed &&
+      to.name !== 'setup' &&
+      to.name !== 'password'
+    ) {
       return { name: 'setup', params: { groupId } }
     }
 

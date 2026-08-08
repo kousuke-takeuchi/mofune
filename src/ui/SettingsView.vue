@@ -12,7 +12,12 @@ const props = defineProps<{
   /** 通知の窓口を確かめるために読む。渡さない画面では通知の欄を出さない。 */
   storage?: StorageProvider
 }>()
-const emit = defineEmits<{ signOut: []; forgetDevice: []; registerEmail: [] }>()
+const emit = defineEmits<{
+  signOut: []
+  forgetDevice: []
+  registerEmail: []
+  changePassword: []
+}>()
 
 const ROLE_LABELS: Record<Role, string> = {
   admin: '管理者',
@@ -57,6 +62,9 @@ const syncedLabel = computed(() => {
     <p data-test="last-synced">{{ syncedLabel }}</p>
 
     <h2>アカウント</h2>
+    <button type="button" data-test="change-password" @click="emit('changePassword')">
+      パスワードを変える
+    </button>
     <button type="button" data-test="sign-out" @click="emit('signOut')">ログアウト</button>
 
     <button type="button" class="danger" data-test="forget" @click="confirming = true">

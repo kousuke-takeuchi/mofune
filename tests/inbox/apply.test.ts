@@ -243,3 +243,44 @@ describe('push subscriptions arriving through the inbox', () => {
     expect(await storage.list('midori/inbox/')).toEqual([])
   })
 })
+
+const passwordChange = {
+  v: 1,
+  kind: 'password-change',
+  userId: 'u_sato',
+  email: 'sakura@example.com',
+  keystore: '{"v":1,"kdf":{},"envelope":"AAAA"}',
+  at: '2026-08-08T07:45:00.000Z',
+}
+
+describe('a password the participant chose for themselves', () => {
+  it('is recognised as its own kind', () => {
+    expect(classifySubmission(utf8(JSON.stringify(passwordChange)))).toBe('password')
+  })
+
+  it('is written where the login will look, and then the drop is cleared', async () => {
+    const { session, storage, drop } = await fixture()
+    await drop('midori/inbox/u_sato/pw.enc', passwordChange)
+
+    const result = await applyInbox({ storage, session, now })
+
+    expect(result.passwordsChanged).toBe(1)
+    expect(await storage.list('midori/inbox/')).toEqual([])
+    // キーストアの置き場所はアドレスから決まる。中身がそのまま入る
+    const { keystorePath } = await import('../../src/storage/paths')
+    const stored = await storage.get(await keystorePath('midori', 'sakura@example.com'))
+    expect(new TextDecoder().decode(stored)).toBe(passwordChange.keystore)
+  })
+
+  it('is refused when it claims to be another member', async () => {
+    const { session, storage, drop } = await fixture()
+    // 森さんの受信箱に、佐藤さんを名乗る変更が置かれた
+    await drop('midori/inbox/u_mori/pw.enc', passwordChange)
+
+    const result = await applyInbox({ storage, session, now })
+
+    expect(result.passwordsChanged).toBe(0)
+    // 消さずに残す。担当者が気づけるように
+    expect(await storage.list('midori/inbox/')).toHaveLength(1)
+  })
+})

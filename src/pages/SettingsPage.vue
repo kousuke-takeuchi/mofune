@@ -55,6 +55,7 @@ function go(place: NavPlace): void {
       @sign-out="signOut"
       @forget-device="forgetDevice"
       @register-email="router.push({ name: 'setup', params: { groupId: session.groupId } })"
+      @change-password="router.push({ name: 'password', params: { groupId: session.groupId } })"
     />
     <button
       v-if="session.role !== 'member'"
