@@ -8,6 +8,7 @@ import {
   parseFormResponse,
   isFormResponse,
   tally,
+  formKind,
 } from '../../src/content/forms'
 import { utf8 } from '../../src/crypto/bytes'
 import type { Bytes } from '../../src/crypto/bytes'
@@ -188,5 +189,39 @@ describe('tally', () => {
       { choice: '参加します', count: 0 },
       { choice: '欠席します', count: 1 },
     ])
+  })
+})
+
+describe('the kind of form (原稿 06)', () => {
+  it('keeps the choices for a 選択式 form', async () => {
+    const form = buildForm({
+      session: session(),
+      kind: 'choice',
+      question: 'どの日がよいですか',
+      choices: ['土曜', '日曜'],
+      allowNote: false,
+      dueAt: null,
+    })
+    expect(form.kind).toBe('choice')
+    expect(form.choices).toEqual(['土曜', '日曜'])
+  })
+
+  it('lets a 記述式 form have no choices at all', async () => {
+    const form = buildForm({
+      session: session(),
+      kind: 'text',
+      question: 'ご意見をどうぞ',
+      choices: [],
+      allowNote: false,
+      dueAt: null,
+    })
+    expect(form.kind).toBe('text')
+    expect(form.choices).toEqual([])
+    // 書いてもらう欄が無いと答えようがない
+    expect(form.allowNote).toBe(true)
+  })
+
+  it('treats a form written before kinds existed as 出欠', () => {
+    expect(formKind({ id: 'f_1', question: 'q', choices: [], allowNote: true, dueAt: null, recipient: { userId: 'u', ecdhPublic: 'A' } })).toBe('attendance')
   })
 })

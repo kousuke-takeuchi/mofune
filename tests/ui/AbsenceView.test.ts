@@ -183,3 +183,27 @@ describe('AbsenceView', () => {
     expect(await pending(openGroupDatabase('midori'))).toHaveLength(0)
   })
 })
+
+describe('the れんらく form, as the design draws it', () => {
+  it('offers today and tomorrow as chips', async () => {
+    const { session, member } = await fixture()
+    const wrapper = await mountAbsence(await storageWithGrant(member), session)
+    const chips = wrapper.findAll('[data-test="date-chip"]')
+    expect(chips).toHaveLength(2)
+    expect(chips[0]?.text()).toContain('今日')
+    expect(chips[1]?.text()).toContain('明日')
+  })
+
+  it('moves the date to tomorrow when the chip is pressed', async () => {
+    const { session, member } = await fixture()
+    const wrapper = await mountAbsence(await storageWithGrant(member), session)
+    const today = wrapper.get('[data-test="date"]').element as HTMLInputElement
+    const before = today.value
+
+    await wrapper.findAll('[data-test="date-chip"]')[1]?.trigger('click')
+
+    const after = (wrapper.get('[data-test="date"]').element as HTMLInputElement).value
+    expect(after).not.toBe(before)
+    expect(new Date(after).getTime() - new Date(before).getTime()).toBe(24 * 60 * 60 * 1000)
+  })
+})

@@ -849,3 +849,66 @@ fieldset.choices {
   width: 18px;
   height: 18px;
 }
+
+/* ---------- れんらく (原稿 05) ---------- */
+
+/* 「種類」だけは暗色で塗る。理由のチップと役割が違うため */
+fieldset.dark-choice button[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: transparent;
+  color: var(--cream);
+}
+
+/* 主となる操作は画面の下端に置く (原稿 05 / 06) */
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, rgba(251, 247, 240, 0), var(--bg) 24%);
+}
+
+/* ---------- お知らせ作成 (原稿 06) ---------- */
+
+/* 宛先は人数付きのチップ。チェックボックス自体は隠さず小さく置く */
+.scope-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.scope-chip:has(input:checked) {
+  background: var(--sand);
+  border-color: var(--terracotta);
+  color: var(--amber-ink);
+}
+
+.scope-chip input {
+  accent-color: var(--terracotta);
+}
+
+/* 添付は「写真」「PDF」の2つに分ける。中の file 入力は隠す */
+.attach-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.attach-button input {
+  display: none;
+}

@@ -4,7 +4,7 @@ import type { CachedMessage } from '../db/group-db'
 import { openGroupDatabase } from '../db/group-db'
 import AppBar from './AppBar.vue'
 import { formatWhen } from './format'
-import { isClosed } from '../content/forms'
+import { formKind, isClosed } from '../content/forms'
 import { sendFormResponse } from '../content/form-exchange'
 import { flushOutbox } from '../sync/outbox'
 import type { StorageProvider } from '../storage/provider'
@@ -52,6 +52,13 @@ async function answer(): Promise<void> {
     answering.value = false
   }
 }
+
+/** 記述式は書いた内容が答え。選択式は選ばないと送れない。 */
+const cannotAnswer = computed(() => {
+  const form = message.value?.form
+  if (!form) return true
+  return formKind(form) === 'text' ? note.value.trim() === '' : choice.value === ''
+})
 
 const message = ref<CachedMessage | null>(null)
 const attachments = ref<ResolvedAttachment[]>([])
@@ -166,7 +173,7 @@ onBeforeUnmount(() => {
         </p>
         <p v-else-if="answered" data-test="form-thanks">回答を送りました。ありがとうございます。</p>
         <template v-else>
-          <fieldset class="choices">
+          <fieldset v-if="message.form.choices.length > 0" class="choices">
             <legend>回答</legend>
             <label v-for="option in message.form.choices" :key="option" class="choice">
               <input
@@ -180,7 +187,7 @@ onBeforeUnmount(() => {
             </label>
           </fieldset>
           <label v-if="message.form.allowNote">
-            ひとこと(任意)
+            {{ message.form.choices.length > 0 ? 'ひとこと(任意)' : 'お答えをどうぞ' }}
             <textarea data-test="form-note" v-model="note"></textarea>
           </label>
           <p class="hint">この回答は、質問した人だけが読めます。</p>
@@ -189,7 +196,7 @@ onBeforeUnmount(() => {
             type="button"
             class="primary"
             data-test="form-submit"
-            :disabled="answering || choice === ''"
+            :disabled="answering || cannotAnswer"
             @click="answer"
           >
             回答を送る

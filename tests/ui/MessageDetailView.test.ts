@@ -197,6 +197,7 @@ describe('the detail screen, as the design draws it', () => {
         kind: 'attendance',
         question: '来ますか',
         choices: ['行く', '行かない'],
+        allowNote: false,
         dueAt: '2026-08-12T09:00:00.000Z',
         recipient: { userId: 'u_tanaka', ecdhPublic: 'AAAA' },
       },
@@ -219,11 +220,42 @@ describe('the detail screen, as the design draws it', () => {
         kind: 'attendance',
         question: '来ますか',
         choices: ['行く'],
+        allowNote: false,
         dueAt: '2026-08-12T09:00:00.000Z',
         recipient: { userId: 'u_tanaka', ecdhPublic: 'AAAA' },
       },
     })
     const wrapper = await mountDetail()
     expect(wrapper.get('[data-test="form-head"]').text()).toContain('まで')
+  })
+})
+
+describe('a 記述式 form', () => {
+  beforeEach(async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.update('m_1', {
+      form: {
+        id: 'fm_1',
+        kind: 'text',
+        question: 'ご意見をどうぞ',
+        choices: [],
+        allowNote: true,
+        dueAt: null,
+        recipient: { userId: 'u_tanaka', ecdhPublic: 'AAAA' },
+      },
+    })
+  })
+
+  it('asks to write rather than to choose', async () => {
+    const wrapper = await mountDetail()
+    expect(wrapper.findAll('[data-test="form-choice"]')).toHaveLength(0)
+    expect(wrapper.find('[data-test="form-note"]').exists()).toBe(true)
+  })
+
+  it('keeps the send button off until something is written', async () => {
+    const wrapper = await mountDetail()
+    expect(wrapper.get('[data-test="form-submit"]').attributes('disabled')).toBeDefined()
+    await wrapper.get('[data-test="form-note"]').setValue('助かっています')
+    expect(wrapper.get('[data-test="form-submit"]').attributes('disabled')).toBeUndefined()
   })
 })

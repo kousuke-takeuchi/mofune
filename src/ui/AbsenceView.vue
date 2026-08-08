@@ -31,6 +31,20 @@ const busy = ref(false)
 
 const db = openGroupDatabase(props.session.groupId)
 
+function isoDay(offset: number): string {
+  const day = new Date()
+  day.setDate(day.getDate() + offset)
+  return day.toISOString().slice(0, 10)
+}
+
+/** よく使う「今日」「明日」は押すだけで選べるようにする (原稿 05)。 */
+const dateChips = computed(() =>
+  [
+    { label: '今日', value: isoDay(0) },
+    { label: '明日', value: isoDay(1) },
+  ].map((chip) => ({ ...chip, short: `${Number(chip.value.slice(5, 7))}/${Number(chip.value.slice(8, 10))}` })),
+)
+
 onMounted(async () => {
   try {
     grant.value = await readGrant({
@@ -95,10 +109,20 @@ async function submit(): Promise<void> {
     <div v-else data-test="ready">
       <fieldset>
         <legend>どの日ですか</legend>
+        <button
+          v-for="chip in dateChips"
+          :key="chip.value"
+          type="button"
+          data-test="date-chip"
+          :aria-pressed="date === chip.value"
+          @click="date = chip.value"
+        >
+          {{ chip.label }} {{ chip.short }}
+        </button>
         <input type="date" data-test="date" v-model="date" />
       </fieldset>
 
-      <fieldset>
+      <fieldset class="dark-choice">
         <legend>種類</legend>
         <button
           v-for="value in ABSENCE_KINDS"
@@ -139,7 +163,11 @@ async function submit(): Promise<void> {
         オフラインのため送信待ちにしました。オンラインに戻ると自動で送信されます。
       </p>
 
-      <button type="button" class="primary" data-test="submit" :disabled="busy" @click="submit">送信する</button>
+      <div class="sticky-actions">
+        <button type="button" class="primary" data-test="submit" :disabled="busy" @click="submit">
+          送信する
+        </button>
+      </div>
     </div>
   </section>
 </template>
