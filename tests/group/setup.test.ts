@@ -88,7 +88,7 @@ describe('setUpGroup', () => {
     const storage = new MemoryStorageProvider()
     const setup = options(storage)
     vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 401 })))
-    await expect(setUpGroup(setup)).rejects.toThrow(/公開URL/)
+    await expect(setUpGroup(setup)).rejects.toThrow(/公開の経路/)
     expect(await storage.list('midori/')).toHaveLength(0)
   })
 

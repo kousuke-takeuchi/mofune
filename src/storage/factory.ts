@@ -1,9 +1,6 @@
 import type { ConnectionCode } from '../group/connection-code'
-import { readGroupSettings } from '../group/group-settings'
 import type { Session } from '../group/session'
 import { readStorageSettings, toProviderConfig } from '../group/storage-credentials'
-import { keyId } from '../crypto/keyring'
-import { STAFF_SCOPE } from '../crypto/roster'
 import { FunctionStorageProvider } from './function'
 import { HttpStorageProvider } from './http'
 import type { StorageProvider } from './provider'
@@ -37,25 +34,8 @@ export async function writerFor(options: {
   session: Session
   storage: StorageProvider
 }): Promise<StorageProvider | null> {
-  const { code, session, storage } = options
+  const { session, storage } = options
   if (session.role === 'member') return null
-
-  if (code.provider === 'gdrive') {
-    const staffKey = session.groupKeys.get(keyId(STAFF_SCOPE, session.generation))
-    if (!staffKey) return null
-    try {
-      const settings = await readGroupSettings({ storage, groupId: session.groupId, staffKey })
-      const token = settings.notifications.functionToken
-      if (token === '') return null
-      return new FunctionStorageProvider({
-        functionUrl: code.root,
-        groupId: session.groupId,
-        token,
-      })
-    } catch {
-      return null
-    }
-  }
 
   try {
     const settings = await readStorageSettings({
@@ -63,6 +43,13 @@ export async function writerFor(options: {
       groupId: session.groupId,
       keys: session.groupKeys,
     })
+    if (settings.provider === 'gdrive') {
+      return new FunctionStorageProvider({
+        functionUrl: settings.functionUrl,
+        groupId: session.groupId,
+        token: settings.token,
+      })
+    }
     if (settings.provider === 'webdav') {
       return new WebdavStorageProvider({
         baseUrl: settings.baseUrl,

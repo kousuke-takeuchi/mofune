@@ -21,7 +21,21 @@ export interface WebdavStorageSettings {
   password: string
 }
 
-export type StorageSettings = S3StorageSettings | WebdavStorageSettings
+/**
+ * 関数層そのものを置き場にする (Apps Script + Drive)。
+ * 読み書きはすべて関数を通るので、参加者にも担当者にも OAuth が要らない。
+ */
+export interface FunctionStorageSettings {
+  provider: 'gdrive'
+  /** 関数の /exec URL。読みも書きもここを通る。 */
+  functionUrl: string
+  /** 参加者が読む起点。この経路では functionUrl と同じ。 */
+  publicBaseUrl: string
+  /** 関数の合言葉。書き込みと引換券の発行に使う。 */
+  token: string
+}
+
+export type StorageSettings = S3StorageSettings | WebdavStorageSettings | FunctionStorageSettings
 
 export interface S3StorageSettings {
   provider: 's3'

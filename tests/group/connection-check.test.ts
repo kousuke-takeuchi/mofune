@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { checkConnection } from '../../src/group/connection-check'
+import { HttpStorageProvider } from '../../src/storage/http'
 import { MemoryStorageProvider } from '../../src/storage/memory'
 import { UnsupportedOperationError } from '../../src/storage/provider'
 import type { StorageProvider } from '../../src/storage/provider'
@@ -94,7 +95,7 @@ describe('checkConnection', () => {
     const result = await checkConnection({
       storage,
       groupId: 'midori',
-      publicBaseUrl: 'https://pub-1234.r2.dev',
+      publicReader: new HttpStorageProvider('https://pub-1234.r2.dev'),
     })
     expect(result.ok).toBe(true)
     expect(result.steps.map((step) => step.name)).toEqual(['write', 'read', 'public', 'delete'])
@@ -106,7 +107,7 @@ describe('checkConnection', () => {
     const result = await checkConnection({
       storage: new MemoryStorageProvider(),
       groupId: 'midori',
-      publicBaseUrl: 'https://account.r2.cloudflarestorage.com/mofune',
+      publicReader: new HttpStorageProvider('https://account.r2.cloudflarestorage.com/mofune'),
     })
     expect(result.ok).toBe(false)
     expect(result.steps.find((step) => step.name === 'public')?.ok).toBe(false)
@@ -117,7 +118,7 @@ describe('checkConnection', () => {
     const result = await checkConnection({
       storage: new MemoryStorageProvider(),
       groupId: 'midori',
-      publicBaseUrl: 'https://pub-1234.r2.dev',
+      publicReader: new HttpStorageProvider('https://pub-1234.r2.dev'),
     })
     expect(result.ok).toBe(false)
     expect(result.steps.find((step) => step.name === 'public')?.ok).toBe(false)
@@ -129,12 +130,12 @@ describe('checkConnection', () => {
     await checkConnection({
       storage,
       groupId: 'midori',
-      publicBaseUrl: 'https://pub-1234.r2.dev',
+      publicReader: new HttpStorageProvider('https://pub-1234.r2.dev'),
     })
     expect(await storage.list('midori/')).toHaveLength(0)
   })
 
-  it('skips the public step when no public base url is given', async () => {
+  it('skips the public step when no public reader is given', async () => {
     const result = await checkConnection({ storage: new MemoryStorageProvider(), groupId: 'midori' })
     expect(result.steps.map((step) => step.name)).not.toContain('public')
   })

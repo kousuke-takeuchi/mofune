@@ -223,3 +223,131 @@ describe('ProvisionWizardView', () => {
     expect(wrapper.find('[data-test="public-base-url"]').exists()).toBe(true)
   })
 })
+
+const DAV_PUBLIC = 'https://nas.invalid/public.php/dav/files/TOKEN'
+
+/**
+ * 置き場の段まで進めた状態で返す。
+ *
+ * 公開読みの確認は本番の経路 (関数経由 / WebDAV の公開共有) を通るので、
+ * その2つだけをインメモリへ向ける。プロバイダごと差し替えてしまうと、
+ * 経路の組み立てを検査できない。
+ */
+async function atStorageStep(overrides: { onSettings?: (settings: unknown) => void } = {}) {
+  const storage = new MemoryStorageProvider()
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      const target = new URL(String(url))
+      const key = target.searchParams.get('key')
+      if (key !== null) {
+        try {
+          const bytes = await storage.get(key)
+          return Response.json({ body: Buffer.from(bytes).toString('base64') })
+        } catch {
+          return Response.json({ error: 'not found' })
+        }
+      }
+      if (String(url).startsWith(`${DAV_PUBLIC}/`)) {
+        try {
+          return new Response(await storage.get(String(url).slice(DAV_PUBLIC.length + 1)))
+        } catch {
+          return new Response(null, { status: 404 })
+        }
+      }
+      return new Response(null, { status: 404 })
+    }),
+  )
+  const wrapper = mount(ProvisionWizardView, {
+    props: {
+      kdf: TEST_KDF,
+      createStorage: ((settings: unknown): MemoryStorageProvider => {
+        overrides.onSettings?.(settings)
+        return storage
+      }) as never,
+    },
+  })
+  mounted.push(wrapper)
+  await fillGroupStep(wrapper)
+  return wrapper
+}
+
+/** 開設は何段も非同期なので、結果か失敗が出るまで待つ。 */
+async function settled(wrapper: VueWrapper) {
+  await vi.waitFor(
+    () => {
+      const done = wrapper.find('[data-test="connection-code"]').exists()
+      const failed = wrapper.find('[data-test="error"]').exists()
+      if (!done && !failed) throw new Error('still working')
+    },
+    { timeout: 4000, interval: 10 },
+  )
+}
+
+describe('choosing where the group lives (原稿 10)', () => {
+  it('offers the three kinds of place', async () => {
+    const wrapper = await atStorageStep()
+    const kinds = wrapper.findAll('[data-test="storage-kind"]').map((el) => el.attributes('data-kind'))
+    expect(kinds).toEqual(['s3', 'gdrive', 'webdav'])
+  })
+
+  it('asks only for what the chosen place needs', async () => {
+    const wrapper = await atStorageStep()
+
+    await wrapper.find('[data-test="storage-kind"][data-kind="gdrive"]').trigger('click')
+    expect(wrapper.find('[data-test="function-url"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="access-key-id"]').exists()).toBe(false)
+
+    await wrapper.find('[data-test="storage-kind"][data-kind="webdav"]').trigger('click')
+    expect(wrapper.find('[data-test="dav-username"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="function-url"]').exists()).toBe(false)
+  })
+
+  it('opens a group in Drive through the function', async () => {
+    const seen: unknown[] = []
+    const wrapper = await atStorageStep({ onSettings: (settings) => seen.push(settings) })
+
+    await wrapper.find('[data-test="storage-kind"][data-kind="gdrive"]').trigger('click')
+    await wrapper.get('[data-test="function-url"]').setValue('https://script.google.com/macros/s/AK/exec')
+    await wrapper.get('[data-test="function-token"]').setValue('shared-secret')
+    await wrapper.get('[data-test="next"]').trigger('click')
+    await settled(wrapper)
+
+    expect(seen[0]).toMatchObject({
+      provider: 'gdrive',
+      functionUrl: 'https://script.google.com/macros/s/AK/exec',
+      token: 'shared-secret',
+    })
+    // 参加者に配る接続コードは、その関数を指す
+    const { decodeConnectionCode: decode } = await import('../../src/group/connection-code')
+    const code = decode(wrapper.get('[data-test="connection-code"]').text().trim())
+    expect(code.provider).toBe('gdrive')
+    expect(code.root).toBe('https://script.google.com/macros/s/AK/exec')
+  })
+
+  it('opens a group on WebDAV', async () => {
+    const seen: unknown[] = []
+    const wrapper = await atStorageStep({ onSettings: (settings) => seen.push(settings) })
+
+    await wrapper.find('[data-test="storage-kind"][data-kind="webdav"]').trigger('click')
+    await wrapper.get('[data-test="dav-url"]').setValue('https://nas.invalid/remote.php/dav/files/mofune')
+    await wrapper.get('[data-test="public-base-url"]').setValue(DAV_PUBLIC)
+    await wrapper.get('[data-test="dav-username"]').setValue('mofune')
+    await wrapper.get('[data-test="dav-password"]').setValue('secret')
+    await wrapper.get('[data-test="next"]').trigger('click')
+    await settled(wrapper)
+
+    expect(seen[0]).toMatchObject({ provider: 'webdav', username: 'mofune' })
+    const { decodeConnectionCode: decode } = await import('../../src/group/connection-code')
+    const code = decode(wrapper.get('[data-test="connection-code"]').text().trim())
+    expect(code.provider).toBe('webdav')
+    expect(code.root).toBe(DAV_PUBLIC)
+  })
+
+  it('says what is missing for the chosen place', async () => {
+    const wrapper = await atStorageStep()
+    await wrapper.find('[data-test="storage-kind"][data-kind="gdrive"]').trigger('click')
+    await wrapper.get('[data-test="next"]').trigger('click')
+    expect(wrapper.get('[data-test="error"]').text()).toContain('関数')
+  })
+})

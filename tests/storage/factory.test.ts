@@ -9,7 +9,6 @@ import { MemoryStorageProvider } from '../../src/storage/memory'
 import { generateAesKey } from '../../src/crypto/symmetric'
 import { keyId } from '../../src/crypto/keyring'
 import { STAFF_SCOPE } from '../../src/crypto/roster'
-import { DEFAULT_GROUP_SETTINGS, writeGroupSettings } from '../../src/group/group-settings'
 import { writeStorageSettings } from '../../src/group/storage-credentials'
 import type { Session } from '../../src/group/session'
 
@@ -133,14 +132,16 @@ describe('writerFor', () => {
   it('writes through the function when the group lives in Drive', async () => {
     const { session, staffKey } = await staffSession()
     const storage = new MemoryStorageProvider()
-    await writeGroupSettings({
+    await writeStorageSettings({
       storage,
       groupId: 'g_midori',
       generation: 1,
       staffKey,
       settings: {
-        ...DEFAULT_GROUP_SETTINGS,
-        notifications: { ...DEFAULT_GROUP_SETTINGS.notifications, functionToken: 'shared-secret' },
+        provider: 'gdrive',
+        functionUrl: 'https://script.google.com/macros/s/AK/exec',
+        publicBaseUrl: 'https://script.google.com/macros/s/AK/exec',
+        token: 'shared-secret',
       },
     })
 
@@ -153,16 +154,9 @@ describe('writerFor', () => {
     expect(writer?.capabilities.write).toBe(true)
   })
 
-  it('gives nothing when the group has no secret for the function yet', async () => {
-    const { session, staffKey } = await staffSession()
+  it('gives nothing when the group has no storage settings yet', async () => {
+    const { session } = await staffSession()
     const storage = new MemoryStorageProvider()
-    await writeGroupSettings({
-      storage,
-      groupId: 'g_midori',
-      generation: 1,
-      staffKey,
-      settings: DEFAULT_GROUP_SETTINGS,
-    })
 
     expect(
       await writerFor({

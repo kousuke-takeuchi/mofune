@@ -30,26 +30,26 @@ function describeRequestFailure(cause: unknown, method: string): string {
   return message
 }
 
-/** 失敗の理由を返す。読めたなら undefined。 */
+/**
+ * 失敗の理由を返す。読めたなら undefined。
+ *
+ * 確かめるのは「資格情報を持たない人が本当に読めるか」なので、参加者が使う
+ * のと同じ経路 (公開URLへの素の GET、WebDAV の公開共有、関数経由) で読む。
+ */
 async function checkPublicRead(
-  baseUrl: string,
+  reader: StorageProvider,
   probe: string,
   payload: Bytes,
 ): Promise<string | undefined> {
-  const url = `${baseUrl.replace(/\/+$/, '')}/${probe}`
-  let response: Response
+  let read: Bytes
   try {
-    response = await fetch(url, { cache: 'no-store' })
+    read = await reader.get(probe)
   } catch (cause) {
     // CORS で弾かれた場合もここに来る。ブラウザは理由を教えてくれない。
-    return `公開URLへ届きません (CORS 設定か URL の誤り): ${describeCause(cause)}`
+    return `公開の経路から読めません (CORS 設定か URL の誤り): ${describeCause(cause)}`
   }
-  if (!response.ok) {
-    return `公開URLから読めません (HTTP ${response.status})。公開読み取りの設定を確認してください`
-  }
-  const read = new Uint8Array(await response.arrayBuffer()) as Bytes
   if (fromUtf8(read) !== fromUtf8(payload)) {
-    return '公開URLが別の内容を返しました。URL がこのバケットを指しているか確認してください'
+    return '公開の経路が別の内容を返しました。URL がこの置き場を指しているか確認してください'
   }
   return undefined
 }
@@ -64,10 +64,10 @@ export async function checkConnection(options: {
   storage: StorageProvider
   groupId: string
   /**
-   * 参加者が資格情報なしで読む URL の起点。S3 の API エンドポイントとは別物で、
-   * R2 なら r2.dev の公開URLか独自ドメイン。取り違えると参加者は 401 で何も読めない。
+   * 参加者が資格情報なしで読むときの経路。S3 なら公開URLへの素の GET で、
+   * API エンドポイントとは別物。取り違えると参加者は 401 で何も読めない。
    */
-  publicBaseUrl?: string
+  publicReader?: StorageProvider
 }): Promise<CheckResult> {
   const steps: CheckStep[] = []
   const probe = `${options.groupId}/.connection-check-${toHex(randomBytes(8))}`
@@ -97,8 +97,8 @@ export async function checkConnection(options: {
     return { ok: false, steps }
   }
 
-  if (options.publicBaseUrl) {
-    const failure = await checkPublicRead(options.publicBaseUrl, probe, payload)
+  if (options.publicReader) {
+    const failure = await checkPublicRead(options.publicReader, probe, payload)
     if (failure) {
       steps.push({ name: 'public', ok: false, detail: failure })
       // 確認用のオブジェクトは残さない。失敗しても後片付けは試みる。

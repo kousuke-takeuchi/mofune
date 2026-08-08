@@ -8,6 +8,9 @@ import { STAFF_SCOPE, parseRosterFile, verifyRoster } from '../crypto/roster'
 import { publishGrants } from '../inbox/grants'
 import { keyringPath, keystorePath, rosterPath } from '../storage/paths'
 import type { StorageProvider } from '../storage/provider'
+import { FunctionStorageProvider } from '../storage/function'
+import { HttpStorageProvider } from '../storage/http'
+import { WebdavStorageProvider } from '../storage/webdav'
 import type { ConnectionCode } from './connection-code'
 import { encodeConnectionCode } from './connection-code'
 import type { CheckResult } from './connection-check'
@@ -54,6 +57,20 @@ export interface SetupResult {
   grantsIssued: string[]
 }
 
+/**
+ * 資格情報を持たない人が読むときの経路。開設の前にここで確かめる。
+ * 参加者が使うものと同じ組み立てにしないと、確認の意味が無い。
+ */
+function publicReaderFor(settings: StorageSettings, groupId: string): StorageProvider {
+  if (settings.provider === 'gdrive') {
+    return new FunctionStorageProvider({ functionUrl: settings.functionUrl, groupId })
+  }
+  if (settings.provider === 'webdav') {
+    return new WebdavStorageProvider({ baseUrl: settings.publicBaseUrl })
+  }
+  return new HttpStorageProvider(settings.publicBaseUrl)
+}
+
 function take(objects: Map<string, Bytes>, path: string): Bytes {
   const bytes = objects.get(path)
   if (!bytes) {
@@ -72,7 +89,8 @@ export async function setUpGroup(options: SetupOptions): Promise<SetupResult> {
   const check = await checkConnection({
     storage: options.storage,
     groupId: options.groupId,
-    publicBaseUrl: options.settings.publicBaseUrl,
+    // 参加者と同じ経路で読めるかを確かめる。置き場ごとに経路は違う
+    publicReader: publicReaderFor(options.settings, options.groupId),
   })
   if (!check.ok) {
     const failed = check.steps.find((step) => !step.ok)

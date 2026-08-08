@@ -6,8 +6,10 @@ import { randomBytes } from '../crypto/symmetric'
 import type { CheckResult } from '../group/connection-check'
 import type { SetupResult } from '../group/setup'
 import { SetupError, setUpGroup } from '../group/setup'
-import type { S3StorageSettings, StorageSettings } from '../group/storage-credentials'
+import type { StorageSettings } from '../group/storage-credentials'
 import { toProviderConfig } from '../group/storage-credentials'
+import { FunctionStorageProvider } from '../storage/function'
+import { WebdavStorageProvider } from '../storage/webdav'
 import QrCode from './QrCode.vue'
 import { buildJoinUrl, currentAppBaseUrl } from '../group/join-url'
 import type { StorageProvider } from '../storage/provider'
@@ -29,6 +31,20 @@ const groupName = ref('')
 const adminDisplayName = ref('')
 const adminPassword = ref('')
 const adminEmail = ref('')
+
+/** 置き場の種類。原稿 10 の表と同じ並び。 */
+const KINDS = [
+  { value: 's3' as const, label: 'S3互換 (R2 / B2 / MinIO)' },
+  { value: 'gdrive' as const, label: 'Google Drive (Apps Script 経由)' },
+  { value: 'webdav' as const, label: 'WebDAV / NAS' },
+]
+const kind = ref<'s3' | 'gdrive' | 'webdav'>('s3')
+
+const functionUrl = ref('')
+const functionToken = ref('')
+const davUrl = ref('')
+const davUsername = ref('')
+const davPassword = ref('')
 
 const endpoint = ref('')
 const region = ref('auto')
@@ -60,14 +76,66 @@ function toStorageStep(): void {
   step.value = 2
 }
 
-/** ウィザードで作れるのは今のところ S3 互換の置き場だけ (画面もその形)。 */
-function buildStorage(settings: S3StorageSettings): StorageProvider {
-  return props.createStorage
-    ? props.createStorage(settings)
-    : new S3StorageProvider(toProviderConfig(settings))
+/** 書き込み経路は置き場ごとに違う。テストからはまとめて差し替えられる。 */
+function buildStorage(settings: StorageSettings, groupId: string): StorageProvider {
+  if (props.createStorage) return props.createStorage(settings)
+  if (settings.provider === 'gdrive') {
+    return new FunctionStorageProvider({
+      functionUrl: settings.functionUrl,
+      groupId,
+      token: settings.token,
+    })
+  }
+  if (settings.provider === 'webdav') {
+    return new WebdavStorageProvider({
+      baseUrl: settings.baseUrl,
+      credentials: { username: settings.username, password: settings.password },
+    })
+  }
+  return new S3StorageProvider(toProviderConfig(settings))
 }
 
-async function provision(): Promise<void> {
+/**
+ * 入力から設定を組む。足りないものがあれば、何が足りないかを返す。
+ * 置き場ごとに要るものが違うので、まとめて「全部入れてください」とは言わない。
+ */
+function collectSettings(): { settings: StorageSettings } | { missing: string } {
+  if (kind.value === 'gdrive') {
+    if (!functionUrl.value.trim() || !functionToken.value) {
+      return { missing: '関数の URL と合言葉を入れてください' }
+    }
+    const url = functionUrl.value.trim().replace(/\/+$/, '')
+    return {
+      settings: {
+        provider: 'gdrive',
+        functionUrl: url,
+        // 参加者もこの関数を通して読む
+        publicBaseUrl: url,
+        token: functionToken.value,
+      },
+    }
+  }
+
+  if (kind.value === 'webdav') {
+    if (
+      !davUrl.value.trim() ||
+      !publicBaseUrl.value.trim() ||
+      !davUsername.value.trim() ||
+      !davPassword.value
+    ) {
+      return { missing: 'WebDAV の URL・公開共有の URL・利用者名・パスワードを入れてください' }
+    }
+    return {
+      settings: {
+        provider: 'webdav',
+        baseUrl: davUrl.value.trim().replace(/\/+$/, ''),
+        publicBaseUrl: publicBaseUrl.value.trim().replace(/\/+$/, ''),
+        username: davUsername.value.trim(),
+        password: davPassword.value,
+      },
+    }
+  }
+
   if (
     !endpoint.value.trim() ||
     !bucket.value.trim() ||
@@ -75,20 +143,30 @@ async function provision(): Promise<void> {
     !accessKeyId.value ||
     !secretAccessKey.value
   ) {
-    error.value = 'データの置き場の情報をすべて入力してください'
+    return { missing: 'データの置き場の情報をすべて入力してください' }
+  }
+  return {
+    settings: {
+      provider: 's3',
+      endpoint: endpoint.value.trim(),
+      region: region.value.trim() || 'auto',
+      bucket: bucket.value.trim(),
+      publicBaseUrl: publicBaseUrl.value.trim().replace(/\/+$/, ''),
+      accessKeyId: accessKeyId.value,
+      secretAccessKey: secretAccessKey.value,
+    },
+  }
+}
+
+async function provision(): Promise<void> {
+  const collected = collectSettings()
+  if ('missing' in collected) {
+    error.value = collected.missing
     return
   }
   error.value = ''
   busy.value = true
-  const settings: StorageSettings = {
-    provider: 's3',
-    endpoint: endpoint.value.trim(),
-    region: region.value.trim() || 'auto',
-    bucket: bucket.value.trim(),
-    publicBaseUrl: publicBaseUrl.value.trim().replace(/\/+$/, ''),
-    accessKeyId: accessKeyId.value,
-    secretAccessKey: secretAccessKey.value,
-  }
+  const settings = collected.settings
   // グループIDは表示名から作らない。パスに使うので、衝突も細工も避けて乱数にする。
   const groupId = `g_${toHex(randomBytes(6))}`
   step.value = 3
@@ -100,7 +178,7 @@ async function provision(): Promise<void> {
       adminPassword: adminPassword.value,
       adminEmail: adminEmail.value.trim(),
       settings,
-      storage: buildStorage(settings),
+      storage: buildStorage(settings, groupId),
       ...(props.kdf ? { kdf: props.kdf } : {}),
     })
     check.value = setup.check
@@ -178,12 +256,67 @@ function back(): void {
         </thead>
         <tbody>
           <tr><td>S3互換 (R2 / B2 / MinIO)</td><td>できる</td><td>できる</td></tr>
-          <tr><td>WebDAV / NAS</td><td>できる</td><td>できる(未対応)</td></tr>
-          <tr><td>Google Drive</td><td>できる</td><td><strong>欠席の連絡・フォーム回答が使えません</strong></td></tr>
-          <tr><td>Dropbox</td><td>できる</td><td><strong>欠席の連絡・フォーム回答が使えません</strong></td></tr>
+          <tr><td>Google Drive (Apps Script 経由)</td><td>できる</td><td>できる</td></tr>
+          <tr><td>WebDAV / NAS</td><td>できる</td><td>できる</td></tr>
+          <tr><td>Dropbox / Box / OneDrive</td><td><strong>使えません</strong></td><td><strong>使えません</strong></td></tr>
         </tbody>
       </table>
-      <p>いま作れるのは S3互換の置き場だけです。</p>
+
+      <fieldset class="dark-choice">
+        <legend>置き場の種類</legend>
+        <button
+          v-for="entry in KINDS"
+          :key="entry.value"
+          type="button"
+          data-test="storage-kind"
+          :data-kind="entry.value"
+          :aria-pressed="kind === entry.value"
+          @click="kind = entry.value"
+        >
+          {{ entry.label }}
+        </button>
+      </fieldset>
+
+      <template v-if="kind === 'gdrive'">
+        <p class="hint">
+          Apps Script は所有者の権限で動くので、Drive の読み書きに OAuth は要りません。
+          先に <code>functions/gas/</code> の手順でスクリプトを置き、
+          <code>DRIVE_FOLDER_ID</code> を入れておいてください。
+        </p>
+        <label>
+          関数の URL
+          <input data-test="function-url" v-model="functionUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+        </label>
+        <label>
+          合言葉
+          <input data-test="function-token" v-model="functionToken" />
+        </label>
+      </template>
+
+      <template v-else-if="kind === 'webdav'">
+        <p class="hint">
+          書き込みは利用者名とパスワードで、参加者は公開共有の URL から読みます。
+          公開共有にパスワードを付けると参加者が読めなくなります。
+        </p>
+        <label>
+          WebDAV の URL (書き込み用)
+          <input data-test="dav-url" v-model="davUrl" placeholder="https://nas.example/remote.php/dav/files/mofune" />
+        </label>
+        <label>
+          公開共有の URL (参加者が読む)
+          <input data-test="public-base-url" v-model="publicBaseUrl" placeholder="https://nas.example/public.php/dav/files/TOKEN" />
+        </label>
+        <label>
+          利用者名
+          <input data-test="dav-username" v-model="davUsername" />
+        </label>
+        <label>
+          パスワード
+          <input type="password" data-test="dav-password" v-model="davPassword" />
+        </label>
+      </template>
+
+      <template v-else>
 
       <label>
         エンドポイント
@@ -213,6 +346,7 @@ function back(): void {
         シークレットアクセスキー
         <input type="password" data-test="secret-access-key" v-model="secretAccessKey" />
       </label>
+      </template>
 
       <button type="button" class="primary" data-test="next" :disabled="busy" @click="provision">
         接続を確かめて作る
