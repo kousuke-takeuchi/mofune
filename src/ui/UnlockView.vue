@@ -5,6 +5,7 @@ defineProps<{ groupName: string; email: string; busy: boolean; error: string }>(
 const emit = defineEmits<{ unlock: [password: string]; switchGroup: []; forget: [] }>()
 
 const password = ref('')
+const revealed = ref(false)
 </script>
 
 <template>
@@ -30,11 +31,16 @@ const password = ref('')
     </div>
 
     <label>
-      パスワード
+      <span class="label-row">
+        パスワード
+        <button type="button" class="quiet" data-test="reveal" @click="revealed = !revealed">
+          {{ revealed ? '隠す' : '表示' }}
+        </button>
+      </span>
       <input
         v-model="password"
         data-test="password"
-        type="password"
+        :type="revealed ? 'text' : 'password'"
         autocomplete="current-password"
       />
     </label>

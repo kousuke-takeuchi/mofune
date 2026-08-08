@@ -974,3 +974,17 @@ fieldset.dark-choice button[aria-pressed='true'] {
   font-size: 14px;
   color: var(--ink);
 }
+
+/* ラベルの右端に小さな操作を置く (原稿 01「表示」) */
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.label-row button {
+  font-size: 12px;
+  padding: 2px 4px;
+  color: var(--terracotta);
+}

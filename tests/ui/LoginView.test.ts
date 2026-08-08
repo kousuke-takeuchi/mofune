@@ -154,3 +154,12 @@ describe('LoginView', () => {
     )
   })
 })
+
+describe('showing the password (原稿 01)', () => {
+  it('hides it until 表示 is pressed', async () => {
+    const wrapper = mount(LoginView)
+    expect(wrapper.get('[data-test="password"]').attributes('type')).toBe('password')
+    await wrapper.get('[data-test="reveal"]').trigger('click')
+    expect(wrapper.get('[data-test="password"]').attributes('type')).toBe('text')
+  })
+})
