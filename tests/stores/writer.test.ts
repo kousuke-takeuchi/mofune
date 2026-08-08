@@ -39,20 +39,18 @@ async function buildGroup(options: { withSettings: boolean }): Promise<{
     subgroups: [],
     members: [
       {
-        loginId: 'watanabe',
         displayName: '渡辺 けい',
         role: 'admin',
         scopes: [],
         password: 'admin-pass',
-        email: '',
+        email: 'watanabe@example.invalid',
       },
       {
-        loginId: 'sato',
         displayName: '佐藤 さくら',
         role: 'member',
         scopes: [],
         password: 'member-pass',
-        email: '',
+        email: 'sato@example.invalid',
       },
     ],
   })
@@ -61,7 +59,7 @@ async function buildGroup(options: { withSettings: boolean }): Promise<{
   const code = decodeConnectionCode(encodeConnectionCode(result.code))
 
   if (options.withSettings) {
-    const session = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+    const session = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
     const staffKey = session.groupKeys.get(keyId(STAFF_SCOPE, INITIAL_GENERATION)) as CryptoKey
     await writeStorageSettings({
       storage,
@@ -104,7 +102,7 @@ describe('the writer a session exposes', () => {
     const { code, storage } = await buildGroup({ withSettings: true })
     routeFetchTo(storage)
     const session = useSessionStore()
-    await session.signIn(code, 'watanabe', 'admin-pass')
+    await session.signIn(code, 'watanabe@example.invalid', 'admin-pass')
     expect(session.writer).not.toBeNull()
     expect(session.writer).not.toBe(session.storage)
     expect(session.writer?.capabilities.write).toBe(true)
@@ -114,7 +112,7 @@ describe('the writer a session exposes', () => {
     const { code, storage } = await buildGroup({ withSettings: true })
     routeFetchTo(storage)
     const session = useSessionStore()
-    await session.signIn(code, 'sato', 'member-pass')
+    await session.signIn(code, 'sato@example.invalid', 'member-pass')
     expect(session.writer).toBeNull()
   })
 
@@ -122,7 +120,7 @@ describe('the writer a session exposes', () => {
     const { code, storage } = await buildGroup({ withSettings: false })
     routeFetchTo(storage)
     const session = useSessionStore()
-    await session.signIn(code, 'watanabe', 'admin-pass')
+    await session.signIn(code, 'watanabe@example.invalid', 'admin-pass')
     expect(session.writer).toBeNull()
   })
 
@@ -130,7 +128,7 @@ describe('the writer a session exposes', () => {
     const { code, storage } = await buildGroup({ withSettings: true })
     routeFetchTo(storage)
     const session = useSessionStore()
-    await session.signIn(code, 'watanabe', 'admin-pass')
+    await session.signIn(code, 'watanabe@example.invalid', 'admin-pass')
     session.signOut()
     expect(session.writer).toBeNull()
   })

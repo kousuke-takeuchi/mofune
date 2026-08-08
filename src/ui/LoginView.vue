@@ -11,7 +11,7 @@ const emit = defineEmits<{ login: [session: Session, root: string, adminPublicKe
 
 // QR から来た人は接続コードが入った状態で始まる
 const code = ref(props.initialCode)
-const loginId = ref('')
+const email = ref('')
 const password = ref('')
 const error = ref('')
 const busy = ref(false)
@@ -30,14 +30,14 @@ async function submit(): Promise<void> {
     }
     const session = await login({
       code: connection,
-      loginId: loginId.value,
+      email: email.value,
       password: password.value,
       storage: new HttpStorageProvider(connection.root),
     })
     await rememberGroup({
       code: connection,
       groupName: session.groupName,
-      loginId: loginId.value,
+      email: email.value,
       at: Date.now(),
     })
     password.value = ''
@@ -83,8 +83,8 @@ async function submit(): Promise<void> {
     </label>
 
     <label>
-      ログインID
-      <input v-model="loginId" data-test="login-id" type="text" autocomplete="username" />
+      メールアドレス
+      <input v-model="email" data-test="email" type="email" autocomplete="username email" />
     </label>
 
     <label>

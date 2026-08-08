@@ -21,7 +21,6 @@ async function buildGroup(
     subgroups: [{ id: 'sg_a', name: 'Aチーム', parent: null }],
     members: [
       {
-        loginId: 'watanabe',
         displayName: '渡辺 けい',
         role: 'admin',
         scopes: [],
@@ -62,7 +61,7 @@ describe('LoginView', () => {
   it('renders the three input fields', () => {
     const wrapper = mount(LoginView)
     expect(wrapper.find('[data-test="code"]').exists()).toBe(true)
-    expect(wrapper.find('[data-test="login-id"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="email"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="password"]').exists()).toBe(true)
   })
 
@@ -76,7 +75,7 @@ describe('LoginView', () => {
     routeFetchTo(storage)
     const wrapper = mount(LoginView)
     await wrapper.find('[data-test="code"]').setValue(code)
-    await wrapper.find('[data-test="login-id"]').setValue('watanabe')
+    await wrapper.find('[data-test="email"]').setValue('watanabe@example.invalid')
     await wrapper.find('[data-test="password"]').setValue('admin-pass')
     await wrapper.find('[data-test="submit"]').trigger('submit')
     await vi.waitFor(() => expect(wrapper.emitted('login')).toBeTruthy())
@@ -89,7 +88,7 @@ describe('LoginView', () => {
     routeFetchTo(storage)
     const wrapper = mount(LoginView)
     await wrapper.find('[data-test="code"]').setValue(code)
-    await wrapper.find('[data-test="login-id"]').setValue('watanabe')
+    await wrapper.find('[data-test="email"]').setValue('watanabe@example.invalid')
     await wrapper.find('[data-test="password"]').setValue('admin-pass')
     await wrapper.find('[data-test="submit"]').trigger('submit')
     await vi.waitFor(() => expect(wrapper.emitted('login')).toBeTruthy())
@@ -99,7 +98,7 @@ describe('LoginView', () => {
   it('shows an error for a malformed connection code', async () => {
     const wrapper = mount(LoginView)
     await wrapper.find('[data-test="code"]').setValue('not-a-code!!')
-    await wrapper.find('[data-test="login-id"]').setValue('watanabe')
+    await wrapper.find('[data-test="email"]').setValue('watanabe@example.invalid')
     await wrapper.find('[data-test="password"]').setValue('admin-pass')
     await wrapper.find('[data-test="submit"]').trigger('submit')
     await vi.waitFor(() =>
@@ -113,11 +112,11 @@ describe('LoginView', () => {
     routeFetchTo(storage)
     const wrapper = mount(LoginView)
     await wrapper.find('[data-test="code"]').setValue(code)
-    await wrapper.find('[data-test="login-id"]').setValue('watanabe')
+    await wrapper.find('[data-test="email"]').setValue('watanabe@example.invalid')
     await wrapper.find('[data-test="password"]').setValue('wrong')
     await wrapper.find('[data-test="submit"]').trigger('submit')
     await vi.waitFor(() =>
-      expect(wrapper.find('[data-test="error"]').text()).toContain('ログインID'),
+      expect(wrapper.find('[data-test="error"]').text()).toContain('メールアドレス'),
     )
     expect(wrapper.emitted('login')).toBeFalsy()
   })
@@ -129,7 +128,7 @@ describe('LoginView', () => {
     routeFetchTo(storage)
     const wrapper = mount(LoginView)
     await wrapper.find('[data-test="code"]').setValue(code)
-    await wrapper.find('[data-test="login-id"]').setValue('watanabe')
+    await wrapper.find('[data-test="email"]').setValue('watanabe@example.invalid')
     await wrapper.find('[data-test="password"]').setValue('admin-pass')
     await wrapper.find('[data-test="submit"]').trigger('submit')
     await vi.waitFor(() => expect(wrapper.emitted('login')).toBeTruthy())
@@ -147,7 +146,7 @@ describe('LoginView', () => {
         adminPublicKey: 'k',
       }),
     )
-    await wrapper.find('[data-test="login-id"]').setValue('watanabe')
+    await wrapper.find('[data-test="email"]').setValue('watanabe@example.invalid')
     await wrapper.find('[data-test="password"]').setValue('admin-pass')
     await wrapper.find('[data-test="submit"]').trigger('submit')
     await vi.waitFor(() =>

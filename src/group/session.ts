@@ -14,7 +14,7 @@ import { decodeManifest } from './manifest'
 export class LoginError extends Error {}
 
 /** アカウント不存在とパスワード誤りを区別させないための共通メッセージ。 */
-const CREDENTIALS_MESSAGE = 'ログインIDまたはパスワードが正しくありません'
+const CREDENTIALS_MESSAGE = 'メールアドレスまたはパスワードが正しくありません'
 
 export interface Session {
   groupId: string
@@ -32,13 +32,14 @@ export interface Session {
 
 export interface LoginOptions {
   code: ConnectionCode
-  loginId: string
+  /** ログインの識別子。メールアドレス。 */
+  email: string
   password: string
   storage: StorageProvider
 }
 
 async function loadKeystore(options: LoginOptions): Promise<KeystoreContents> {
-  const path = await keystorePath(options.code.groupId, options.loginId)
+  const path = await keystorePath(options.code.groupId, options.email)
   let bytes: Bytes
   try {
     bytes = await options.storage.get(path)

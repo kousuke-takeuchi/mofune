@@ -28,7 +28,7 @@ const emit = defineEmits<{ open: [groupId: string]; add: [] }>()
           <div class="avatar" aria-hidden="true">{{ group.groupName.slice(0, 1) }}</div>
           <div class="titles">
             <h2>{{ group.groupName }}</h2>
-            <p class="hint">{{ group.loginId }}</p>
+            <p class="hint">{{ group.email }}</p>
           </div>
           <p v-if="group.groupId === currentGroupId" class="badge">いま開いています</p>
         </div>

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import type { StoredGroup } from '../db/groups'
 import { forgetGroup, listGroups } from '../db/groups'
 
-/** 端末に記録済みのグループ。接続コードとログインIDだけで、秘密は含まない。 */
+/** 端末に記録済みのグループ。接続コードとメールアドレスだけで、秘密は含まない。 */
 export const useGroupsStore = defineStore('groups', {
   state: () => ({ groups: [] as StoredGroup[] }),
   getters: {

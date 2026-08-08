@@ -24,7 +24,6 @@ const options: ProvisionOptions = {
   ],
   members: [
     {
-      loginId: 'watanabe',
       displayName: '渡辺 けい',
       role: 'admin',
       scopes: [],
@@ -32,7 +31,6 @@ const options: ProvisionOptions = {
       email: 'watanabe@example.invalid',
     },
     {
-      loginId: 'tanaka',
       displayName: '田中 みか',
       role: 'staff',
       scopes: ['sg_a'],
@@ -40,7 +38,6 @@ const options: ProvisionOptions = {
       email: 'tanaka@example.invalid',
     },
     {
-      loginId: 'sato',
       displayName: '佐藤 さくら',
       role: 'member',
       scopes: ['sg_a'],
@@ -48,7 +45,6 @@ const options: ProvisionOptions = {
       email: 'sato@example.invalid',
     },
     {
-      loginId: 'mori',
       displayName: '森 ゆい',
       role: 'member',
       scopes: ['sg_a_pickup'],
@@ -73,7 +69,7 @@ describe('provisionGroup', () => {
     expect(result.objects.has(rosterPath('midori'))).toBe(true)
     expect(result.objects.has(keyringPath('midori', 1))).toBe(true)
     for (const member of options.members) {
-      expect(result.objects.has(await keystorePath('midori', member.loginId))).toBe(true)
+      expect(result.objects.has(await keystorePath('midori', member.email))).toBe(true)
     }
   })
 
@@ -103,7 +99,7 @@ describe('provisionGroup', () => {
     const result = await provisionGroup(options)
     const keystore = await unlockKeystore(
       parseKeystoreFile(
-        result.objects.get(await keystorePath('midori', 'sato')) as Bytes,
+        result.objects.get(await keystorePath('midori', 'sato@example.invalid')) as Bytes,
       ),
       'member-pass',
       result.code.pepper,
@@ -119,7 +115,7 @@ describe('provisionGroup', () => {
     const result = await provisionGroup(options)
     const keystore = await unlockKeystore(
       parseKeystoreFile(
-        result.objects.get(await keystorePath('midori', 'mori')) as Bytes,
+        result.objects.get(await keystorePath('midori', 'mori@example.invalid')) as Bytes,
       ),
       'member-pass',
       result.code.pepper,
@@ -135,7 +131,7 @@ describe('provisionGroup', () => {
     const result = await provisionGroup(options)
     const keystore = await unlockKeystore(
       parseKeystoreFile(
-        result.objects.get(await keystorePath('midori', 'sato')) as Bytes,
+        result.objects.get(await keystorePath('midori', 'sato@example.invalid')) as Bytes,
       ),
       'member-pass',
       result.code.pepper,
@@ -148,12 +144,12 @@ describe('provisionGroup', () => {
   })
 
   it('rejects a member assigned to an unknown subgroup', async () => {
-    const member = options.members.find((m) => m.loginId === 'sato') as NewMember
+    const member = options.members.find((m) => m.email === 'sato@example.invalid') as NewMember
     await expect(
       provisionGroup({
         ...options,
         members: options.members.map((m) =>
-          m.loginId === member.loginId ? { ...m, scopes: ['sg_zzz'] } : m,
+          m.email === member.email ? { ...m, scopes: ['sg_zzz'] } : m,
         ),
       }),
     ).rejects.toThrow(/sg_zzz/)
@@ -168,7 +164,7 @@ describe('provisionGroup', () => {
 
     const staff = await unlockKeystore(
       parseKeystoreFile(
-        result.objects.get(await keystorePath('midori', 'tanaka')) as Bytes,
+        result.objects.get(await keystorePath('midori', 'tanaka@example.invalid')) as Bytes,
       ),
       'staff-pass',
       result.code.pepper,
@@ -184,7 +180,7 @@ describe('provisionGroup', () => {
 
     const member = await unlockKeystore(
       parseKeystoreFile(
-        result.objects.get(await keystorePath('midori', 'sato')) as Bytes,
+        result.objects.get(await keystorePath('midori', 'sato@example.invalid')) as Bytes,
       ),
       'member-pass',
       result.code.pepper,

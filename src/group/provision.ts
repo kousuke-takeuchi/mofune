@@ -13,6 +13,7 @@ import { generateAesKey, randomBytes } from '../crypto/symmetric'
 import type { StorageProvider } from '../storage/provider'
 import { keyringPath, keystorePath, manifestPath, rosterPath } from '../storage/paths'
 import type { ConnectionCode, ProviderKind } from './connection-code'
+import { normalizeEmail } from './email-id'
 import { CONNECTION_CODE_VERSION } from './connection-code'
 import type { Manifest } from './manifest'
 import { MANIFEST_VERSION, encodeManifest } from './manifest'
@@ -23,12 +24,12 @@ export const STAFF_SECTION_KEY_ID = keyId(STAFF_SCOPE, INITIAL_GENERATION)
 export class ProvisionError extends Error {}
 
 export interface NewMember {
-  loginId: string
   displayName: string
   role: Role
   /** 末端のサブグループ id のみ。all・祖先・staff は resolveScopes が付ける。 */
   scopes: string[]
   password: string
+  /** ログインの識別子でもある。 */
   email: string
 }
 
@@ -55,9 +56,9 @@ export async function provisionGroup(options: ProvisionOptions): Promise<Provisi
       `a group needs exactly one admin, got ${admins.length}`,
     )
   }
-  const loginIds = options.members.map((member) => member.loginId.trim().toLowerCase())
-  if (new Set(loginIds).size !== loginIds.length) {
-    throw new ProvisionError('member list contains duplicate login ids')
+  const emails = options.members.map((member) => normalizeEmail(member.email))
+  if (new Set(emails).size !== emails.length) {
+    throw new ProvisionError('member list contains duplicate email addresses')
   }
 
   const kdf = options.kdf ?? PRODUCTION_KDF
@@ -88,7 +89,7 @@ export async function provisionGroup(options: ProvisionOptions): Promise<Provisi
       kdf,
     )
     objects.set(
-      await keystorePath(options.groupId, entry.member.loginId),
+      await keystorePath(options.groupId, entry.member.email),
       serializeKeystoreFile(keystore),
     )
   }

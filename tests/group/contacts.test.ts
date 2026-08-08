@@ -111,7 +111,6 @@ describe('sealContacts / readContacts', () => {
       subgroups: [],
       members: [
         {
-          loginId: 'watanabe',
           displayName: '渡辺 けい',
           role: 'admin',
           scopes: [],
@@ -122,7 +121,7 @@ describe('sealContacts / readContacts', () => {
     })
     const file = parseRosterFile(result.objects.get(rosterPath('midori')) as never)
     const keystore = await unlockKeystore(
-      parseKeystoreFile(result.objects.get(await keystorePath('midori', 'watanabe')) as never),
+      parseKeystoreFile(result.objects.get(await keystorePath('midori', 'watanabe@example.invalid')) as never),
       'admin-pass',
       result.code.pepper,
     )

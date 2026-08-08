@@ -21,7 +21,7 @@ function session(role: 'admin' | 'member' = 'member'): Session {
 
 function mountView(overrides: Record<string, unknown> = {}) {
   return mount(SettingsView, {
-    props: { session: session(), loginId: 'sakura.2026', lastSyncedAt: null, ...overrides },
+    props: { session: session(), email: 'sakura.2026@example.invalid', lastSyncedAt: null, ...overrides },
   })
 }
 

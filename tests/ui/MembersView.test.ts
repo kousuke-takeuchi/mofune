@@ -57,7 +57,7 @@ describe('MembersView', () => {
 
   it('asks for everything the new member needs', async () => {
     const wrapper = mountView()
-    for (const field of ['new-display-name', 'new-login-id', 'new-password', 'new-email']) {
+    for (const field of ['new-display-name', 'new-password', 'new-email']) {
       expect(wrapper.find(`[data-test="${field}"]`).exists()).toBe(true)
     }
   })
@@ -65,7 +65,6 @@ describe('MembersView', () => {
   it('hands the filled in member over', async () => {
     const wrapper = mountView()
     await wrapper.find('[data-test="new-display-name"]').setValue('鈴木 ひなた')
-    await wrapper.find('[data-test="new-login-id"]').setValue('suzuki')
     await wrapper.find('[data-test="new-password"]').setValue('hinata-pass')
     await wrapper.find('[data-test="new-email"]').setValue('suzuki@example.com')
     await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
@@ -73,7 +72,6 @@ describe('MembersView', () => {
 
     expect(wrapper.emitted('add')?.[0]?.[0]).toMatchObject({
       displayName: '鈴木 ひなた',
-      loginId: 'suzuki',
       password: 'hinata-pass',
       email: 'suzuki@example.com',
       role: 'member',
@@ -97,12 +95,12 @@ describe('MembersView', () => {
     await wrapper.findAll('[data-test="reissue"]')[1]?.trigger('click')
     expect(wrapper.emitted('reissue')).toBeFalsy()
 
-    await wrapper.find('[data-test="reissue-login-id"]').setValue('sato')
+    await wrapper.find('[data-test="reissue-email"]').setValue('sato@example.invalid')
     await wrapper.find('[data-test="reissue-password"]').setValue('new-one')
     await wrapper.find('[data-test="reissue-confirm"]').trigger('click')
     expect(wrapper.emitted('reissue')?.[0]?.[0]).toMatchObject({
       userId: 'u_sato',
-      loginId: 'sato',
+      email: 'sato@example.invalid',
       password: 'new-one',
     })
   })

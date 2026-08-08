@@ -13,7 +13,7 @@ const groups = useGroupsStore()
 
 const groupId = ref('')
 const groupName = ref('')
-const loginId = ref('')
+const email = ref('')
 const loaded = ref(false)
 const busy = ref(false)
 const error = ref('')
@@ -33,7 +33,7 @@ onMounted(async () => {
   }
   groupId.value = stored.groupId
   groupName.value = stored.groupName
-  loginId.value = stored.loginId
+  email.value = stored.email
   // 記録を読み終えるまで出さない。空の状態で押せると、どのグループを
   // 解錠するのか決まらないまま操作できてしまう。
   loaded.value = true
@@ -63,7 +63,7 @@ async function forget(): Promise<void> {
   <UnlockView
     v-if="loaded"
     :group-name="groupName"
-    :login-id="loginId"
+    :email="email"
     :busy="busy"
     :error="error"
     @unlock="unlock"

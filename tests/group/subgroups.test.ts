@@ -41,19 +41,18 @@ async function fixture(): Promise<{
     subgroups: [],
     members: [
       {
-        loginId: 'watanabe',
         displayName: '渡辺 けい',
         role: 'admin',
         scopes: [],
         password: 'admin-pass',
-        email: '',
+        email: 'watanabe@example.invalid',
       },
     ],
   })
   const storage = new MemoryStorageProvider()
   await writeObjects(storage, result.objects)
   const code = decodeConnectionCode(encodeConnectionCode(result.code))
-  const admin = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+  const admin = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
   await writeStorageSettings({
     storage,
     groupId: 'midori',
@@ -97,7 +96,7 @@ describe('createSubgroup', () => {
       name: 'Aチーム',
       parent: null,
     })
-    const again = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+    const again = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
     const child = await createSubgroup({
       storage,
       session: again,
@@ -143,7 +142,7 @@ describe('setMemberScopes', () => {
       name: 'Aチーム',
       parent: null,
     })
-    let session = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+    let session = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
     const { userId } = await addMember({
       storage,
       session,
@@ -151,19 +150,18 @@ describe('setMemberScopes', () => {
       settings,
       kdf: TEST_KDF,
       member: {
-        loginId: 'sato',
         displayName: '佐藤 さくら',
         role: 'member',
         scopes: [],
         password: 'member-pass',
-        email: '',
+        email: 'sato@example.invalid',
       },
     })
 
-    session = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+    session = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
     await setMemberScopes({ storage, session, code, settings, userId, scopes: [team.id] })
 
-    const sato = await login({ code, loginId: 'sato', password: 'member-pass', storage })
+    const sato = await login({ code, email: 'sato@example.invalid', password: 'member-pass', storage })
     expect(sato.groupKeys.has(keyId(team.id, INITIAL_GENERATION))).toBe(true)
   })
 
@@ -176,7 +174,7 @@ describe('setMemberScopes', () => {
       name: 'Aチーム',
       parent: null,
     })
-    let session = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+    let session = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
     const { userId } = await addMember({
       storage,
       session,
@@ -184,15 +182,14 @@ describe('setMemberScopes', () => {
       settings,
       kdf: TEST_KDF,
       member: {
-        loginId: 'sato',
         displayName: '佐藤 さくら',
         role: 'member',
         scopes: [],
         password: 'member-pass',
-        email: '',
+        email: 'person3@example.invalid',
       },
     })
-    session = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+    session = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
     await setMemberScopes({ storage, session, code, settings, userId, scopes: [team.id] })
 
     const roster = await currentRoster(storage, code)

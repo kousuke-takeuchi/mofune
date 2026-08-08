@@ -22,7 +22,6 @@ async function provisioned() {
     subgroups: [],
     members: [
       {
-        loginId: 'watanabe',
         displayName: '渡辺 けい',
         role: 'admin',
         scopes: [],
@@ -30,7 +29,6 @@ async function provisioned() {
         email: 'watanabe@example.invalid',
       },
       {
-        loginId: 'tanaka',
         displayName: '田中 みか',
         role: 'staff',
         scopes: [],
@@ -38,21 +36,20 @@ async function provisioned() {
         email: 'tanaka@example.invalid',
       },
       {
-        loginId: 'sato',
         displayName: '佐藤 さくら',
         role: 'member',
         scopes: [],
         password: 'member-pass',
-        email: '',
+        email: 'person1@example.invalid',
       },
     ],
   })
   const storage = new MemoryStorageProvider()
   for (const [path, body] of result.objects) await storage.put(path, body)
 
-  const open = async (loginId: string, password: string) => {
+  const open = async (email: string, password: string) => {
     const keystore = await unlockKeystore(
-      parseKeystoreFile(result.objects.get(await keystorePath('midori', loginId)) as Bytes),
+      parseKeystoreFile(result.objects.get(await keystorePath('midori', email)) as Bytes),
       password,
       result.code.pepper,
     )
@@ -61,8 +58,8 @@ async function provisioned() {
     return { keystore, keys }
   }
 
-  const admin = await open('watanabe', 'admin-pass')
-  const staff = await open('tanaka', 'staff-pass')
+  const admin = await open('watanabe@example.invalid', 'admin-pass')
+  const staff = await open('tanaka@example.invalid', 'staff-pass')
   const satoUserId = (
     await verifyRoster(
       (await import('../../src/crypto/roster')).parseRosterFile(

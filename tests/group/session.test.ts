@@ -22,7 +22,6 @@ beforeAll(async () => {
     subgroups: [{ id: 'sg_a', name: 'Aチーム', parent: null }],
     members: [
       {
-        loginId: 'watanabe',
         displayName: '渡辺 けい',
         role: 'admin',
         scopes: [],
@@ -30,7 +29,6 @@ beforeAll(async () => {
         email: 'watanabe@example.invalid',
       },
       {
-        loginId: 'sato',
         displayName: '佐藤 さくら',
         role: 'member',
         scopes: ['sg_a'],
@@ -47,7 +45,7 @@ describe('login', () => {
   it('logs a member in and returns their scoped group keys', async () => {
     const session = await login({
       code: provisioned.code,
-      loginId: 'sato',
+      email: 'sato@example.invalid',
       password: 'member-pass',
       storage,
     })
@@ -58,10 +56,10 @@ describe('login', () => {
     expect(await exportAesKey(session.groupKeys.get('all:v1') as CryptoKey)).toHaveLength(32)
   })
 
-  it('accepts a login id with different case and surrounding spaces', async () => {
+  it('accepts an address typed with different case and surrounding spaces', async () => {
     const session = await login({
       code: provisioned.code,
-      loginId: '  SATO ',
+      email: '  SATO@Example.invalid  ',
       password: 'member-pass',
       storage,
     })
@@ -71,7 +69,7 @@ describe('login', () => {
   it('gives the admin the staff key as well', async () => {
     const session = await login({
       code: provisioned.code,
-      loginId: 'watanabe',
+      email: 'watanabe@example.invalid',
       password: 'admin-pass',
       storage,
     })
@@ -81,20 +79,20 @@ describe('login', () => {
 
   it('rejects a wrong password', async () => {
     await expect(
-      login({ code: provisioned.code, loginId: 'sato', password: 'wrong', storage }),
+      login({ code: provisioned.code, email: 'sato@example.invalid', password: 'wrong', storage }),
     ).rejects.toThrow(LoginError)
   })
 
   it('reports an unknown login id with the same message as a wrong password', async () => {
     const unknown = (await login({
       code: provisioned.code,
-      loginId: 'nobody',
+      email: 'nobody@example.invalid',
       password: 'member-pass',
       storage,
     }).catch((error: unknown) => error)) as Error
     const wrongPassword = (await login({
       code: provisioned.code,
-      loginId: 'sato',
+      email: 'sato@example.invalid',
       password: 'wrong',
       storage,
     }).catch((error: unknown) => error)) as Error
@@ -111,7 +109,6 @@ describe('login', () => {
       subgroups: [],
       members: [
         {
-          loginId: 'watanabe',
           displayName: '偽管理者',
           role: 'admin',
           scopes: [],
@@ -127,7 +124,7 @@ describe('login', () => {
       foreign.objects.get(rosterPath('midori')) as Bytes,
     )
     await expect(
-      login({ code: provisioned.code, loginId: 'sato', password: 'member-pass', storage: tampered }),
+      login({ code: provisioned.code, email: 'sato@example.invalid', password: 'member-pass', storage: tampered }),
     ).rejects.toThrow(LoginError)
   })
 
@@ -151,7 +148,7 @@ describe('login', () => {
     await expect(
       login({
         code: provisioned.code,
-        loginId: 'sato',
+        email: 'sato@example.invalid',
         password: 'member-pass',
         storage: mismatched,
       }),
@@ -161,7 +158,7 @@ describe('login', () => {
   it('does not expose the password anywhere on the session', async () => {
     const session = await login({
       code: provisioned.code,
-      loginId: 'sato',
+      email: 'sato@example.invalid',
       password: 'member-pass',
       storage,
     })

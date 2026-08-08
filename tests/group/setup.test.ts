@@ -45,7 +45,7 @@ function options(storage: StorageProvider, extra: Partial<SetupOptions> = {}): S
   return {
     groupId: 'midori',
     groupName: 'みどり台グループ',
-    adminLoginId: 'watanabe',
+    
     adminDisplayName: '渡辺 けい',
     adminPassword: 'admin-pass',
     adminEmail: 'watanabe@example.invalid',
@@ -106,7 +106,7 @@ describe('setUpGroup', () => {
     const result = await setUpGroup(options(storage))
     const session = await login({
       code: decodeConnectionCode(result.connectionCode),
-      loginId: 'watanabe',
+      email: 'watanabe@example.invalid',
       password: 'admin-pass',
       storage,
     })
@@ -119,7 +119,7 @@ describe('setUpGroup', () => {
     const result = await setUpGroup(options(storage))
     const session = await login({
       code: decodeConnectionCode(result.connectionCode),
-      loginId: 'watanabe',
+      email: 'watanabe@example.invalid',
       password: 'admin-pass',
       storage,
     })
@@ -136,7 +136,7 @@ describe('setUpGroup', () => {
     const result = await setUpGroup(options(storage))
     const session = await login({
       code: decodeConnectionCode(result.connectionCode),
-      loginId: 'watanabe',
+      email: 'watanabe@example.invalid',
       password: 'admin-pass',
       storage,
     })
@@ -159,12 +159,11 @@ describe('setUpGroup', () => {
       options(storage, {
         members: [
           {
-            loginId: 'sato',
             displayName: '佐藤 さくら',
             role: 'member',
             scopes: [],
             password: 'member-pass',
-            email: '',
+            email: 'sato@example.invalid',
           },
         ],
       }),
@@ -233,19 +232,18 @@ describe('setUpGroup', () => {
       options(storage, {
         members: [
           {
-            loginId: 'sato',
             displayName: '佐藤 さくら',
             role: 'member',
             scopes: [],
             password: 'member-pass',
-            email: '',
+            email: 'sato@example.invalid',
           },
         ],
       }),
     )
     const session = await login({
       code: decodeConnectionCode(result.connectionCode),
-      loginId: 'sato',
+      email: 'sato@example.invalid',
       password: 'member-pass',
       storage,
     })

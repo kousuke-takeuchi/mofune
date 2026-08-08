@@ -36,7 +36,6 @@ export class SetupError extends Error {
 export interface SetupOptions {
   groupId: string
   groupName: string
-  adminLoginId: string
   adminDisplayName: string
   adminPassword: string
   adminEmail: string
@@ -81,7 +80,6 @@ export async function setUpGroup(options: SetupOptions): Promise<SetupResult> {
   }
 
   const admin: NewMember = {
-    loginId: options.adminLoginId,
     displayName: options.adminDisplayName,
     role: 'admin',
     scopes: [],
@@ -103,7 +101,7 @@ export async function setUpGroup(options: SetupOptions): Promise<SetupResult> {
   // 管理者のキーストアを解いて staff スコープ鍵とルート鍵を取り出す
   const keystore = await unlockKeystore(
     parseKeystoreFile(
-      take(provisioned.objects, await keystorePath(options.groupId, options.adminLoginId)),
+      take(provisioned.objects, await keystorePath(options.groupId, options.adminEmail)),
     ),
     options.adminPassword,
     provisioned.code.pepper,

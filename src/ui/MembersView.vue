@@ -10,8 +10,8 @@ const props = defineProps<{
   notice: string
 }>()
 const emit = defineEmits<{
-  add: [member: { displayName: string; loginId: string; role: Role; scopes: string[]; password: string; email: string }]
-  reissue: [target: { userId: string; loginId: string; password: string }]
+  add: [member: { displayName: string; role: Role; scopes: string[]; password: string; email: string }]
+  reissue: [target: { userId: string; email: string; password: string }]
   createSubgroup: [subgroup: { name: string; parent: string | null }]
   move: [target: { userId: string; scopes: string[] }]
   close: []
@@ -24,7 +24,6 @@ const ROLE_LABELS: Record<Role, string> = {
 }
 
 const displayName = ref('')
-const loginId = ref('')
 const role = ref<Role>('member')
 const password = ref('')
 const email = ref('')
@@ -36,7 +35,7 @@ const moving = ref<RosterMember | null>(null)
 const movingScopes = ref<Record<string, boolean>>({})
 const subgroupName = ref('')
 const subgroupParent = ref<string>('')
-const reissueLoginId = ref('')
+const reissueEmail = ref('')
 const reissuePassword = ref('')
 
 const subgroupNames = computed(() =>
@@ -53,13 +52,12 @@ function placesOf(member: RosterMember): string {
 
 function add(): void {
   formError.value = ''
-  if (!displayName.value.trim() || !loginId.value.trim() || !password.value) {
-    formError.value = '表示名・ログインID・初期パスワードを入れてください'
+  if (!displayName.value.trim() || !email.value.trim() || !password.value) {
+    formError.value = '表示名・メールアドレス・初期パスワードを入れてください'
     return
   }
   emit('add', {
     displayName: displayName.value.trim(),
-    loginId: loginId.value.trim(),
     role: role.value,
     scopes: Object.entries(selected.value)
       .filter(([, on]) => on)
@@ -68,7 +66,6 @@ function add(): void {
     email: email.value.trim(),
   })
   displayName.value = ''
-  loginId.value = ''
   password.value = ''
   email.value = ''
   selected.value = {}
@@ -104,15 +101,15 @@ function confirmMove(): void {
 
 function startReissue(member: RosterMember): void {
   reissuing.value = member
-  reissueLoginId.value = ''
+  reissueEmail.value = ''
   reissuePassword.value = ''
 }
 
 function confirmReissue(): void {
-  if (!reissuing.value || !reissueLoginId.value.trim() || !reissuePassword.value) return
+  if (!reissuing.value || !reissueEmail.value.trim() || !reissuePassword.value) return
   emit('reissue', {
     userId: reissuing.value.userId,
-    loginId: reissueLoginId.value.trim(),
+    email: reissueEmail.value.trim(),
     password: reissuePassword.value,
   })
   reissuing.value = null
@@ -221,8 +218,8 @@ function confirmReissue(): void {
         残っている未送信の連絡は送れなくなります。忘れたときだけ使ってください。
       </p>
       <label>
-        その人のログインID
-        <input data-test="reissue-login-id" v-model="reissueLoginId" />
+        その人のメールアドレス
+        <input type="email" data-test="reissue-email" v-model="reissueEmail" />
       </label>
       <label>
         新しい初期パスワード
@@ -254,10 +251,6 @@ function confirmReissue(): void {
       <input data-test="new-display-name" v-model="displayName" />
     </label>
     <label>
-      ログインID
-      <input data-test="new-login-id" v-model="loginId" />
-    </label>
-    <label>
       役割
       <select data-test="new-role" v-model="role">
         <option value="member">参加者</option>
@@ -269,7 +262,7 @@ function confirmReissue(): void {
       <input data-test="new-password" v-model="password" />
     </label>
     <label>
-      メールアドレス
+      メールアドレス(ログインに使います)
       <input type="email" data-test="new-email" v-model="email" />
     </label>
 

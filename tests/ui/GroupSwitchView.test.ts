@@ -9,14 +9,14 @@ const groups: StoredGroup[] = [
     groupId: 'midori',
     groupName: 'みどり台グループ',
     code: 'x',
-    loginId: 'sakura.2026',
+    email: 'sakura.2026@example.invalid',
     lastLoginAt: 2,
   },
   {
     groupId: 'doyou',
     groupName: '土曜クラブ',
     code: 'y',
-    loginId: 'tanaka',
+    email: 'tanaka@example.invalid',
     lastLoginAt: 1,
   },
 ]

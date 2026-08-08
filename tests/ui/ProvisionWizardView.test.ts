@@ -47,7 +47,6 @@ function mountWizard() {
 
 async function fillGroupStep(wrapper: VueWrapper) {
   await wrapper.find('[data-test="group-name"]').setValue('みどり台グループ')
-  await wrapper.find('[data-test="admin-login-id"]').setValue('watanabe')
   await wrapper.find('[data-test="admin-display-name"]').setValue('渡辺 けい')
   await wrapper.find('[data-test="admin-password"]').setValue('admin-pass-1234')
   await wrapper.find('[data-test="admin-email"]').setValue('watanabe@example.com')

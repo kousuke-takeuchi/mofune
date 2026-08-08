@@ -26,7 +26,6 @@ const error = ref('')
 const busy = ref(false)
 
 const groupName = ref('')
-const adminLoginId = ref('')
 const adminDisplayName = ref('')
 const adminPassword = ref('')
 const adminEmail = ref('')
@@ -50,7 +49,6 @@ const joinUrl = computed(() =>
 function toStorageStep(): void {
   const missing =
     !groupName.value.trim() ||
-    !adminLoginId.value.trim() ||
     !adminDisplayName.value.trim() ||
     !adminPassword.value ||
     !adminEmail.value.trim()
@@ -97,7 +95,6 @@ async function provision(): Promise<void> {
     const setup = await setUpGroup({
       groupId,
       groupName: groupName.value.trim(),
-      adminLoginId: adminLoginId.value.trim(),
       adminDisplayName: adminDisplayName.value.trim(),
       adminPassword: adminPassword.value,
       adminEmail: adminEmail.value.trim(),
@@ -152,10 +149,6 @@ function back(): void {
         <input data-test="group-name" v-model="groupName" />
       </label>
       <label>
-        管理者のログインID
-        <input data-test="admin-login-id" v-model="adminLoginId" />
-      </label>
-      <label>
         管理者の表示名
         <input data-test="admin-display-name" v-model="adminDisplayName" />
       </label>
@@ -164,7 +157,7 @@ function back(): void {
         <input type="password" data-test="admin-password" v-model="adminPassword" />
       </label>
       <label>
-        管理者のメールアドレス
+        管理者のメールアドレス(ログインに使います)
         <input type="email" data-test="admin-email" v-model="adminEmail" />
       </label>
 

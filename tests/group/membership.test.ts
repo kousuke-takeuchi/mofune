@@ -43,7 +43,6 @@ async function fixture(): Promise<Fixture> {
     subgroups: [{ id: 'sg_a', name: 'Aチーム', parent: null }],
     members: [
       {
-        loginId: 'watanabe',
         displayName: '渡辺 けい',
         role: 'admin',
         scopes: [],
@@ -55,7 +54,7 @@ async function fixture(): Promise<Fixture> {
   const storage = new MemoryStorageProvider()
   await writeObjects(storage, result.objects)
   const code = decodeConnectionCode(encodeConnectionCode(result.code))
-  const admin = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+  const admin = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
   const staffKey = admin.groupKeys.get(keyId(STAFF_SCOPE, INITIAL_GENERATION)) as CryptoKey
   await writeStorageSettings({
     storage,
@@ -69,7 +68,6 @@ async function fixture(): Promise<Fixture> {
 
 function newcomer() {
   return {
-    loginId: 'sato',
     displayName: '佐藤 さくら',
     role: 'member' as const,
     scopes: ['sg_a'],
@@ -87,7 +85,7 @@ describe('addMember', () => {
     const { storage, code, admin } = await fixture()
     await addMember({ storage, session: admin, code, settings, member: newcomer(), kdf: TEST_KDF })
 
-    const session = await login({ code, loginId: 'sato', password: 'member-pass', storage })
+    const session = await login({ code, email: 'sato@example.invalid', password: 'member-pass', storage })
     expect(session.displayName).toBe('佐藤 さくら')
     expect(session.role).toBe('member')
   })
@@ -96,7 +94,7 @@ describe('addMember', () => {
     const { storage, code, admin } = await fixture()
     await addMember({ storage, session: admin, code, settings, member: newcomer(), kdf: TEST_KDF })
 
-    const session = await login({ code, loginId: 'sato', password: 'member-pass', storage })
+    const session = await login({ code, email: 'sato@example.invalid', password: 'member-pass', storage })
     expect([...session.groupKeys.keys()].sort()).toEqual(['all:v1', 'sg_a:v1'])
   })
 
@@ -104,7 +102,7 @@ describe('addMember', () => {
     const { storage, code, admin } = await fixture()
     await addMember({ storage, session: admin, code, settings, member: newcomer(), kdf: TEST_KDF })
 
-    const session = await login({ code, loginId: 'sato', password: 'member-pass', storage })
+    const session = await login({ code, email: 'sato@example.invalid', password: 'member-pass', storage })
     expect(session.groupKeys.has('staff:v1')).toBe(false)
   })
 
@@ -112,7 +110,7 @@ describe('addMember', () => {
     const { storage, code, admin } = await fixture()
     await addMember({ storage, session: admin, code, settings, member: newcomer(), kdf: TEST_KDF })
 
-    const again = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+    const again = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
     expect(again.groupKeys.has('staff:v1')).toBe(true)
     expect(again.roster.members).toHaveLength(2)
   })
@@ -128,7 +126,7 @@ describe('addMember', () => {
       kdf: TEST_KDF,
     })
 
-    const again = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+    const again = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
     const file = await loadRosterFile({ storage, groupId: 'midori' })
     const contacts = await readContacts({
       file,
@@ -167,7 +165,7 @@ describe('addMember', () => {
         session: admin,
         code,
         settings,
-        member: { ...newcomer(), loginId: 'watanabe' },
+        member: { ...newcomer(), email: 'watanabe@example.invalid' },
         kdf: TEST_KDF,
       }),
     ).rejects.toThrow(MembershipError)
@@ -194,19 +192,19 @@ describe('reissuePassword', () => {
       kdf: TEST_KDF,
     })
 
-    const again = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+    const again = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
     await reissuePassword({
       storage,
       session: again,
       code,
       settings,
       userId,
-      loginId: 'sato',
+      email: 'sato@example.invalid',
       password: 'brand-new-pass',
       kdf: TEST_KDF,
     })
 
-    const session = await login({ code, loginId: 'sato', password: 'brand-new-pass', storage })
+    const session = await login({ code, email: 'sato@example.invalid', password: 'brand-new-pass', storage })
     expect(session.userId).toBe(userId)
     expect([...session.groupKeys.keys()].sort()).toEqual(['all:v1', 'sg_a:v1'])
   })
@@ -221,20 +219,20 @@ describe('reissuePassword', () => {
       member: newcomer(),
       kdf: TEST_KDF,
     })
-    const again = await login({ code, loginId: 'watanabe', password: 'admin-pass', storage })
+    const again = await login({ code, email: 'watanabe@example.invalid', password: 'admin-pass', storage })
     await reissuePassword({
       storage,
       session: again,
       code,
       settings,
       userId,
-      loginId: 'sato',
+      email: 'sato@example.invalid',
       password: 'brand-new-pass',
       kdf: TEST_KDF,
     })
 
     await expect(
-      login({ code, loginId: 'sato', password: 'member-pass', storage }),
+      login({ code, email: 'sato@example.invalid', password: 'member-pass', storage }),
     ).rejects.toThrow()
   })
 })
