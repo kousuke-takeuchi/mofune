@@ -267,12 +267,12 @@ describe('the header and the cards, as the design draws them', () => {
     const db = openGroupDatabase('midori')
     await db.syncState.put({ key: 'lastSyncedAt', value: '2026-08-07T09:12:00.000Z' })
     const wrapper = await mountTimeline()
-    expect(wrapper.get('[data-test="sync-chip"]').text()).toContain('同期済み')
+    expect(wrapper.get('[data-test="sync"]').text()).toContain('同期済み')
   })
 
   it('says it has never synced when it has not', async () => {
     const wrapper = await mountTimeline()
-    expect(wrapper.get('[data-test="sync-chip"]').text()).toContain('未同期')
+    expect(wrapper.get('[data-test="sync"]').text()).toContain('未同期')
   })
 
   it('marks a post that wants an answer, and offers the button in the card', async () => {

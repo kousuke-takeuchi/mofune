@@ -54,7 +54,6 @@ async function restore(): Promise<void> {
     done.value = { groupName: result.groupName, email: result.email }
     paper.value = ''
     password.value = ''
-    emit('restored', code.value, result.email)
   } catch (caught) {
     error.value =
       caught instanceof ConnectionCodeError
@@ -78,10 +77,22 @@ async function restore(): Promise<void> {
       </template>
     </AppBar>
 
-    <p v-if="done" data-test="done">
-      {{ done.groupName }} に入り直せるようになりました。
-      {{ done.email }} と新しいパスワードでログインしてください。
-    </p>
+    <template v-if="done">
+      <p data-test="done">
+        {{ done.groupName }} に入り直せるようになりました。
+        {{ done.email }} と新しいパスワードでログインしてください。
+      </p>
+      <div class="sticky-actions">
+        <button
+          type="button"
+          class="primary"
+          data-test="go-login"
+          @click="emit('restored', code, done.email)"
+        >
+          ログインへ進む
+        </button>
+      </div>
+    </template>
 
     <template v-else>
       <p>

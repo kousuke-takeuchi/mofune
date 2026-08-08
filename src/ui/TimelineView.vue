@@ -134,17 +134,15 @@ onMounted(reload)
         <p data-test="belongs-to">{{ belongsTo }}</p>
       </div>
       <p class="badge">未読 <span data-test="unread-count">{{ unreadCount }}</span></p>
+      <!-- 同期はチップを押すだけ。同じ操作のボタンを2つ置かない (原稿 03) -->
       <button
         type="button"
         class="chip sync-chip"
-        data-test="sync-chip"
+        data-test="sync"
         :disabled="syncing"
         @click="sync"
       >
-        {{ syncedLabel }}
-      </button>
-      <button type="button" class="quiet" data-test="sync" :disabled="syncing" @click="sync">
-        いま同期する
+        {{ syncing ? '同期しています…' : syncedLabel }}
       </button>
     </header>
 
