@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import LoginView from '../ui/LoginView.vue'
+import { connectionCodeFromQuery } from '../group/join-url'
 import { safeNext } from '../router'
 import type { Session } from '../group/session'
 import { useSessionStore } from '../stores/session'
@@ -8,6 +9,9 @@ import { useSessionStore } from '../stores/session'
 const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
+
+/** 紙の QR から開くと ?c=<接続コード> が付いてくる。 */
+const initialCode = connectionCodeFromQuery(route.query.c)
 
 /**
  * LoginView は自分でログインを済ませてセッションを渡してくる。
@@ -22,7 +26,7 @@ async function onLogin(next: Session, root: string, adminPublicKey: string): Pro
 
 <template>
   <div class="stack">
-    <LoginView @login="onLogin" />
+    <LoginView :initial-code="initialCode" @login="onLogin" />
     <button type="button" class="wide" data-test="provision" @click="router.push({ name: 'provision' })">
       グループを作る
     </button>

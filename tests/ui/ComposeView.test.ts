@@ -164,4 +164,39 @@ describe('ComposeView', () => {
     expect(wrapper.find('[data-test="not-allowed"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="submit"]').exists()).toBe(false)
   })
+
+  it('attaches a picked file and sends it with the post', async () => {
+    // 添付は閲覧側だけ実装されていて、投稿側に選ぶ手段が無かった
+    const storage = new MemoryStorageProvider()
+    const wrapper = await mountCompose(storage)
+    await wrapper.find('[data-test="body"]').setValue('写真です')
+    await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
+
+    const file = new File([new Uint8Array([1, 2, 3])], 'photo.png', { type: 'image/png' })
+    const input = wrapper.find('[data-test="attach"]').element as HTMLInputElement
+    Object.defineProperty(input, 'files', { value: [file], configurable: true })
+    await wrapper.find('[data-test="attach"]').trigger('change')
+
+    await vi.waitFor(() => {
+      if (wrapper.findAll('[data-test="attachment"]').length !== 1) throw new Error('not listed')
+    })
+    expect(wrapper.text()).toContain('photo.png')
+
+    await wrapper.find('[data-test="submit"]').trigger('click')
+    await until(() => wrapper.emitted('posted') !== undefined)
+    expect(await storage.list('midori/files/')).toHaveLength(1)
+  })
+
+  it('lets a picked file be taken off again before sending', async () => {
+    const wrapper = await mountCompose()
+    const file = new File([new Uint8Array([1])], 'wrong.pdf', { type: 'application/pdf' })
+    const input = wrapper.find('[data-test="attach"]').element as HTMLInputElement
+    Object.defineProperty(input, 'files', { value: [file], configurable: true })
+    await wrapper.find('[data-test="attach"]').trigger('change')
+    await vi.waitFor(() => {
+      if (wrapper.findAll('[data-test="attachment"]').length !== 1) throw new Error('not listed')
+    })
+    await wrapper.find('[data-test="remove-attachment"]').trigger('click')
+    expect(wrapper.findAll('[data-test="attachment"]')).toHaveLength(0)
+  })
 })
