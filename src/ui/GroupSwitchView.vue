@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import type { StoredGroup } from '../db/groups'
+import type { GroupOverview } from '../db/overview'
 
 defineProps<{
   groups: StoredGroup[]
   currentGroupId: string | null
-  /** グループIDごとの未読件数。端末のローカル計算。 */
-  unread: Record<string, number>
+  /**
+   * グループごとの「待っていること」。端末の控えだけで数えるので、
+   * 解錠していないグループのぶんも出せる (原稿 11)。
+   */
+  overview: Record<string, GroupOverview>
 }>()
 const emit = defineEmits<{ open: [groupId: string]; add: [] }>()
 </script>
@@ -35,8 +39,23 @@ const emit = defineEmits<{ open: [groupId: string]; add: [] }>()
             <h2>{{ group.groupName }}</h2>
             <p class="hint">{{ group.email }}</p>
           </div>
-          <p v-if="unread[group.groupId]" class="badge">未読 {{ unread[group.groupId] }}</p>
-          <p v-else-if="group.groupId === currentGroupId" class="badge">いま開いています</p>
+          <div class="chips">
+            <p v-if="overview[group.groupId]?.unread" class="badge">
+              未読 {{ overview[group.groupId]?.unread }}
+            </p>
+            <p v-if="overview[group.groupId]?.needsAnswer" class="badge">
+              要回答 {{ overview[group.groupId]?.needsAnswer }}
+            </p>
+            <p v-if="overview[group.groupId]?.unsentBatches" class="badge">
+              未送信 {{ overview[group.groupId]?.unsentBatches }}
+            </p>
+            <p
+              v-if="!overview[group.groupId]?.needsAttention && group.groupId === currentGroupId"
+              class="badge"
+            >
+              いま開いています
+            </p>
+          </div>
         </div>
       </li>
     </ul>

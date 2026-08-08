@@ -1002,3 +1002,11 @@ a.button-like {
   font-weight: 700;
   text-decoration: none;
 }
+
+/* グループごとの状態を並べる。数が無いものは出さない (原稿 11) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: flex-end;
+}
