@@ -74,7 +74,7 @@ export async function buildRecoveryKit(options: {
 
 export async function parseRecoveryKit(
   text: string,
-): Promise<{ groupId: string; userId: string; contents: KeystoreContents }> {
+): Promise<{ groupId: string; groupName: string; userId: string; contents: KeystoreContents }> {
   let decoded: Bytes
   try {
     decoded = fromBase32(text)
@@ -105,6 +105,7 @@ export async function parseRecoveryKit(
 
   return {
     groupId: payload.groupId,
+    groupName: payload.groupName,
     userId: payload.userId,
     contents: {
       userId: payload.userId,

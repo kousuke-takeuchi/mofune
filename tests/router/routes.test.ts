@@ -30,6 +30,7 @@ describe('routes', () => {
         '/groups',
         '/login',
         '/provision',
+    '/recover',
         '/unlock',
         '/:pathMatch(.*)*',
       ].sort(),
@@ -83,6 +84,13 @@ describe('routes', () => {
       .getRoutes()
       .filter((route) => route.meta.public)
       .map((route) => route.name)
-    expect(publicNames.sort()).toEqual(['groups', 'home', 'login', 'provision', 'unlock'])
+    expect(publicNames.sort()).toEqual([
+      'groups',
+      'home',
+      'login',
+      'provision',
+      'recover',
+      'unlock',
+    ])
   })
 })

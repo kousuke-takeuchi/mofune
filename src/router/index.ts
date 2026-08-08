@@ -34,6 +34,13 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true },
   },
   {
+    // 紙の復元コードから管理者のログインを作り直す。セッションは要らない。
+    path: '/recover',
+    name: 'recover',
+    component: () => import('../pages/RecoverPage.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/provision',
     name: 'provision',
     component: () => import('../pages/ProvisionPage.vue'),

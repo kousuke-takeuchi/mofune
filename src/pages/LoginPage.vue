@@ -30,5 +30,8 @@ async function onLogin(next: Session, root: string, adminPublicKey: string): Pro
     <button type="button" class="wide" data-test="provision" @click="router.push({ name: 'provision' })">
       グループを作る
     </button>
+    <button type="button" class="quiet" data-test="recover" @click="router.push({ name: 'recover' })">
+      管理者の方: 復元コードから入り直す
+    </button>
   </div>
 </template>
