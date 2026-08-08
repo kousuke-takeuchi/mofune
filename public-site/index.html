@@ -18,7 +18,96 @@
       content="お知らせ・写真・出欠確認・不在の連絡を、グループが用意した保管場所に暗号化して置く連絡アプリ。中央サーバーを持ちません。"
     />
     <meta property="og:url" content="https://mofune.site/" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:image" content="https://mofune.site/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Mofune — みんなへの連絡を、やさしく、安全に。" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Mofune — グループのなかの連絡を、やわらかく、安全に。" />
+    <meta
+      name="twitter:description"
+      content="お知らせ・写真・出欠確認・不在の連絡を、グループが用意した保管場所に暗号化して置く連絡アプリ。中央サーバーを持ちません。"
+    />
+    <meta name="twitter:image" content="https://mofune.site/og.png" />
+    <meta name="theme-color" content="#EFE8DC" />
+    <link rel="apple-touch-icon" href="/app/icon-192.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://mofune.site/#website",
+            "url": "https://mofune.site/",
+            "name": "Mofune",
+            "inLanguage": "ja",
+            "description": "グループのなかの連絡を、やわらかく、安全に。"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "Mofune",
+            "url": "https://mofune.site/",
+            "applicationCategory": "CommunicationApplication",
+            "operatingSystem": "Web (iOS / Android / PC のブラウザ)",
+            "inLanguage": "ja",
+            "description": "お知らせ・写真・出欠確認・不在の連絡を、グループが用意した保管場所に暗号化して置く連絡アプリ。中央サーバーもデータベースも持ちません。",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "JPY",
+              "description": "Mofune の利用料は無料です。データの保管場所はグループが用意し、その料金は選んだサービスの規約によります。"
+            }
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://mofune.site/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "本当に費用はかかりませんか?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Mofune の利用に会員登録も月額料金もかかりません。ただしデータの保管場所はグループが用意します。その料金や登録条件は選んだサービスの規約によりますので、契約前にご確認ください。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "長いコードを手で打つ必要はありますか?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "ありません。参加者ひとりずつに QR を配ります。読み取るだけでログインでき、端末のカメラアプリでも、アプリの「QRコードを読み取る」でも読めます。この QR は読めば入れてしまうので、本人に手渡し、あとで本人がパスワードを変えてください。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "パスワードを忘れたときは?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "安全のため自動リセットはありません。グループの管理者が再発行します。再発行では鍵を作り直すため、それまでに届いていたお知らせは読めなくなります。管理者自身は、開設時に印刷した復元コードで入り直せます。参加者は「メニュー → パスワードを変える」で、鍵を保ったまま自分で変えられます。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "スマホを買い替えても使えますか?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "使えます。データは端末ではなくグループの保管場所にあるので、新しい端末で配られた QR を読み取れば同じ内容が読めます。未読の印だけは端末ごとの管理なので、買い替えでリセットされます。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "どこにデータを置けますか?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "S3互換のストレージ (Cloudflare R2 / Backblaze B2 / MinIO など)、Google Drive (Apps Script 経由)、WebDAV や NAS が使えます。Dropbox・Box・OneDrive は、共有リンクがファイルごとに別の URL になるため使えません。"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
     <link rel="stylesheet" href="/assets/site.css" />
   </head>
   <body>
@@ -348,22 +437,28 @@
               </p>
             </details>
             <details>
+              <summary>長いコードを手で打つ必要はありますか?</summary>
+              <p class="answer">
+                ありません。参加者ひとりずつに QR を配ります。読み取るだけでログインでき、端末のカメラアプリでも、アプリの「QRコードを読み取る」でも読めます。この QR は読めば入れてしまうので、本人に手渡し、あとで本人がパスワードを変えてください。
+              </p>
+            </details>
+            <details>
               <summary>パスワードを忘れたときは?</summary>
               <p class="answer">
-                安全のため自動リセットはありません。グループの管理者が新しいパスワードを再発行します。どの端末からでも同じIDで入り直せます。
+                安全のため自動リセットはありません。グループの管理者が再発行します。再発行では鍵を作り直すため、それまでに届いていたお知らせは読めなくなります。管理者自身は、開設時に印刷した復元コードで入り直せます。参加者は「メニュー → パスワードを変える」で、鍵を保ったまま自分で変えられます。
               </p>
             </details>
             <details>
               <summary>スマホを買い替えても使えますか?</summary>
               <p class="answer">
-                使えます。データは端末ではなくグループの保管場所にあるので、新しい端末で接続コードとID・パスワードを入れ直せば同じ内容が読めます。未読の印だけは端末ごとの管理なので、買い替えでリセットされます。
+                使えます。データは端末ではなくグループの保管場所にあるので、新しい端末で配られた QR を読み取れば同じ内容が読めます。未読の印だけは端末ごとの管理なので、買い替えでリセットされます。
               </p>
             </details>
             <details>
               <summary>どこにデータを置けますか?</summary>
               <p class="answer">
-                S3互換のストレージ (Cloudflare R2 / Backblaze B2 / MinIO など)、WebDAV や NAS、
-                Google Drive、Dropbox を想定しています。参加者からの連絡 (欠席・フォーム回答) には各自の投函先を作れる仕組みが要るため、S3互換か WebDAV を選んでください。いまアプリから接続できるのは S3互換です。
+                S3互換のストレージ (Cloudflare R2 / Backblaze B2 / MinIO など)、Google Drive
+                (Apps Script 経由)、WebDAV や NAS が使えます。Dropbox・Box・OneDrive は、共有リンクがファイルごとに別の URL になるため使えません。
               </p>
             </details>
           </div>
