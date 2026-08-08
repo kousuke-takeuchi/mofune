@@ -76,8 +76,21 @@ async function fixture() {
 
 let mounted: VueWrapper[] = []
 
+/**
+ * 投函先は presigned URL で、送信はプロバイダを通らず素の PUT で出る。
+ * stub しないと実際に名前解決へ行き、走らせるたび結果が変わる。
+ */
+function acceptUploads(): void {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 200 })))
+}
+
 beforeEach(async () => {
+  acceptUploads()
   await deleteGroupDatabase('midori')
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
 })
 
 afterEach(() => {

@@ -9,6 +9,8 @@ declare module 'vue-router' {
     public?: boolean
     /** 参加者には開かせない */
     staffOnly?: boolean
+    /** 管理者だけ。名簿の再署名を伴う操作 */
+    adminOnly?: boolean
   }
 }
 
@@ -74,6 +76,12 @@ const routes: RouteRecordRaw[] = [
   },
   { path: '/g/:groupId/setup', name: 'setup', component: () => import('../pages/SetupPage.vue') },
   {
+    path: '/g/:groupId/members',
+    name: 'members',
+    component: () => import('../pages/MembersPage.vue'),
+    meta: { adminOnly: true },
+  },
+  {
     path: '/g/:groupId/settings',
     name: 'settings',
     component: () => import('../pages/SettingsPage.vue'),
@@ -127,6 +135,11 @@ export function installGuards(router: Router): void {
     }
 
     if (to.meta.staffOnly && session.role === 'member') {
+      return { name: 'timeline', params: { groupId } }
+    }
+
+    // 名簿を再署名できるのは管理者だけ。ほかの人が開いても何もできない。
+    if (to.meta.adminOnly && session.role !== 'admin') {
       return { name: 'timeline', params: { groupId } }
     }
 

@@ -22,6 +22,7 @@ describe('routes', () => {
         '/g/:groupId/messages/:messageId',
         '/g/:groupId/messages/:messageId/notify',
         '/g/:groupId/panel',
+        '/g/:groupId/members',
         '/g/:groupId/settings',
         '/g/:groupId/setup',
         '/groups',
@@ -52,6 +53,7 @@ describe('routes', () => {
       'panel',
       'setup',
       'settings',
+      'members',
       'groups',
     ]) {
       expect(names).toContain(name)

@@ -82,6 +82,8 @@ async function storageWithGrant(member: { publicKey: Uint8Array }) {
 let mounted: VueWrapper[] = []
 
 beforeEach(async () => {
+  // 既定では投函を受け付ける。失敗を見たいテストだけ個別に上書きする。
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 200 })))
   await deleteGroupDatabase('midori')
 })
 
