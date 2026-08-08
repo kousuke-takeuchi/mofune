@@ -21,6 +21,8 @@ export interface Env {
 
 export interface PushSubscriptionRecord {
   endpoint: string
+  /** 誰の購読か。送れた人を投稿側がメールから外すために返す。 */
+  userId?: string
   keys?: { p256dh: string; auth: string }
 }
 
@@ -132,6 +134,7 @@ export async function handle(request: Request, env: Env): Promise<Response> {
 
     let sent = 0
     const gone: string[] = []
+    const notified: string[] = []
     for (const target of targets) {
       const headers = await buildVapidHeaders({
         endpoint: target.endpoint,
@@ -144,6 +147,7 @@ export async function handle(request: Request, env: Env): Promise<Response> {
         gone.push(target.endpoint)
       } else if (response.ok) {
         sent += 1
+        if (typeof target.userId === 'string') notified.push(target.userId)
       }
     }
 
@@ -152,7 +156,7 @@ export async function handle(request: Request, env: Env): Promise<Response> {
       await env.MOFUNE.put(registryKey(payload.group_id), JSON.stringify(registry))
     }
 
-    return json({ sent, gone: gone.length })
+    return json({ sent, gone: gone.length, notified })
   }
 
   return json({ error: 'not found' }, 404)

@@ -12,6 +12,9 @@ import { buildMailBatches } from '../notify/mailto'
 import type { MailBatch } from '../notify/mailto'
 import { markBatchSent, recordBatches } from '../notify/delivery-log'
 import { resolveAudience } from '../notify/recipients'
+import { checkFunction, notifyScopes } from '../notify/push'
+import { decodeManifest } from '../group/manifest'
+import { manifestPath } from '../storage/paths'
 import type { StorageProvider } from '../storage/provider'
 
 const props = defineProps<{
@@ -22,6 +25,8 @@ const props = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const batches = ref<MailBatch[]>([])
+/** push の結果。関数を置いていないグループでは null のまま。 */
+const pushResult = ref<{ sent: number; ok: boolean } | null>(null)
 const missingEmail = ref<string[]>([])
 const sent = ref<Record<number, boolean>>({})
 const error = ref('')
@@ -45,6 +50,9 @@ onMounted(async () => {
     ])
     const contacts = await readContacts({ file, staffKey })
 
+    // 関数を置いているなら先に起こす。届いた人はメールから外す (設計書 §9.1)
+    const notified = await wakeSubscribers(message?.scopes ?? [], settings.notifications.functionToken)
+
     const audience = resolveAudience({
       roster: props.session.roster,
       contacts,
@@ -55,7 +63,7 @@ onMounted(async () => {
     missingEmail.value = audience.missingEmail
 
     batches.value = buildMailBatches({
-      recipients: audience.reachable,
+      recipients: audience.reachable.filter((person) => !notified.includes(person.userId)),
       template: settings.mailTemplate,
       groupName: props.session.groupName,
       kind: 'お知らせ',
@@ -69,6 +77,37 @@ onMounted(async () => {
     loaded.value = true
   }
 })
+
+/**
+ * 通知用の関数へ「起こして」と頼む。落ちていても投稿は済んでいるので、
+ * 例外にせずメールへ落とす。
+ */
+async function wakeSubscribers(scopes: string[], token: string): Promise<string[]> {
+  let functionUrl: string | null = null
+  try {
+    functionUrl = decodeManifest(
+      await props.storage.get(manifestPath(props.session.groupId)),
+    ).functionUrl
+  } catch {
+    functionUrl = null
+  }
+  if (!functionUrl || token === '') return []
+
+  const health = await checkFunction(functionUrl)
+  if (!health.ok) {
+    pushResult.value = { sent: 0, ok: false }
+    return []
+  }
+
+  const result = await notifyScopes({
+    functionUrl,
+    token,
+    groupId: props.session.groupId,
+    scopes,
+  })
+  pushResult.value = { sent: result.sent, ok: true }
+  return result.notified
+}
 
 async function markSent(batch: MailBatch): Promise<void> {
   sent.value = { ...sent.value, [batch.index]: true }
@@ -90,6 +129,14 @@ async function markSent(batch: MailBatch): Promise<void> {
       <strong>自動では確認できません</strong>ので、送り終えたら「送った」を押してください。
     </p>
     <p>宛先は BCC に入っています。参加者どうしにアドレスは見えません。</p>
+
+    <p v-if="pushResult" data-test="push-result">
+      {{
+        pushResult.ok
+          ? `通知を ${pushResult.sent} 件送りました。届いた方はメールの相手から外しています。`
+          : '通知の関数につながらなかったため、push は届きません。メールで知らせてください。'
+      }}
+    </p>
 
     <p v-if="error" data-test="error">{{ error }}</p>
 

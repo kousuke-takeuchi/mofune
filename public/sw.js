@@ -77,3 +77,31 @@ self.addEventListener('fetch', (event) => {
     }),
   )
 })
+
+/*
+ * push で起こされたら、汎用の通知を出すだけ。中身は載せない。
+ * 判断は src/sw/push-notification.ts と同じものがここにもある。片方だけ直さないこと。
+ */
+self.addEventListener('push', (event) => {
+  event.waitUntil(
+    self.registration.showNotification('Mofune', {
+      body: '新しい連絡があります',
+      tag: 'mofune-new',
+      renotify: true,
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const appUrl = new URL('./', self.location.href).href
+  event.waitUntil(
+    self.clients.list({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((client) => client.url.startsWith(appUrl))
+      if (open) return open.focus()
+      return self.clients.openWindow(appUrl)
+    }),
+  )
+})

@@ -71,6 +71,8 @@ describe('pushRegistryFrom', () => {
       subscription.endpoint,
       'https://push.invalid/mori',
     ])
+    // 誰の購読かを持たせる。送れた人をメールから外すため
+    expect(registry.all.map((item) => item.userId)).toEqual(['u_sato', 'u_mori'])
     expect(registry.sg_a.map((item) => item.endpoint)).toEqual([subscription.endpoint])
   })
 
@@ -135,7 +137,7 @@ describe('checkFunction', () => {
 
 describe('notifyScopes', () => {
   it('asks the function to wake each scope once', async () => {
-    const calls = vi.fn(async () => Response.json({ sent: 2, gone: 0 }))
+    const calls = vi.fn(async () => Response.json({ sent: 2, gone: 0, notified: ['u_sato'] }))
     vi.stubGlobal('fetch', calls)
 
     const result = await notifyScopes({
@@ -145,7 +147,8 @@ describe('notifyScopes', () => {
       scopes: ['all', 'sg_a'],
     })
 
-    expect(result).toEqual({ sent: 4, failed: 0 })
+    // 同じ人が2つのスコープに居ても、メールから外すのは1回
+    expect(result).toEqual({ sent: 4, failed: 0, notified: ['u_sato'] })
     expect(calls).toHaveBeenCalledTimes(2)
     const [url, init] = calls.mock.calls[0] as unknown as [string, RequestInit]
     expect(url).toBe('https://push.invalid/notify')
@@ -165,6 +168,6 @@ describe('notifyScopes', () => {
         groupId: 'g_midori',
         scopes: ['all'],
       }),
-    ).toEqual({ sent: 0, failed: 1 })
+    ).toEqual({ sent: 0, failed: 1, notified: [] })
   })
 })

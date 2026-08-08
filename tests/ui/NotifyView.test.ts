@@ -12,12 +12,15 @@ import type { ContactBook } from '../../src/group/contacts'
 import { signRoster, serializeRosterFile } from '../../src/crypto/roster'
 import { generateEcdsaKeyPair } from '../../src/crypto/asymmetric'
 import { generateAesKey } from '../../src/crypto/symmetric'
-import { rosterPath } from '../../src/storage/paths'
+import { rosterPath, manifestPath } from '../../src/storage/paths'
+import { encodeManifest } from '../../src/group/manifest'
 import { MemoryStorageProvider } from '../../src/storage/memory'
 import type { Session } from '../../src/group/session'
 import type { RosterContents } from '../../src/crypto/roster'
 
-async function fixture(options: { withAddresses?: boolean } = {}) {
+async function fixture(
+  options: { withAddresses?: boolean; functionUrl?: string; functionToken?: string } = {},
+) {
   const staffKey = await generateAesKey()
   const admin = await generateEcdsaKeyPair()
   const roster: RosterContents = {
@@ -60,10 +63,28 @@ async function fixture(options: { withAddresses?: boolean } = {}) {
   await writeGroupSettings({
     storage,
     groupId: 'midori',
-    settings: DEFAULT_GROUP_SETTINGS,
+    settings: {
+      ...DEFAULT_GROUP_SETTINGS,
+      notifications: {
+        ...DEFAULT_GROUP_SETTINGS.notifications,
+        functionToken: options.functionToken ?? '',
+      },
+    },
     staffKey,
     generation: 1,
   })
+  await storage.put(
+    manifestPath('midori'),
+    encodeManifest({
+      v: 1,
+      groupId: 'midori',
+      groupName: 'みどり台グループ',
+      keyringGeneration: 1,
+      rosterGeneration: 1,
+      functionUrl: options.functionUrl ?? null,
+      notificationChannels: ['mailto'],
+    }),
+  )
 
   const session: Session = {
     groupId: 'midori',
@@ -102,7 +123,9 @@ afterEach(() => {
   mounted = []
 })
 
-async function mountNotify(options: { withAddresses?: boolean } = {}) {
+async function mountNotify(
+  options: { withAddresses?: boolean; functionUrl?: string; functionToken?: string } = {},
+) {
   const { session, storage } = await fixture(options)
   const wrapper = mount(NotifyView, { props: { session, storage, messageId: 'm_1' } })
   mounted.push(wrapper)
@@ -172,5 +195,61 @@ describe('NotifyView', () => {
     const wrapper = await mountNotify()
     await wrapper.find('[data-test="close"]').trigger('click')
     expect(wrapper.emitted('close')).toBeTruthy()
+  })
+})
+
+describe('when the group has a notification function', () => {
+  function acceptPush(notified: string[]) {
+    const calls = vi.fn(async (url: string) =>
+      String(url).endsWith('/health')
+        ? Response.json({ ok: true, vapidPublicKey: 'BPUB' })
+        : Response.json({ sent: notified.length, gone: 0, notified }),
+    )
+    vi.stubGlobal('fetch', calls)
+    return calls
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('wakes the subscribers and says how many were reached', async () => {
+    acceptPush(['u_sato'])
+    const wrapper = await mountNotify({
+      functionUrl: 'https://push.invalid',
+      functionToken: 'secret',
+    })
+    await vi.waitFor(() => {
+      if (!wrapper.find('[data-test="push-result"]').exists()) throw new Error('no result yet')
+    }, { timeout: 2000, interval: 10 })
+    expect(wrapper.get('[data-test="push-result"]').text()).toContain('1')
+  })
+
+  it('leaves out of the mail whoever the push reached', async () => {
+    acceptPush(['u_sato'])
+    const wrapper = await mountNotify({
+      functionUrl: 'https://push.invalid',
+      functionToken: 'secret',
+    })
+    await vi.waitFor(() => {
+      if (!wrapper.find('[data-test="push-result"]').exists()) throw new Error('no result yet')
+    }, { timeout: 2000, interval: 10 })
+    // 佐藤さんは push で届いたので、メールの相手は誰も残らない
+    expect(wrapper.find('[data-test="nobody"]').exists()).toBe(true)
+  })
+
+  it('falls back to mail when the function does not answer', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('failed to fetch')
+      }),
+    )
+    const wrapper = await mountNotify({
+      functionUrl: 'https://push.invalid',
+      functionToken: 'secret',
+    })
+    expect(wrapper.findAll('[data-test="batch-link"]')).toHaveLength(1)
+    expect(wrapper.get('[data-test="push-result"]').text()).toContain('届きません')
   })
 })

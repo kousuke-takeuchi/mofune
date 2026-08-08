@@ -11,13 +11,20 @@ const props = defineProps<{
   busy: boolean
   error: string
   notice: string
+  /** manifest に入っている通知用の関数の URL。置いていなければ空。 */
+  functionUrl?: string
 }>()
-const emit = defineEmits<{ save: [settings: GroupSettings]; close: [] }>()
+const emit = defineEmits<{
+  save: [settings: GroupSettings, functionUrl: string]
+  close: []
+}>()
 
 const reasons = ref<string[]>([...props.settings.absenceReasons])
 const newReason = ref('')
 const subject = ref(props.settings.mailTemplate.subject)
 const body = ref(props.settings.mailTemplate.body)
+const functionUrl = ref(props.functionUrl ?? '')
+const functionToken = ref(props.settings.notifications.functionToken)
 const muted = ref<Record<string, boolean>>(
   Object.fromEntries(props.settings.notifications.mutedScopes.map((scope) => [scope, true])),
 )
@@ -43,15 +50,22 @@ function removeReason(index: number): void {
 }
 
 function save(): void {
-  emit('save', {
-    ...props.settings,
-    absenceReasons: [...reasons.value],
-    mailTemplate: { subject: subject.value, body: body.value },
-    notifications: {
-      ...props.settings.notifications,
-      mutedScopes: mutable.value.filter((entry) => muted.value[entry.id]).map((entry) => entry.id),
+  emit(
+    'save',
+    {
+      ...props.settings,
+      absenceReasons: [...reasons.value],
+      mailTemplate: { subject: subject.value, body: body.value },
+      notifications: {
+        ...props.settings.notifications,
+        mutedScopes: mutable.value
+          .filter((entry) => muted.value[entry.id])
+          .map((entry) => entry.id),
+        functionToken: functionToken.value.trim(),
+      },
     },
-  })
+    functionUrl.value.trim(),
+  )
 }
 </script>
 
@@ -101,6 +115,20 @@ function save(): void {
     <label>
       本文
       <textarea data-test="mail-body" v-model="body"></textarea>
+    </label>
+
+    <h2>通知の関数 (任意)</h2>
+    <p class="hint">
+      置くと、お知らせを出したときに参加者の端末へ通知が届きます。置かなくても
+      すべての機能が動きます。合言葉は担当者と管理者だけが読めます。
+    </p>
+    <label>
+      関数の URL
+      <input data-test="function-url" v-model="functionUrl" placeholder="https://..." />
+    </label>
+    <label>
+      合言葉
+      <input data-test="function-token" v-model="functionToken" />
     </label>
 
     <h2>通知を止める</h2>

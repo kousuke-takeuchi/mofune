@@ -49,6 +49,7 @@ function authorized(path: string, body: unknown, token = 'token-midori'): Reques
 
 const subscription = {
   endpoint: 'https://fcm.googleapis.com/fcm/send/abc123',
+  userId: 'u_sato',
   keys: { p256dh: 'p', auth: 'a' },
 }
 
@@ -120,7 +121,7 @@ describe('POST /notify', () => {
     const response = await handle(authorized('/notify', { group_id: 'g_midori', scope_id: 'all' }), env)
 
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ sent: 1, gone: 0 })
+    expect(await response.json()).toEqual({ sent: 1, gone: 0, notified: ['u_sato'] })
     expect(sent).toHaveBeenCalledTimes(1)
     const [url, init] = sent.mock.calls[0] as unknown as [string, RequestInit]
     expect(url).toBe(subscription.endpoint)
@@ -135,7 +136,7 @@ describe('POST /notify', () => {
 
     const response = await handle(authorized('/notify', { group_id: 'g_midori', scope_id: 'all' }), env)
 
-    expect(await response.json()).toEqual({ sent: 0, gone: 1 })
+    expect(await response.json()).toEqual({ sent: 0, gone: 1, notified: [] })
     // 消えた購読は名簿から外す。次から無駄に叩かない
     expect(JSON.parse(store.data.get('registry:g_midori') as string).all).toEqual([])
     vi.unstubAllGlobals()
@@ -148,7 +149,7 @@ describe('POST /notify', () => {
       authorized('/notify', { group_id: 'g_midori', scope_id: 'sg_none' }),
       env,
     )
-    expect(await response.json()).toEqual({ sent: 0, gone: 0 })
+    expect(await response.json()).toEqual({ sent: 0, gone: 0, notified: [] })
     expect(sent).not.toHaveBeenCalled()
     vi.unstubAllGlobals()
   })

@@ -2,11 +2,15 @@
 import { computed, ref } from 'vue'
 import type { Role } from '../crypto/roster'
 import type { Session } from '../group/session'
+import type { StorageProvider } from '../storage/provider'
+import PushToggle from './PushToggle.vue'
 
 const props = defineProps<{
   session: Session
   email: string
   lastSyncedAt: string | null
+  /** 通知の窓口を確かめるために読む。渡さない画面では通知の欄を出さない。 */
+  storage?: StorageProvider
 }>()
 const emit = defineEmits<{ signOut: []; forgetDevice: []; registerEmail: [] }>()
 
@@ -47,6 +51,7 @@ const syncedLabel = computed(() => {
     <button type="button" data-test="register-email" @click="emit('registerEmail')">
       メールアドレスを登録し直す
     </button>
+    <PushToggle v-if="storage" :session="session" :storage="storage" />
 
     <h2>データ</h2>
     <p data-test="last-synced">{{ syncedLabel }}</p>

@@ -7,8 +7,12 @@ import type { Session } from '../group/session'
 import AppBar from './AppBar.vue'
 import type { StorageSettings } from '../group/storage-credentials'
 import { readStorageSettings } from '../group/storage-credentials'
+import { readGroupSettings } from '../group/group-settings'
 import { updateContacts } from '../group/roster-update'
 import { applyInbox } from '../inbox/apply'
+import { decodeManifest } from '../group/manifest'
+import { manifestPath } from '../storage/paths'
+import { pushRegistryFrom, replaceRegistry } from '../notify/push'
 import { publishGrants } from '../inbox/grants'
 import type { StorageProvider } from '../storage/provider'
 
@@ -26,6 +30,9 @@ const error = ref('')
 const grantsIssued = ref<number | null>(null)
 const appliedAbsences = ref<number | null>(null)
 const needsAdmin = ref(false)
+const notificationToken = ref('')
+const pushHandedOver = ref<number | null>(null)
+const pushProblem = ref('')
 
 onMounted(async () => {
   try {
@@ -37,6 +44,19 @@ onMounted(async () => {
   } catch {
     // 参加者向けの読み取り専用プロバイダでは資格情報を読めない
     settings.value = null
+  }
+  try {
+    const staffKey = props.session.groupKeys.get(keyId(STAFF_SCOPE, 1))
+    if (staffKey) {
+      const group = await readGroupSettings({
+        storage: props.storage,
+        groupId: props.session.groupId,
+        staffKey,
+      })
+      notificationToken.value = group.notifications.functionToken
+    }
+  } catch {
+    notificationToken.value = ''
   } finally {
     loaded.value = true
   }
@@ -61,6 +81,43 @@ async function publish(): Promise<void> {
   }
 }
 
+/**
+ * 集めた購読を関数へ渡す。関数を置いていないグループでは何もしない。
+ * 名簿はまるごと差し替えるので、渡すのは「いま手元にある全部」でなければならない。
+ */
+async function handOverSubscriptions(
+  registrations: Awaited<ReturnType<typeof applyInbox>>['pendingPushRegistrations'],
+): Promise<boolean> {
+  pushProblem.value = ''
+  let functionUrl: string | null = null
+  try {
+    functionUrl = decodeManifest(
+      await props.storage.get(manifestPath(props.session.groupId)),
+    ).functionUrl
+  } catch {
+    functionUrl = null
+  }
+  if (!functionUrl || notificationToken.value === '') {
+    pushProblem.value =
+      '通知の関数が設定されていないため、届いた購読はそのまま残しました。グループの設定で関数を登録してください。'
+    return false
+  }
+
+  try {
+    await replaceRegistry({
+      functionUrl,
+      token: notificationToken.value,
+      groupId: props.session.groupId,
+      registry: pushRegistryFrom(registrations),
+    })
+  } catch {
+    pushProblem.value = '通知の関数へ購読を渡せませんでした。購読はそのまま残しています。'
+    return false
+  }
+  pushHandedOver.value = registrations.length
+  return true
+}
+
 async function process(): Promise<void> {
   error.value = ''
   needsAdmin.value = false
@@ -68,6 +125,12 @@ async function process(): Promise<void> {
   try {
     const result = await applyInbox({ storage: props.storage, session: props.session })
     appliedAbsences.value = result.absences
+
+    // 購読は関数へ渡してから消す。渡す前に消すと二度と戻せない
+    if (result.pendingPushRegistrations.length > 0) {
+      const handed = await handOverSubscriptions(result.pendingPushRegistrations)
+      if (handed) await result.discardPush()
+    }
 
     if (result.pendingContactUpdates.length === 0) return
 
@@ -108,6 +171,11 @@ async function process(): Promise<void> {
     </p>
 
     <div v-else data-test="ready">
+      <p v-if="pushHandedOver !== null" data-test="push-handed-over">
+        通知の購読を {{ pushHandedOver }} 件、関数へ渡しました。
+      </p>
+      <p v-if="pushProblem" data-test="push-problem">{{ pushProblem }}</p>
+
       <button type="button" data-test="publish-grants" :disabled="busy" @click="publish">
         投函枠を配る
       </button>

@@ -51,6 +51,7 @@ function go(place: NavPlace): void {
       :session="session.session"
       :email="email"
       :last-synced-at="lastSyncedAt"
+      :storage="session.storage ?? undefined"
       @sign-out="signOut"
       @forget-device="forgetDevice"
       @register-email="router.push({ name: 'setup', params: { groupId: session.groupId } })"

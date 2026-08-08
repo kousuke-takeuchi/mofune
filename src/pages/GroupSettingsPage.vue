@@ -6,12 +6,15 @@ import { keyId } from '../crypto/keyring'
 import { STAFF_SCOPE } from '../crypto/roster'
 import type { GroupSettings } from '../group/group-settings'
 import { readGroupSettings, writeGroupSettings } from '../group/group-settings'
+import { decodeManifest, setFunctionUrl } from '../group/manifest'
+import { manifestPath } from '../storage/paths'
 import { useSessionStore } from '../stores/session'
 
 const router = useRouter()
 const session = useSessionStore()
 
 const settings = ref<GroupSettings | null>(null)
+const functionUrl = ref('')
 const busy = ref(false)
 const error = ref('')
 const notice = ref('')
@@ -31,12 +34,14 @@ onMounted(async () => {
       groupId: session.groupId,
       staffKey: key,
     })
+    functionUrl.value =
+      decodeManifest(await session.storage.get(manifestPath(session.groupId))).functionUrl ?? ''
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : '設定を読めませんでした'
   }
 })
 
-async function save(next: GroupSettings): Promise<void> {
+async function save(next: GroupSettings, nextFunctionUrl: string): Promise<void> {
   const key = staffKey()
   if (!session.writer || !session.groupId || !key) return
   error.value = ''
@@ -50,6 +55,15 @@ async function save(next: GroupSettings): Promise<void> {
       staffKey: key,
       generation: session.session?.generation ?? 1,
     })
+    // manifest は平文。参加者もログイン前に読むので、URL だけはこちらへ書く
+    if (nextFunctionUrl !== functionUrl.value) {
+      await setFunctionUrl({
+        storage: session.writer,
+        groupId: session.groupId,
+        functionUrl: nextFunctionUrl,
+      })
+      functionUrl.value = nextFunctionUrl
+    }
     settings.value = next
     notice.value = '保存しました。'
   } catch (cause) {
@@ -68,6 +82,7 @@ async function save(next: GroupSettings): Promise<void> {
     :busy="busy"
     :error="error"
     :notice="notice"
+    :function-url="functionUrl"
     @save="save"
     @close="router.push({ name: 'settings', params: { groupId: session.groupId } })"
   />

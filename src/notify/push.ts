@@ -9,6 +9,8 @@ export const PUSH_REGISTRATION_VERSION = 1
 /** 参加者の端末が作る購読。中身は push サービスの宛先だけ。 */
 export interface PushSubscriptionRecord {
   endpoint: string
+  /** 誰の購読か。関数はこれをそのまま返し、投稿側がメールから外す。 */
+  userId?: string
   keys?: { p256dh: string; auth: string }
 }
 
@@ -83,7 +85,10 @@ export function pushRegistryFrom(registrations: PushRegistration[]): PushRegistr
   const registry: PushRegistry = {}
   for (const registration of newest.values()) {
     for (const scope of registration.scopes) {
-      registry[scope] = [...(registry[scope] ?? []), registration.subscription]
+      registry[scope] = [
+        ...(registry[scope] ?? []),
+        { ...registration.subscription, userId: registration.userId },
+      ]
     }
   }
   return registry
@@ -141,9 +146,10 @@ export async function notifyScopes(options: {
   token: string
   groupId: string
   scopes: string[]
-}): Promise<{ sent: number; failed: number }> {
+}): Promise<{ sent: number; failed: number; notified: string[] }> {
   let sent = 0
   let failed = 0
+  const notified = new Set<string>()
   for (const scope of options.scopes) {
     try {
       const response = await fetch(endpointOf(options.functionUrl, '/notify'), {
@@ -155,11 +161,12 @@ export async function notifyScopes(options: {
         failed += 1
         continue
       }
-      const body = (await response.json()) as { sent?: number }
+      const body = (await response.json()) as { sent?: number; notified?: string[] }
       sent += typeof body.sent === 'number' ? body.sent : 0
+      for (const userId of body.notified ?? []) notified.add(userId)
     } catch {
       failed += 1
     }
   }
-  return { sent, failed }
+  return { sent, failed, notified: [...notified] }
 }
