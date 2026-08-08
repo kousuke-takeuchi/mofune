@@ -9,6 +9,7 @@ import { openGroupDatabase } from '../db/group-db'
 import type { Session } from '../group/session'
 import type { StorageProvider } from '../storage/provider'
 import { syncGroup } from '../sync/sync'
+import { isClosed } from '../content/forms'
 
 const props = defineProps<{ session: Session; storage: StorageProvider }>()
 const emit = defineEmits<{ open: [messageId: string] }>()
@@ -64,11 +65,25 @@ function hiddenCount(message: CachedMessage): number {
   return Math.max(0, message.attachments.length - THUMB_LIMIT)
 }
 
-/** 表示している絞り込み。「要回答」はフォームを作れるようになってから。 */
-const tab = ref<'all' | 'unread'>('all')
-const shown = computed(() =>
-  tab.value === 'unread' ? messages.value.filter(isUnread) : messages.value,
-)
+/** 締切を過ぎた問いは答えられないので、要回答には出さない。 */
+function needsAnswer(message: CachedMessage): boolean {
+  return message.form !== undefined && !isClosed(message.form)
+}
+
+const answerCount = computed(() => messages.value.filter(needsAnswer).length)
+
+const tab = ref<'all' | 'unread' | 'answer'>('all')
+const shown = computed(() => {
+  if (tab.value === 'unread') return messages.value.filter(isUnread)
+  if (tab.value === 'answer') return messages.value.filter(needsAnswer)
+  return messages.value
+})
+
+const emptyText = computed(() => {
+  if (tab.value === 'unread') return '未読のお知らせはありません。'
+  if (tab.value === 'answer') return '要回答のお知らせはありません。'
+  return 'まだお知らせはありません。'
+})
 
 async function reload(): Promise<void> {
   try {
@@ -153,13 +168,19 @@ onMounted(reload)
       >
         未読 {{ unreadCount }}
       </button>
+      <button
+        type="button"
+        data-test="tab-answer"
+        :aria-pressed="tab === 'answer'"
+        @click="tab = 'answer'"
+      >
+        要回答 {{ answerCount }}
+      </button>
     </div>
 
     <p v-if="syncError" data-test="sync-error">{{ syncError }}</p>
 
-    <p v-if="shown.length === 0" data-test="empty">
-      {{ tab === 'unread' ? '未読のお知らせはありません。' : 'まだお知らせはありません。' }}
-    </p>
+    <p v-if="shown.length === 0" data-test="empty">{{ emptyText }}</p>
 
     <ul v-else>
       <li

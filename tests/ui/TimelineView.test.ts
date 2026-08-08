@@ -295,3 +295,50 @@ describe('the header and the cards, as the design draws them', () => {
     expect(wrapper.find('[data-test="needs-answer"]').exists()).toBe(false)
   })
 })
+
+describe('the 要回答 tab', () => {
+  it('keeps only the posts that ask for an answer', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.bulkPut([
+      older,
+      {
+        ...newer,
+        form: {
+          id: 'fm_1',
+          kind: 'attendance',
+          question: '来ますか',
+          choices: ['行く', '行かない'],
+          allowNote: false,
+          dueAt: null,
+          recipient: { userId: 'u_tanaka', ecdhPublic: 'AAAA' },
+        },
+      } as CachedMessage,
+    ])
+    const wrapper = await mountTimeline()
+
+    await wrapper.get('[data-test="tab-answer"]').trigger('click')
+    const items = wrapper.findAll('[data-test="message"]')
+    expect(items).toHaveLength(1)
+    expect(items[0]?.text()).toContain('来週の集まりについて')
+  })
+
+  it('drops a post whose deadline has passed', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.put({
+      ...newer,
+      form: {
+        id: 'fm_1',
+        kind: 'attendance',
+        question: '来ますか',
+        choices: ['行く', '行かない'],
+        allowNote: false,
+        dueAt: '2020-01-01T00:00:00.000Z',
+        recipient: { userId: 'u_tanaka', ecdhPublic: 'AAAA' },
+      },
+    } as CachedMessage)
+    const wrapper = await mountTimeline()
+
+    await wrapper.get('[data-test="tab-answer"]').trigger('click')
+    expect(wrapper.get('[data-test="empty"]').text()).toContain('要回答')
+  })
+})
