@@ -8,9 +8,7 @@ import { isEmailConfirmed } from '../group/email-registration'
 import type { Role } from '../crypto/roster'
 import type { Session } from '../group/session'
 import { login } from '../group/session'
-import { readStorageSettings, toProviderConfig } from '../group/storage-credentials'
-import { HttpStorageProvider } from '../storage/http'
-import { S3StorageProvider } from '../storage/s3'
+import { readProviderFor, writerFor } from '../storage/factory'
 import type { StorageProvider } from '../storage/provider'
 import { useGroupsStore } from './groups'
 
@@ -36,27 +34,7 @@ interface SessionState {
  * 鍵とパスワードは永続化しない(要件書 §5)。端末に残すのは接続コードと
  * メールアドレスだけで、再開時はパスワードだけを訊く。
  */
-/**
- * 担当者・管理者のための書き込みプロバイダを組み立てる。
- * 資格情報は staff スコープ鍵でしか開けないので、参加者では必ず null になる。
- */
-async function buildWriter(
-  session: Session,
-  storage: StorageProvider,
-): Promise<StorageProvider | null> {
-  if (session.role === 'member') return null
-  try {
-    const settings = await readStorageSettings({
-      storage,
-      groupId: session.groupId,
-      keys: session.groupKeys,
-    })
-    return new S3StorageProvider(toProviderConfig(settings))
-  } catch {
-    // 資格情報がまだ置かれていないグループもある。読むだけなら支障はない。
-    return null
-  }
-}
+
 
 export const useSessionStore = defineStore('session', {
   state: (): SessionState => ({
@@ -73,22 +51,21 @@ export const useSessionStore = defineStore('session', {
   },
   actions: {
     /** すでに解錠済みのセッションを受け取る。LoginView が自分でログインするため。 */
-    async adopt(session: Session, root: string, adminPublicKey: string): Promise<void> {
+    async adopt(session: Session, code: ConnectionCode): Promise<void> {
       this.session = session
-      this.storage = new HttpStorageProvider(root)
-      this.adminPublicKey = fromBase64(adminPublicKey)
+      this.storage = readProviderFor(code)
+      this.adminPublicKey = fromBase64(code.adminPublicKey)
       // メールアドレス未登録の参加者は、登録が済むまで主要機能をロックする(要件書 §4.6)
       this.emailConfirmed =
         session.role !== 'member' || (await isEmailConfirmed(openGroupDatabase(session.groupId)))
-      this.writer = await buildWriter(session, this.storage)
+      this.writer = await writerFor({ code, session, storage: this.storage })
       await useGroupsStore().load()
     },
 
     async signIn(code: ConnectionCode, email: string, password: string): Promise<void> {
-      const storage = new HttpStorageProvider(code.root)
-      const session = await login({ code, email, password, storage })
+      const session = await login({ code, email, password, storage: readProviderFor(code) })
       await rememberGroup({ code, groupName: session.groupName, email, at: Date.now() })
-      await this.adopt(session, code.root, code.adminPublicKey)
+      await this.adopt(session, code)
     },
 
     async unlock(groupId: string, password: string): Promise<void> {

@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ConnectionCodeError, decodeConnectionCode } from '../group/connection-code'
+import type { ConnectionCode } from '../group/connection-code'
 import type { Session } from '../group/session'
 import { login } from '../group/session'
-import { HttpStorageProvider } from '../storage/http'
+import { readProviderFor } from '../storage/factory'
 import { rememberGroup } from '../db/groups'
 
 const props = withDefaults(defineProps<{ initialCode?: string }>(), { initialCode: '' })
-const emit = defineEmits<{ login: [session: Session, root: string, adminPublicKey: string] }>()
+const emit = defineEmits<{ login: [session: Session, code: ConnectionCode] }>()
 
 // QR から来た人は接続コードが入った状態で始まる
 const code = ref(props.initialCode)
@@ -22,9 +23,13 @@ async function submit(): Promise<void> {
   busy.value = true
   try {
     const connection = decodeConnectionCode(code.value)
-    // 読み取りは provider に関わらず root への素の GET。s3 も公開URLを root に持つので
-    // ここを通す。まだ経路を実装していないものだけ断る。
-    if (connection.provider !== 'http' && connection.provider !== 's3') {
+    // 公開読みは root への素の GET (s3 も公開URLを root に持つ)。gdrive は
+    // Apps Script 経由で読む。まだ経路を実装していないものだけ断る。
+    if (
+      connection.provider !== 'http' &&
+      connection.provider !== 's3' &&
+      connection.provider !== 'gdrive'
+    ) {
       throw new Error(
         `ストレージ "${connection.provider}" はこのバージョンではまだ利用できません`,
       )
@@ -33,7 +38,7 @@ async function submit(): Promise<void> {
       code: connection,
       email: email.value,
       password: password.value,
-      storage: new HttpStorageProvider(connection.root),
+      storage: readProviderFor(connection),
     })
     await rememberGroup({
       code: connection,
@@ -42,7 +47,7 @@ async function submit(): Promise<void> {
       at: Date.now(),
     })
     password.value = ''
-    emit('login', session, connection.root, connection.adminPublicKey)
+    emit('login', session, connection)
   } catch (caught) {
     error.value =
       caught instanceof ConnectionCodeError
