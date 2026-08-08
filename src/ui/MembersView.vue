@@ -12,6 +12,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   add: [member: { displayName: string; loginId: string; role: Role; scopes: string[]; password: string; email: string }]
   reissue: [target: { userId: string; loginId: string; password: string }]
+  createSubgroup: [subgroup: { name: string; parent: string | null }]
+  move: [target: { userId: string; scopes: string[] }]
   close: []
 }>()
 
@@ -30,6 +32,10 @@ const selected = ref<Record<string, boolean>>({})
 const formError = ref('')
 
 const reissuing = ref<RosterMember | null>(null)
+const moving = ref<RosterMember | null>(null)
+const movingScopes = ref<Record<string, boolean>>({})
+const subgroupName = ref('')
+const subgroupParent = ref<string>('')
 const reissueLoginId = ref('')
 const reissuePassword = ref('')
 
@@ -66,6 +72,34 @@ function add(): void {
   password.value = ''
   email.value = ''
   selected.value = {}
+}
+
+function createSubgroup(): void {
+  if (!subgroupName.value.trim()) return
+  emit('createSubgroup', {
+    name: subgroupName.value.trim(),
+    parent: subgroupParent.value === '' ? null : subgroupParent.value,
+  })
+  subgroupName.value = ''
+  subgroupParent.value = ''
+}
+
+function startMove(member: RosterMember): void {
+  moving.value = member
+  movingScopes.value = Object.fromEntries(
+    props.roster.subgroups.map((group) => [group.id, member.scopes.includes(group.id)]),
+  )
+}
+
+function confirmMove(): void {
+  if (!moving.value) return
+  emit('move', {
+    userId: moving.value.userId,
+    scopes: Object.entries(movingScopes.value)
+      .filter(([, on]) => on)
+      .map(([id]) => id),
+  })
+  moving.value = null
 }
 
 function startReissue(member: RosterMember): void {
@@ -105,12 +139,80 @@ function confirmReissue(): void {
             <h3>{{ member.displayName }}</h3>
             <p class="hint">{{ ROLE_LABELS[member.role] }} · {{ placesOf(member) }}</p>
           </div>
+          <button type="button" class="quiet" data-test="edit-scopes" @click="startMove(member)">
+            所属
+          </button>
           <button type="button" class="quiet" data-test="reissue" @click="startReissue(member)">
-            パスワード再発行
+            再発行
           </button>
         </div>
       </li>
     </ul>
+
+    <template v-if="moving">
+      <h2>{{ moving.displayName }} の所属</h2>
+      <p class="hint">
+        外しても、その人の端末にある鍵は取り上げられません。<strong>これまでに配られた
+        内容は読めるまま</strong>です。本当に読ませたくないときは鍵の入れ替えが要ります。
+      </p>
+      <fieldset>
+        <legend>所属するサブグループ</legend>
+        <label v-for="group in roster.subgroups" :key="group.id">
+          <input
+            type="checkbox"
+            data-test="move-option"
+            :data-scope="group.id"
+            v-model="movingScopes[group.id]"
+          />
+          {{ group.name }}
+        </label>
+      </fieldset>
+      <div class="row">
+        <button
+          type="button"
+          class="primary"
+          data-test="move-confirm"
+          :disabled="busy"
+          @click="confirmMove"
+        >
+          この所属にする
+        </button>
+        <button type="button" class="quiet" data-test="move-cancel" @click="moving = null">
+          やめる
+        </button>
+      </div>
+    </template>
+
+    <h2>サブグループ</h2>
+    <ul v-if="roster.subgroups.length > 0">
+      <li v-for="group in roster.subgroups" :key="group.id" data-test="subgroup">
+        <h3>{{ group.name }}</h3>
+        <p v-if="group.parent" class="hint">{{ subgroupNames[group.parent] }} の中</p>
+      </li>
+    </ul>
+    <p v-else class="hint">まだサブグループはありません。</p>
+
+    <label>
+      新しいサブグループの名前
+      <input data-test="new-subgroup-name" v-model="subgroupName" />
+    </label>
+    <label>
+      どこの中に作るか
+      <select data-test="new-subgroup-parent" v-model="subgroupParent">
+        <option value="">グループの直下</option>
+        <option v-for="group in roster.subgroups" :key="group.id" :value="group.id">
+          {{ group.name }} の中
+        </option>
+      </select>
+    </label>
+    <button
+      type="button"
+      data-test="create-subgroup"
+      :disabled="busy"
+      @click="createSubgroup"
+    >
+      サブグループを作る
+    </button>
 
     <template v-if="reissuing">
       <h2>{{ reissuing.displayName }} のパスワードを再発行</h2>

@@ -5,6 +5,7 @@ import MembersView from '../ui/MembersView.vue'
 import type { RosterContents } from '../crypto/roster'
 import type { NewMemberInput } from '../group/membership'
 import { addMember, reissuePassword } from '../group/membership'
+import { createSubgroup, setMemberScopes } from '../group/subgroups'
 import { getGroup } from '../db/groups'
 import type { ConnectionCode } from '../group/connection-code'
 import type { StorageSettings } from '../group/storage-credentials'
@@ -71,6 +72,49 @@ async function onAdd(member: NewMemberInput): Promise<void> {
   }
 }
 
+async function onCreateSubgroup(input: { name: string; parent: string | null }): Promise<void> {
+  if (!session.session || !session.writer || !code.value) return
+  error.value = ''
+  notice.value = ''
+  busy.value = true
+  try {
+    await createSubgroup({
+      storage: session.writer,
+      session: session.session,
+      code: code.value,
+      ...input,
+    })
+    await refresh()
+    notice.value = `${input.name} を作りました。`
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '作れませんでした'
+  } finally {
+    busy.value = false
+  }
+}
+
+async function onMove(target: { userId: string; scopes: string[] }): Promise<void> {
+  if (!session.session || !session.writer || !code.value || !settings.value) return
+  error.value = ''
+  notice.value = ''
+  busy.value = true
+  try {
+    await setMemberScopes({
+      storage: session.writer,
+      session: session.session,
+      code: code.value,
+      settings: settings.value,
+      ...target,
+    })
+    await refresh()
+    notice.value = '所属を変えました。'
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '変えられませんでした'
+  } finally {
+    busy.value = false
+  }
+}
+
 async function onReissue(target: {
   userId: string
   loginId: string
@@ -106,6 +150,8 @@ async function onReissue(target: {
     :error="error"
     :notice="notice"
     @add="onAdd"
+    @create-subgroup="onCreateSubgroup"
+    @move="onMove"
     @reissue="onReissue"
     @close="router.push({ name: 'timeline', params: { groupId: session.groupId } })"
   />
