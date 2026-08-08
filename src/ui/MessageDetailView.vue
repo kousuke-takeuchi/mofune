@@ -2,6 +2,7 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import type { CachedMessage } from '../db/group-db'
 import { openGroupDatabase } from '../db/group-db'
+import AppBar from './AppBar.vue'
 import { formatWhen } from './format'
 import type { Session } from '../group/session'
 
@@ -71,7 +72,11 @@ onBeforeUnmount(() => {
 
 <template>
   <section>
-    <button type="button" class="quiet" data-test="back" @click="emit('back')">戻る</button>
+    <AppBar title="お知らせ">
+      <template #left>
+        <button type="button" class="quiet" data-test="back" @click="emit('back')">戻る</button>
+      </template>
+    </AppBar>
 
     <p v-if="notFound" data-test="not-found">このお知らせは見つかりませんでした。</p>
 

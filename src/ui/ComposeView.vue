@@ -4,6 +4,7 @@ import type { Bytes } from '../crypto/bytes'
 import { createPost } from '../content/post'
 import type { DraftAttachment } from '../content/post'
 import { openGroupDatabase } from '../db/group-db'
+import AppBar from './AppBar.vue'
 import type { Session } from '../group/session'
 import { ALL_SCOPE } from '../crypto/roster'
 import type { StorageProvider } from '../storage/provider'
@@ -90,7 +91,13 @@ async function submit(): Promise<void> {
 
 <template>
   <section>
-    <h1>お知らせを作る</h1>
+    <AppBar title="お知らせを作る">
+      <template #left>
+        <button type="button" class="quiet" data-test="cancel" @click="emit('cancel')">
+          キャンセル
+        </button>
+      </template>
+    </AppBar>
 
     <p v-if="!canPost" data-test="not-allowed">投稿できるのは担当者と管理者だけです。</p>
 
@@ -141,7 +148,6 @@ async function submit(): Promise<void> {
         オフラインのため送信待ちにしました。オンラインに戻ると自動で送信されます。
       </p>
 
-      <button type="button" class="quiet" data-test="cancel" @click="emit('cancel')">キャンセル</button>
       <button type="button" class="primary" data-test="submit" :disabled="busy" @click="submit">送信する</button>
     </form>
   </section>

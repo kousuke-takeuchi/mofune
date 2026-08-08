@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import type { AbsenceKind } from '../content/absence'
 import { ABSENCE_KINDS, DEFAULT_REASONS, buildAbsenceReport, sendAbsenceReport } from '../content/absence'
 import { openGroupDatabase } from '../db/group-db'
+import AppBar from './AppBar.vue'
 import type { Session } from '../group/session'
 import type { InboxGrant } from '../inbox/grants'
 import { readGrant } from '../inbox/grants'
@@ -78,7 +79,14 @@ async function submit(): Promise<void> {
 
 <template>
   <section v-if="loaded">
-    <h1>欠席・不在をつたえる</h1>
+    <AppBar title="れんらく">
+      <template #left>
+        <button type="button" class="quiet" data-test="cancel" @click="emit('cancel')">
+          キャンセル
+        </button>
+      </template>
+    </AppBar>
+    <h2>欠席・不在をつたえる</h2>
 
     <p v-if="!canSubmit" data-test="no-slots">
       いまは送信できません。担当者がアプリを開くと送信枠が用意されます。
@@ -131,7 +139,6 @@ async function submit(): Promise<void> {
         オフラインのため送信待ちにしました。オンラインに戻ると自動で送信されます。
       </p>
 
-      <button type="button" class="quiet" data-test="cancel" @click="emit('cancel')">キャンセル</button>
       <button type="button" class="primary" data-test="submit" :disabled="busy" @click="submit">送信する</button>
     </div>
   </section>

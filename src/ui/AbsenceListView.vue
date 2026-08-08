@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import type { CachedAbsence } from '../db/group-db'
 import { openGroupDatabase } from '../db/group-db'
+import AppBar from './AppBar.vue'
 import type { Session } from '../group/session'
 
 const props = defineProps<{ session: Session }>()
@@ -45,7 +46,11 @@ onMounted(async () => {
 <template>
   <section v-if="loaded">
     <h1>届いた連絡</h1>
-    <button type="button" class="quiet" data-test="close" @click="emit('close')">閉じる</button>
+    <AppBar title="届いた連絡">
+      <template #left>
+        <button type="button" class="quiet" data-test="close" @click="emit('close')">閉じる</button>
+      </template>
+    </AppBar>
 
     <p v-if="!allowed" data-test="not-allowed">
       届いた連絡を見られるのは担当者と管理者だけです。

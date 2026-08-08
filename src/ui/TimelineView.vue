@@ -27,6 +27,12 @@ function isUnread(message: CachedMessage): boolean {
 
 const unreadCount = computed(() => messages.value.filter(isUnread).length)
 
+/** 表示している絞り込み。「要回答」はフォームを作れるようになってから。 */
+const tab = ref<'all' | 'unread'>('all')
+const shown = computed(() =>
+  tab.value === 'unread' ? messages.value.filter(isUnread) : messages.value,
+)
+
 async function reload(): Promise<void> {
   try {
     // 2つを直列に await すると、呼び出し側が1ティックしか待たないときに
@@ -81,13 +87,34 @@ onMounted(reload)
     <!-- 担当者向けの操作。ヘッダの下に置く (デザイン 03) -->
     <slot name="actions" />
 
+    <div class="tabs" role="group" aria-label="絞り込み">
+      <button
+        type="button"
+        data-test="tab-all"
+        :aria-pressed="tab === 'all'"
+        @click="tab = 'all'"
+      >
+        すべて
+      </button>
+      <button
+        type="button"
+        data-test="tab-unread"
+        :aria-pressed="tab === 'unread'"
+        @click="tab = 'unread'"
+      >
+        未読 {{ unreadCount }}
+      </button>
+    </div>
+
     <p v-if="syncError" data-test="sync-error">{{ syncError }}</p>
 
-    <p v-if="messages.length === 0" data-test="empty">まだお知らせはありません。</p>
+    <p v-if="shown.length === 0" data-test="empty">
+      {{ tab === 'unread' ? '未読のお知らせはありません。' : 'まだお知らせはありません。' }}
+    </p>
 
     <ul v-else>
       <li
-        v-for="message in messages"
+        v-for="message in shown"
         :key="message.id"
         data-test="message"
         :data-unread="String(isUnread(message))"
