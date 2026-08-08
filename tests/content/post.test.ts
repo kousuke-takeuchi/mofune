@@ -23,6 +23,7 @@ async function staffSession(): Promise<Session> {
     displayName: '田中 みか',
     role: 'staff',
     scopes: ['all', 'staff', 'sg_a', 'sg_a_pickup'],
+    generation: 1,
     groupKeys: new Map([
       ['all:v1', await generateAesKey()],
       ['staff:v1', await generateAesKey()],

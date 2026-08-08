@@ -171,6 +171,7 @@ describe('syncGroup', () => {
       role: 'staff' as const,
       scopes: ['sg_a'],
       groupKeys: new Map([['sg_a:v1', key]]),
+      generation: 1,
       roster: { groupId: 'midori', generation: 1, subgroups: [], members: [] },
       ecdhPrivate: new Uint8Array(0),
       ecdsaPrivate: new Uint8Array(0),

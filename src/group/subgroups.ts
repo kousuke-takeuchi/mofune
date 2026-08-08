@@ -6,7 +6,6 @@ import { randomBytes } from '../crypto/symmetric'
 import { keyringPath } from '../storage/paths'
 import type { StorageProvider } from '../storage/provider'
 import type { ConnectionCode } from './connection-code'
-import { INITIAL_GENERATION } from './provision'
 import { loadRosterFile } from './roster-update'
 import {
   adminPublic,
@@ -55,7 +54,7 @@ export async function createSubgroup(
     storage: context.storage,
     session: context.session,
     code: context.code,
-    generation: INITIAL_GENERATION,
+    generation: context.session.generation,
     subgroups: [...contents.subgroups, { id, name, parent: context.parent }],
     change: (current) => current.members,
   })
@@ -86,7 +85,7 @@ export async function setMemberScopes(
   const { file: keyring, keys } = await openKeyring({
     storage: context.storage,
     groupId: context.code.groupId,
-    generation: INITIAL_GENERATION,
+    generation: context.session.generation,
     session: context.session,
   })
   const nextKeyring = await grantScopes({
@@ -95,12 +94,12 @@ export async function setMemberScopes(
     userId: context.userId,
     ecdhPublic: fromBase64(member.ecdhPublic),
     scopes: resolved,
-    generation: INITIAL_GENERATION,
+    generation: context.session.generation,
     adminUserId: context.session.userId,
     adminEcdhPublic: adminPublic(contents, context.session.userId),
   })
   await context.storage.put(
-    keyringPath(context.code.groupId, INITIAL_GENERATION),
+    keyringPath(context.code.groupId, context.session.generation),
     serializeKeyringFile(nextKeyring),
   )
 
@@ -108,7 +107,7 @@ export async function setMemberScopes(
     storage: context.storage,
     session: context.session,
     code: context.code,
-    generation: INITIAL_GENERATION,
+    generation: context.session.generation,
     change: (current) =>
       current.members.map((candidate) =>
         candidate.userId === context.userId ? { ...candidate, scopes: resolved } : candidate,

@@ -8,11 +8,14 @@ const props = defineProps<{
   busy: boolean
   error: string
   notice: string
+  /** いま操作している人。自分を外す導線は出さない。 */
+  currentUserId: string
 }>()
 const emit = defineEmits<{
   add: [member: { displayName: string; role: Role; scopes: string[]; password: string; email: string }]
   reissue: [target: { userId: string; email: string; password: string }]
   createSubgroup: [subgroup: { name: string; parent: string | null }]
+  remove: [target: { userId: string }]
   move: [target: { userId: string; scopes: string[] }]
   close: []
 }>()
@@ -32,6 +35,7 @@ const formError = ref('')
 
 const reissuing = ref<RosterMember | null>(null)
 const moving = ref<RosterMember | null>(null)
+const removing = ref<RosterMember | null>(null)
 const movingScopes = ref<Record<string, boolean>>({})
 const subgroupName = ref('')
 const subgroupParent = ref<string>('')
@@ -99,6 +103,12 @@ function confirmMove(): void {
   moving.value = null
 }
 
+function confirmRemove(): void {
+  if (!removing.value) return
+  emit('remove', { userId: removing.value.userId })
+  removing.value = null
+}
+
 function startReissue(member: RosterMember): void {
   reissuing.value = member
   reissueEmail.value = ''
@@ -142,9 +152,41 @@ function confirmReissue(): void {
           <button type="button" class="quiet" data-test="reissue" @click="startReissue(member)">
             再発行
           </button>
+          <button
+            v-if="member.userId !== currentUserId"
+            type="button"
+            class="quiet danger"
+            data-test="remove"
+            @click="removing = member"
+          >
+            外す
+          </button>
         </div>
       </li>
     </ul>
+
+    <template v-if="removing">
+      <h2>{{ removing.displayName }} をグループから外す</h2>
+      <p class="hint">
+        鍵を作り直すので、<strong>これから配るものは読めなくなります</strong>。
+        ただし<strong>すでに配ったもの</strong>は相手の端末に残っているため、
+        読まれ続けます。取り上げる手立てはありません。
+      </p>
+      <div class="row">
+        <button
+          type="button"
+          class="danger"
+          data-test="remove-confirm"
+          :disabled="busy"
+          @click="confirmRemove"
+        >
+          外す
+        </button>
+        <button type="button" class="quiet" data-test="remove-cancel" @click="removing = null">
+          やめる
+        </button>
+      </div>
+    </template>
 
     <template v-if="moving">
       <h2>{{ moving.displayName }} の所属</h2>

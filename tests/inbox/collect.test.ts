@@ -34,6 +34,7 @@ async function fixture() {
     role: 'staff',
     scopes: ['all', 'staff'],
     groupKeys: new Map(),
+    generation: 1,
     roster,
     ecdhPrivate: staff.privateKey,
     ecdsaPrivate: new Uint8Array(0),

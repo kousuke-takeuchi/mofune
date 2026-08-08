@@ -32,7 +32,9 @@ const roster: RosterContents = {
 }
 
 function mountView(busy = false) {
-  return mount(MembersView, { props: { roster, busy, error: '', notice: '' } })
+  return mount(MembersView, {
+    props: { roster, busy, error: '', notice: '', currentUserId: 'u_admin' },
+  })
 }
 
 describe('MembersView', () => {
@@ -158,5 +160,31 @@ describe('MembersView', () => {
     const wrapper = mountView()
     await wrapper.findAll('[data-test="edit-scopes"]')[1]?.trigger('click')
     expect(wrapper.text()).toContain('読めるまま')
+  })
+
+  it('asks twice before taking someone out of the group', async () => {
+    const wrapper = mountView()
+    await wrapper.findAll('[data-test="remove"]')[0]?.trigger('click')
+    expect(wrapper.emitted('remove')).toBeFalsy()
+
+    await wrapper.find('[data-test="remove-confirm"]').trigger('click')
+    expect(wrapper.emitted('remove')?.[0]?.[0]).toEqual({ userId: 'u_sato' })
+  })
+
+  it('says plainly what removal does and does not do', async () => {
+    const wrapper = mountView()
+    await wrapper.findAll('[data-test="remove"]')[0]?.trigger('click')
+    const text = wrapper.text()
+    expect(text).toContain('これから配るもの')
+    expect(text).toContain('すでに配ったもの')
+  })
+
+  it('does not offer to remove the admin who is signed in', () => {
+    const wrapper = mount(MembersView, {
+      props: { roster, busy: false, error: '', notice: '', currentUserId: 'u_admin' },
+    })
+    const rows = wrapper.findAll('[data-test="member"]')
+    expect(rows[0]?.find('[data-test="remove"]').exists()).toBe(false)
+    expect(rows[1]?.find('[data-test="remove"]').exists()).toBe(true)
   })
 })

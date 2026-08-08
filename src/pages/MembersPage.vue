@@ -5,6 +5,7 @@ import MembersView from '../ui/MembersView.vue'
 import type { RosterContents } from '../crypto/roster'
 import type { NewMemberInput } from '../group/membership'
 import { addMember, reissuePassword } from '../group/membership'
+import { removeMember } from '../group/rotation'
 import { createSubgroup, setMemberScopes } from '../group/subgroups'
 import { getGroup } from '../db/groups'
 import type { ConnectionCode } from '../group/connection-code'
@@ -115,6 +116,31 @@ async function onMove(target: { userId: string; scopes: string[] }): Promise<voi
   }
 }
 
+/**
+ * 外したあとは鍵の世代が上がる。いまのセッションは古い世代のままなので、
+ * 入り直してもらう。黙って古い鍵で書き続けると、誰も読めないお知らせができる。
+ */
+async function onRemove(target: { userId: string }): Promise<void> {
+  if (!session.session || !session.writer || !code.value || !settings.value) return
+  error.value = ''
+  notice.value = ''
+  busy.value = true
+  try {
+    await removeMember({
+      storage: session.writer,
+      session: session.session,
+      code: code.value,
+      settings: settings.value,
+      userId: target.userId,
+    })
+    session.signOut()
+    await router.push({ name: 'unlock', query: { next: `/g/${code.value.groupId}` } })
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '外せませんでした'
+    busy.value = false
+  }
+}
+
 async function onReissue(target: {
   userId: string
   email: string
@@ -150,7 +176,9 @@ async function onReissue(target: {
     :error="error"
     :notice="notice"
     @add="onAdd"
+    :current-user-id="session.session?.userId ?? ''"
     @create-subgroup="onCreateSubgroup"
+    @remove="onRemove"
     @move="onMove"
     @reissue="onReissue"
     @close="router.push({ name: 'timeline', params: { groupId: session.groupId } })"

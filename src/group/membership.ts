@@ -12,7 +12,6 @@ import { serializeKeyringFile } from '../crypto/keyring'
 import type { StorageProvider } from '../storage/provider'
 import type { ConnectionCode } from './connection-code'
 import { normalizeEmail } from './email-id'
-import { INITIAL_GENERATION } from './provision'
 import { loadRosterFile } from './roster-update'
 import {
   adminPublic,
@@ -95,7 +94,7 @@ export async function addMember(
     throw new MembershipError(`${wanted} はすでに使われています`)
   }
 
-  const generation = INITIAL_GENERATION
+  const generation = context.session.generation
   const { file, keys } = await openKeyring({
     storage: context.storage,
     groupId: context.code.groupId,
@@ -182,7 +181,7 @@ export async function reissuePassword(
 ): Promise<void> {
   assertAdmin(context.session, MembershipError)
 
-  const generation = INITIAL_GENERATION
+  const generation = context.session.generation
   const { file, keys } = await openKeyring({
     storage: context.storage,
     groupId: context.code.groupId,

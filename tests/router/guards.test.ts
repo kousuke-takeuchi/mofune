@@ -39,6 +39,7 @@ function signedInAs(role: 'admin' | 'staff' | 'member', emailConfirmed = true): 
     role,
     scopes: [],
     groupKeys: new Map(),
+    generation: 1,
     roster: { groupId: 'midori', generation: 1, subgroups: [], members: [] },
     ecdhPrivate: new Uint8Array(0),
     ecdsaPrivate: new Uint8Array(0),

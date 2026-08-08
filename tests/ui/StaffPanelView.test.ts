@@ -60,6 +60,7 @@ async function fixture(options: { withSettings?: boolean } = {}) {
     role: 'staff',
     scopes: ['all', 'staff'],
     groupKeys: new Map([['staff:v1', staffKey]]),
+    generation: 1,
     roster,
     ecdhPrivate: staff.privateKey,
     ecdsaPrivate: new Uint8Array(0),

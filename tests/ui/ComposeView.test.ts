@@ -18,6 +18,7 @@ async function staffSession(role: 'staff' | 'member' = 'staff'): Promise<Session
     displayName: '田中 みか',
     role,
     scopes: ['all', 'staff', 'sg_a', 'sg_a_pickup'],
+    generation: 1,
     groupKeys: new Map([
       ['all:v1', await generateAesKey()],
       ['staff:v1', await generateAesKey()],

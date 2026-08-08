@@ -46,6 +46,7 @@ async function fixture(): Promise<{ session: Session; admin: RawKeyPair; staff: 
     role: 'admin',
     scopes: [],
     groupKeys: new Map(),
+    generation: 1,
     roster,
     ecdhPrivate: admin.privateKey,
     ecdsaPrivate: new Uint8Array(0) as Bytes,

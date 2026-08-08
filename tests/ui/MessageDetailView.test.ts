@@ -19,6 +19,7 @@ async function session(): Promise<Session> {
     role: 'member',
     scopes: ['sg_a'],
     groupKeys: new Map([['sg_a:v1', await generateAesKey()]]),
+    generation: 1,
     roster: {
       groupId: 'midori',
       generation: 1,

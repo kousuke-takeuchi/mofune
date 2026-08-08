@@ -63,6 +63,7 @@ async function world(): Promise<{
       role: userId === 'u_sato' ? 'member' : 'staff',
       scopes: [],
       groupKeys: new Map(),
+      generation: 1,
       roster,
       ecdhPrivate: keys.privateKey,
       ecdsaPrivate: new Uint8Array(0) as Bytes,
