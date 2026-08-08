@@ -16,6 +16,7 @@ const emit = defineEmits<{
   reissue: [target: { userId: string; email: string; password: string }]
   createSubgroup: [subgroup: { name: string; parent: string | null }]
   remove: [target: { userId: string }]
+  bulkMove: [move: { from: string; to: string }]
   move: [target: { userId: string; scopes: string[] }]
   close: []
 }>()
@@ -37,6 +38,8 @@ const reissuing = ref<RosterMember | null>(null)
 const moving = ref<RosterMember | null>(null)
 const removing = ref<RosterMember | null>(null)
 const movingScopes = ref<Record<string, boolean>>({})
+const bulkFrom = ref('')
+const bulkTo = ref('')
 const subgroupName = ref('')
 const subgroupParent = ref<string>('')
 const reissueEmail = ref('')
@@ -73,6 +76,11 @@ function add(): void {
   password.value = ''
   email.value = ''
   selected.value = {}
+}
+
+function bulkMove(): void {
+  if (!bulkFrom.value || !bulkTo.value || bulkFrom.value === bulkTo.value) return
+  emit('bulkMove', { from: bulkFrom.value, to: bulkTo.value })
 }
 
 function createSubgroup(): void {
@@ -281,6 +289,35 @@ function confirmReissue(): void {
           やめる
         </button>
       </div>
+    </template>
+
+    <template v-if="roster.subgroups.length >= 2">
+      <h2>年度の切り替え</h2>
+      <p class="hint">
+        ある組の全員をまとめて別の組へ移します。1人ずつ名簿を書き直すので、途中で
+        止まってもそこまでの移動は残ります。
+      </p>
+      <label>
+        移動元
+        <select data-test="bulk-from" v-model="bulkFrom">
+          <option value="">選んでください</option>
+          <option v-for="group in roster.subgroups" :key="group.id" :value="group.id">
+            {{ group.name }}
+          </option>
+        </select>
+      </label>
+      <label>
+        移動先
+        <select data-test="bulk-to" v-model="bulkTo">
+          <option value="">選んでください</option>
+          <option v-for="group in roster.subgroups" :key="group.id" :value="group.id">
+            {{ group.name }}
+          </option>
+        </select>
+      </label>
+      <button type="button" data-test="bulk-move" :disabled="busy" @click="bulkMove">
+        まとめて移す
+      </button>
     </template>
 
     <h2>メンバーを追加</h2>

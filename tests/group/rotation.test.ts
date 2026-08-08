@@ -195,4 +195,19 @@ describe('removeMember', () => {
       removeMember({ storage, session: staff, code, settings, userId: satoUserId, kdf: TEST_KDF }),
     ).rejects.toThrow(RotationError)
   })
+
+  it('brings every scope to the new generation, not just the ones they held', async () => {
+    // 世代は全体で1つ。staff だけ旧世代に取り残されると、名簿を再署名できなくなる。
+    const { storage, code, admin, satoUserId } = await world()
+    await removeMember({ storage, session: admin, code, settings, userId: satoUserId, kdf: TEST_KDF })
+
+    const after = await login({
+      code,
+      email: 'watanabe@example.invalid',
+      password: 'admin-pass',
+      storage,
+    })
+    expect(after.groupKeys.has(keyId(STAFF_SCOPE, after.generation))).toBe(true)
+    expect(after.groupKeys.has(keyId(ALL_SCOPE, after.generation))).toBe(true)
+  })
 })

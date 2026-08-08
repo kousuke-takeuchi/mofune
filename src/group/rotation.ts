@@ -139,10 +139,13 @@ export async function removeMember(
     session: context.session,
   })
 
-  // その人が持っていたスコープだけ作り直す。触っていないスコープは据え置く。
-  const held = scopesAt(keyring, context.session.generation).filter((scope) =>
-    target.scopes.includes(scope),
-  )
+  /*
+   * 世代は全体で1つなので、**その世代の全スコープ**を作り直す。
+   * 抜けた人が持っていた鍵だけ更新すると、たとえば staff だけ旧世代のまま残り、
+   * 「いまの世代の staff 鍵が無い」状態になって名簿の再署名ができなくなる。
+   * 実機で踏んだ。余分に作り直す手間より、世代が揃っている方が安い。
+   */
+  const held = scopesAt(keyring, context.session.generation)
   const generation = await rotate({
     storage: context.storage,
     groupId: context.code.groupId,
