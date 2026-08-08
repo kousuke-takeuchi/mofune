@@ -5,6 +5,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import type { VueWrapper } from '@vue/test-utils'
 import MessageDetailView from '../../src/ui/MessageDetailView.vue'
 import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
+import { MemoryStorageProvider } from '../../src/storage/memory'
 import { generateAesKey } from '../../src/crypto/symmetric'
 import { utf8 } from '../../src/crypto/bytes'
 import type { Session } from '../../src/group/session'
@@ -73,7 +74,7 @@ afterEach(() => {
 
 async function mountDetail(messageId = 'm_1') {
   const wrapper = mount(MessageDetailView, {
-    props: { session: await session(), messageId },
+    props: { storage: new MemoryStorageProvider(), session: await session(), messageId },
   })
   mounted.push(wrapper)
   // 読み込みが複数段の非同期なので、落ち着くまで数ティック回す

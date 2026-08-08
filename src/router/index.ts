@@ -46,6 +46,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../pages/MessagePage.vue'),
   },
   {
+    path: '/g/:groupId/messages/:messageId/results',
+    name: 'results',
+    component: () => import('../pages/FormResultsPage.vue'),
+    meta: { staffOnly: true },
+  },
+  {
     path: '/g/:groupId/messages/:messageId/notify',
     name: 'notify',
     component: () => import('../pages/NotifyPage.vue'),

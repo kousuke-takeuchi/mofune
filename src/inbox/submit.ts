@@ -38,6 +38,38 @@ export function nextSlot(grant: InboxGrant, used: string[], now: Date = new Date
   return free
 }
 
+/** 自分の受信箱に置くキー。誰がいつ何件投函したかを推測しにくいよう乱数にする。 */
+export function inboxKeyFor(session: Session): string {
+  return `${session.groupId}/inbox/${session.userId}/${toHex(randomBytes(16))}.enc`
+}
+
+/**
+ * すでに封緘済みのものを、配られた枠で投函する。
+ * 宛先を呼び出し側が決めたいとき (フォームの回答は作成者だけに宛てる) に使う。
+ */
+export async function submitSealedToInbox(options: {
+  session: Session
+  db: GroupDatabase
+  grant: InboxGrant
+  sealed: Bytes
+  now?: Date
+}): Promise<{ key: string }> {
+  const used = await usedSlots(options.db)
+  const slot = nextSlot(options.grant, used, options.now)
+
+  await enqueue(options.db, {
+    id: slot.key,
+    kind: 'inbox',
+    path: slot.url,
+    body: options.sealed,
+  })
+  await options.db.syncState.put({
+    key: USED_SLOTS_KEY,
+    value: JSON.stringify([...used, slot.key]),
+  })
+  return { key: slot.key }
+}
+
 /**
  * 担当者・管理者の公開鍵へ封緘して投函する。
  * 送信自体は outbox 経由なので、オフラインで書いたものも失われない(要件書 §4.9)。
@@ -86,8 +118,7 @@ export async function submitDirectly(options: {
 }): Promise<{ key: string }> {
   const recipients = staffRecipients(options.session.roster)
   const sealed = await sealForRecipients(recipients, options.plaintext)
-  // キーをランダムにして、誰がいつ何件投函したかを推測しにくくする
-  const key = `${options.session.groupId}/inbox/${options.session.userId}/${toHex(randomBytes(16))}.enc`
+  const key = inboxKeyFor(options.session)
 
   await enqueue(options.db, { id: key, kind: 'object', path: key, body: sealed })
   return { key }

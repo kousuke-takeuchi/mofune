@@ -21,6 +21,7 @@ describe('routes', () => {
         '/g/:groupId/compose',
         '/g/:groupId/messages/:messageId',
         '/g/:groupId/messages/:messageId/notify',
+        '/g/:groupId/messages/:messageId/results',
         '/g/:groupId/panel',
         '/g/:groupId/group-settings',
         '/g/:groupId/members',
@@ -73,6 +74,7 @@ describe('routes', () => {
       'group-settings',
       'notify',
       'panel',
+      'results',
     ])
   })
 

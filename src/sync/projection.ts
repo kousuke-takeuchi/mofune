@@ -73,6 +73,7 @@ export async function projectEvent(options: {
     at: message.at,
     body: message.body,
     attachments: message.attachments.map((attachment) => attachment.fileId),
+    ...(message.form ? { form: message.form } : {}),
   }
   await options.db.messages.put(cached)
   result.messages += 1
