@@ -116,4 +116,49 @@ describe('MembersView', () => {
   it('keeps the buttons quiet while a change is in flight', () => {
     expect(mountView(true).find('[data-test="add"]').attributes('disabled')).toBeDefined()
   })
+
+  it('lists the subgroups that exist', () => {
+    const rows = mountView().findAll('[data-test="subgroup"]')
+    expect(rows).toHaveLength(2)
+    expect(rows[0]?.text()).toContain('Aチーム')
+    expect(rows[1]?.text()).toContain('送迎係')
+  })
+
+  it('shows a child subgroup under its parent', () => {
+    const rows = mountView().findAll('[data-test="subgroup"]')
+    expect(rows[1]?.text()).toContain('Aチーム の中')
+  })
+
+  it('creates a subgroup', async () => {
+    const wrapper = mountView()
+    await wrapper.find('[data-test="new-subgroup-name"]').setValue('Bチーム')
+    await wrapper.find('[data-test="create-subgroup"]').trigger('click')
+    expect(wrapper.emitted('createSubgroup')?.[0]?.[0]).toEqual({
+      name: 'Bチーム',
+      parent: null,
+    })
+  })
+
+  it('does not create one without a name', async () => {
+    const wrapper = mountView()
+    await wrapper.find('[data-test="create-subgroup"]').trigger('click')
+    expect(wrapper.emitted('createSubgroup')).toBeFalsy()
+  })
+
+  it('moves a member to the subgroups that were ticked', async () => {
+    const wrapper = mountView()
+    await wrapper.findAll('[data-test="edit-scopes"]')[1]?.trigger('click')
+    await wrapper.find('[data-test="move-option"][data-scope="sg_a_pickup"]').setValue(true)
+    await wrapper.find('[data-test="move-confirm"]').trigger('click')
+    expect(wrapper.emitted('move')?.[0]?.[0]).toMatchObject({ userId: 'u_sato' })
+    expect((wrapper.emitted('move')?.[0]?.[0] as { scopes: string[] }).scopes).toContain(
+      'sg_a_pickup',
+    )
+  })
+
+  it('warns that taking someone out does not take the key back', async () => {
+    const wrapper = mountView()
+    await wrapper.findAll('[data-test="edit-scopes"]')[1]?.trigger('click')
+    expect(wrapper.text()).toContain('読めるまま')
+  })
 })

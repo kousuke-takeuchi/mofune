@@ -1,32 +1,32 @@
 import { generateEcdhKeyPair, generateEcdsaKeyPair } from '../crypto/asymmetric'
 import type { RawKeyPair } from '../crypto/asymmetric'
-import type { Bytes } from '../crypto/bytes'
 import { fromBase64, toBase64, toHex } from '../crypto/bytes'
 import type { KdfParams } from '../crypto/kdf'
 import { PRODUCTION_KDF } from '../crypto/kdf'
-import type { KeyringFile } from '../crypto/keyring'
-import {
-  keyId,
-  parseKeyringFile,
-  serializeKeyringFile,
-  unwrapKey,
-  wrapKey,
-} from '../crypto/keyring'
 import { createKeystore, serializeKeystoreFile } from '../crypto/keystore'
-import type { Role, RosterContents, RosterMember } from '../crypto/roster'
-import { STAFF_SCOPE, resolveScopes, serializeRosterFile, signRoster, verifyRoster } from '../crypto/roster'
-import { generateAesKey, randomBytes } from '../crypto/symmetric'
-import { publishGrants } from '../inbox/grants'
-import { keyringPath, keystorePath, rosterPath } from '../storage/paths'
+import type { Role } from '../crypto/roster'
+import { resolveScopes, verifyRoster } from '../crypto/roster'
+import { randomBytes } from '../crypto/symmetric'
+import { keyringPath, keystorePath } from '../storage/paths'
+import { serializeKeyringFile } from '../crypto/keyring'
 import type { StorageProvider } from '../storage/provider'
 import type { ConnectionCode } from './connection-code'
-import { readContacts, sealContacts, withContact } from './contacts'
 import { INITIAL_GENERATION } from './provision'
 import { loadRosterFile } from './roster-update'
+import {
+  adminPublic,
+  assertAdmin,
+  grantScopes,
+  issueGrantFor,
+  openKeyring,
+  reSignRoster,
+} from './roster-writer'
 import type { Session } from './session'
 import type { StorageSettings } from './storage-credentials'
 
 export class MembershipError extends Error {}
+
+// 名簿と鍵束の書き換えは roster-writer が受け持つ
 
 export interface NewMemberInput {
   loginId: string
@@ -44,155 +44,6 @@ interface Context {
   code: ConnectionCode
   settings: StorageSettings
   kdf?: KdfParams
-}
-
-/** 名簿から自分の公開鍵を引く。新しく作った鍵を自分にも配るために要る。 */
-function adminPublic(contents: RosterContents, userId: string): Bytes {
-  const me = contents.members.find((candidate) => candidate.userId === userId)
-  if (!me) {
-    throw new MembershipError('自分が名簿にいません')
-  }
-  return fromBase64(me.ecdhPublic)
-}
-
-function assertAdmin(session: Session): void {
-  // 名簿を再署名できるのは管理者だけ。信頼の根の ECDSA 鍵を持つのが管理者しかいない。
-  if (session.role !== 'admin') {
-    throw new MembershipError('メンバーを変更できるのは管理者だけです')
-  }
-}
-
-/** いまの鍵束を読み、管理者が開ける鍵をすべて取り出す。 */
-async function openKeyring(options: {
-  storage: StorageProvider
-  groupId: string
-  generation: number
-  session: Session
-}): Promise<{ file: KeyringFile; keys: Map<string, CryptoKey> }> {
-  const file = parseKeyringFile(
-    await options.storage.get(keyringPath(options.groupId, options.generation)),
-  )
-  const keys = new Map<string, CryptoKey>()
-  for (const [id, entry] of Object.entries(file.keys)) {
-    const wrapped = entry.wrapped[options.session.userId]
-    if (!wrapped) continue
-    keys.set(id, await unwrapKey(wrapped, options.session.ecdhPrivate))
-  }
-  return { file, keys }
-}
-
-/**
- * 鍵束に1人ぶんのラップを足す(または差し替える)。
- *
- * 世代は上げない。世代は鍵そのものが変わったときのためにあり、追加は同じ鍵を
- * 新しい相手にも配るだけ。上げると manifest まで更新することになり、全端末が
- * 読み直す羽目になる。
- */
-async function grantScopes(options: {
-  file: KeyringFile
-  keys: Map<string, CryptoKey>
-  userId: string
-  ecdhPublic: Bytes
-  scopes: string[]
-  generation: number
-  adminUserId: string
-  adminEcdhPublic: Bytes
-}): Promise<KeyringFile> {
-  const next: KeyringFile = { ...options.file, keys: { ...options.file.keys } }
-  for (const scope of options.scopes) {
-    const id = keyId(scope, options.generation)
-    const entry = next.keys[id]
-
-    if (!entry) {
-      // まだ誰も所属していないサブグループには鍵が無い。ここで作る。
-      // 管理者にも配っておかないと、次に人を足すとき鍵を開けられなくなる。
-      const key = await generateAesKey()
-      next.keys[id] = {
-        scope,
-        generation: options.generation,
-        wrapped: {
-          [options.userId]: await wrapKey(options.ecdhPublic, key),
-          [options.adminUserId]: await wrapKey(options.adminEcdhPublic, key),
-        },
-      }
-      continue
-    }
-
-    const key = options.keys.get(id)
-    if (!key) {
-      // 管理者がそのスコープに所属していないと開けられない。鍵を作り直すと
-      // 既存の所属者が読めなくなるので、黙って壊さず断る。
-      throw new MembershipError(
-        `"${scope}" の鍵を開けません。管理者がそのサブグループに所属している必要があります`,
-      )
-    }
-    next.keys[id] = {
-      ...entry,
-      wrapped: { ...entry.wrapped, [options.userId]: await wrapKey(options.ecdhPublic, key) },
-    }
-  }
-  return next
-}
-
-/** 名簿を書き換えて再署名し、書き戻す。連絡先は staff 部に入れる。 */
-async function reSignRoster(options: {
-  storage: StorageProvider
-  session: Session
-  code: ConnectionCode
-  generation: number
-  change: (contents: RosterContents) => RosterMember[]
-  contact?: { userId: string; email: string }
-}): Promise<RosterContents> {
-  const adminPublicKey = fromBase64(options.code.adminPublicKey)
-  const file = await loadRosterFile({ storage: options.storage, groupId: options.code.groupId })
-  const contents = await verifyRoster(file, adminPublicKey)
-
-  const staffKey = options.session.groupKeys.get(keyId(STAFF_SCOPE, options.generation))
-  if (!staffKey) {
-    throw new MembershipError('staff スコープ鍵を持っていません')
-  }
-
-  let contacts = await readContacts({ file, staffKey })
-  if (options.contact) {
-    contacts = withContact(contacts, options.contact.userId, options.contact.email)
-  }
-
-  const next: RosterContents = {
-    ...contents,
-    generation: contents.generation + 1,
-    members: options.change(contents),
-  }
-  const staffSection = await sealContacts({
-    contacts,
-    staffKey,
-    generation: options.generation,
-  })
-  const signed = await signRoster(next, staffSection, {
-    publicKey: adminPublicKey,
-    privateKey: options.session.ecdsaPrivate,
-  })
-  // 署名を誤った名簿を置くと全員がログインできなくなる。書く前に自分で検証する。
-  await verifyRoster(signed, adminPublicKey)
-  await options.storage.put(rosterPath(options.code.groupId), serializeRosterFile(signed))
-  return next
-}
-
-/** その人だけに投函枠を配り直す。 */
-async function issueGrantFor(options: {
-  storage: StorageProvider
-  groupId: string
-  roster: RosterContents
-  settings: StorageSettings
-  userId: string
-}): Promise<void> {
-  const member = options.roster.members.find((candidate) => candidate.userId === options.userId)
-  if (!member || member.role !== 'member') return
-  await publishGrants({
-    storage: options.storage,
-    groupId: options.groupId,
-    roster: { ...options.roster, members: [member] },
-    settings: options.settings,
-  })
 }
 
 async function placeKeystore(options: {
@@ -226,7 +77,7 @@ async function placeKeystore(options: {
 export async function addMember(
   context: Context & { member: NewMemberInput },
 ): Promise<{ userId: string }> {
-  assertAdmin(context.session)
+  assertAdmin(context.session, MembershipError)
 
   const wanted = context.member.loginId.trim().toLowerCase()
   if (wanted.length === 0) {
@@ -326,7 +177,7 @@ export async function addMember(
 export async function reissuePassword(
   context: Context & { userId: string; loginId: string; password: string },
 ): Promise<void> {
-  assertAdmin(context.session)
+  assertAdmin(context.session, MembershipError)
 
   const generation = INITIAL_GENERATION
   const { file, keys } = await openKeyring({
