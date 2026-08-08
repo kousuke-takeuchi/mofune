@@ -38,7 +38,11 @@
           </svg>
           Mofune
         </a>
-        <nav class="site-nav">
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+          <span class="bars" aria-hidden="true"></span>
+          <span class="visually-hidden">メニュー</span>
+        </button>
+        <nav class="site-nav" id="site-nav">
           <a href="#features">できること</a>
           <a href="#security">安心のしくみ</a>
           <a href="#start">はじめかた</a>
@@ -57,6 +61,22 @@
             <p class="lead">
               お知らせ、写真やPDF、出欠確認、不在の連絡、アンケートを、グループが用意した保管場所に暗号化して保存します。Mofune の利用に会員登録も月額料金もかかりません。
             </p>
+            <svg class="hero-mascot float" viewBox="0 0 200 190" aria-hidden="true">
+              <ellipse cx="100" cy="152" rx="60" ry="10" fill="#3B322A" opacity=".07" />
+              <circle cx="58" cy="82" r="26" fill="#FFFFFF" />
+              <circle cx="142" cy="82" r="26" fill="#FFFFFF" />
+              <circle cx="78" cy="52" r="26" fill="#FFFFFF" />
+              <circle cx="124" cy="50" r="24" fill="#FFFFFF" />
+              <ellipse cx="100" cy="92" rx="54" ry="48" fill="#FFFFFF" />
+              <ellipse cx="100" cy="139" rx="46" ry="16" fill="#E8A03C" />
+              <rect x="54" y="112" width="92" height="26" rx="13" fill="#E8A03C" />
+              <path d="M74 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+              <path d="M110 88 q8 -9 16 0" stroke="#3B322A" stroke-width="4" fill="none" stroke-linecap="round" />
+              <ellipse cx="64" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+              <ellipse cx="136" cy="103" rx="9" ry="6" fill="#F2A28C" opacity=".75" />
+              <path d="M92 100 q8 8 16 0" stroke="#3B322A" stroke-width="3.4" fill="none" stroke-linecap="round" />
+            </svg>
+
             <div class="hero-actions">
               <a class="btn btn-primary" href="/app/">グループを作る</a>
               <a class="btn btn-ghost" href="/app/">メンバーとしてログイン</a>
@@ -106,18 +126,21 @@
           </div>
           <div class="grid why-grid">
             <div class="card">
+              <span class="dot dot-amber" aria-hidden="true"></span>
               <h3>Mofune の利用料は無料</h3>
               <p>
                 利用者の端末と、グループが用意した保管場所だけで動きます。Mofune への会員登録も月額利用料もありません。保管場所は各グループが選んで契約します(料金や登録条件はそのサービスの規約によります)。
               </p>
             </div>
             <div class="card">
+              <span class="dot dot-green" aria-hidden="true"></span>
               <h3>中身は関係者だけ</h3>
               <p>
                 写真も連絡も、送る前に端末の中で鍵をかけます。保管場所の事業者も、私たちも中身を読めません。
               </p>
             </div>
             <div class="card">
+              <span class="dot dot-terracotta" aria-hidden="true"></span>
               <h3>参加者はIDだけ</h3>
               <p>
                 Googleアカウントもアプリのインストールも不要。配られたIDとパスワードでどの端末からでも見られます。
@@ -423,8 +446,23 @@
           <a href="/setup-guide.html">導入手順書</a>
           <a href="https://github.com/kousuke-takeuchi/mofune">GitHub</a>
         </nav>
-        <p class="copy">グループのなかの連絡を、やわらかく、安全に。</p>
+        <p class="copy">グループのなかの連絡を、やわらかく、安全に。<span>© 2026 Mofune</span></p>
       </div>
     </footer>
+    <script>
+      // モバイルは畳んでおく。開いた状態を aria-expanded で伝える。
+      const toggle = document.querySelector('.menu-toggle')
+      const nav = document.getElementById('site-nav')
+      toggle.addEventListener('click', () => {
+        const open = toggle.getAttribute('aria-expanded') === 'true'
+        toggle.setAttribute('aria-expanded', String(!open))
+        nav.classList.toggle('open', !open)
+      })
+      nav.addEventListener('click', (event) => {
+        if (event.target.tagName !== 'A') return
+        toggle.setAttribute('aria-expanded', 'false')
+        nav.classList.remove('open')
+      })
+    </script>
   </body>
 </html>

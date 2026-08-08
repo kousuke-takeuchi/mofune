@@ -138,6 +138,8 @@ svg {
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 2.5rem;
+  /* 狭い画面では見出しを中央に置く (原稿 2a) */
+  text-align: center;
 }
 
 .section-head h2 {
@@ -265,6 +267,14 @@ svg {
   gap: clamp(2rem, 5vw, 3.5rem);
   grid-template-columns: 1fr;
   align-items: center;
+  /* 原稿(2a)のスマホ版は中央寄せ。広い画面で左寄せに戻す。 */
+  text-align: center;
+}
+
+.hero-mascot {
+  width: 150px;
+  margin: 1.5rem auto 0;
+  display: block;
 }
 
 .hero h1 {
@@ -277,18 +287,47 @@ svg {
 .hero .lead {
   color: var(--ink-2);
   max-width: 34rem;
+  margin-inline: auto;
+}
+
+/* 肩書きは白い丸バッジ (原稿 2a) */
+.hero .eyebrow {
+  display: inline-block;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  text-transform: none;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
 }
 
 .hero-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.75rem;
   margin-top: 1.75rem;
+}
+
+.hero-actions .btn {
+  width: 100%;
+}
+
+/* ヒーローと締めの主ボタンはテラコッタ (原稿 2a)。ヘッダの小さいものは琥珀。 */
+.hero-actions .btn-primary,
+.cta-actions .btn-primary {
+  background: var(--terracotta);
+}
+
+.hero-actions .btn-primary:hover,
+.cta-actions .btn-primary:hover {
+  background: #b4552a;
 }
 
 .chips {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.5rem 1.1rem;
   margin-top: 1.25rem;
   font-size: 12.5px;
@@ -406,6 +445,33 @@ svg {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+.why-grid .card {
+  background: var(--sand);
+  border-color: transparent;
+  border-radius: 22px;
+  text-align: left;
+}
+
+.dot {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  margin-bottom: 0.9rem;
+}
+
+.dot-amber {
+  background: var(--amber);
+}
+
+.dot-green {
+  background: var(--green);
+}
+
+.dot-terracotta {
+  background: var(--terracotta);
+}
+
 .why-grid h3 {
   font-size: 18px;
   margin-bottom: 0.4rem;
@@ -423,19 +489,25 @@ svg {
 }
 
 .feature {
-  text-align: center;
+  /* 原稿 2a は横並び。左にアイコンの箱、右に文。 */
   display: grid;
-  gap: 0.35rem;
-  justify-items: center;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.2rem 1rem;
+  text-align: left;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 22px;
-  padding: 1.5rem 1.25rem 1.75rem;
+  padding: 1.1rem 1.25rem;
 }
 
 .feature svg {
-  width: 88px;
-  height: 84px;
+  grid-row: span 2;
+  width: 64px;
+  height: 61px;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--sand);
 }
 
 .feature h3 {
@@ -449,11 +521,18 @@ svg {
 
 /* ---------- 安心のしくみ ---------- */
 
-.security {
+/*
+ * 狭い画面では帯ごと暗くする (原稿 2a)。負のマージンで全幅にすると
+ * スクロールバーのぶん横に溢れるので、背景は section 側に持たせる。
+ */
+#security {
   background: var(--ink);
+}
+
+.security {
   color: var(--sand);
-  border-radius: var(--round-lg);
-  padding: clamp(2rem, 5vw, 3.25rem);
+  border-radius: 0;
+  padding: 0;
   display: grid;
   gap: 2rem;
   grid-template-columns: 1fr;
@@ -850,13 +929,146 @@ svg {
   }
 }
 
+/* ---------- メニュー ---------- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.menu-toggle {
+  margin-left: auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  cursor: pointer;
+}
+
+/* 3本線。開いているかは aria-expanded が持つ。 */
+.menu-toggle .bars,
+.menu-toggle .bars::before,
+.menu-toggle .bars::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ink);
+}
+
+.menu-toggle .bars {
+  position: relative;
+}
+
+.menu-toggle .bars::before,
+.menu-toggle .bars::after {
+  content: '';
+  position: absolute;
+  left: 0;
+}
+
+.menu-toggle .bars::before {
+  top: -6px;
+}
+
+.menu-toggle .bars::after {
+  top: 6px;
+}
+
+/* 狭い画面では畳む。折り返して段が増えると、下の内容に重なる。 */
+@media (max-width: 819px) {
+  .site-nav {
+    display: none;
+    width: 100%;
+    margin-left: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .site-nav.open {
+    display: flex;
+  }
+
+  .site-nav a {
+    padding: 0.6rem 0.2rem;
+  }
+
+  .site-nav .btn {
+    margin-top: 0.4rem;
+    justify-content: center;
+  }
+}
+
 /* ---------- 広い画面 ---------- */
 
 @media (min-width: 820px) {
+  .menu-toggle {
+    display: none;
+  }
+
   .hero .wrap {
     grid-template-columns: 1.15fr 0.85fr;
+    text-align: left;
   }
+
+  .hero .lead {
+    margin-inline: 0;
+  }
+
+  .hero-mascot {
+    display: none;
+  }
+
+  .hero-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .hero-actions .btn {
+    width: auto;
+  }
+
+  .chips {
+    justify-content: flex-start;
+  }
+
+  .feature {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    padding: 1.5rem 1.25rem 1.75rem;
+  }
+
+  .feature svg {
+    grid-row: auto;
+    width: 88px;
+    height: 84px;
+    background: transparent;
+    padding: 0;
+  }
+
+  .section-head {
+    text-align: left;
+  }
+
+  #security {
+    background: transparent;
+  }
+
   .security {
+    background: var(--ink);
+    border-radius: var(--round-lg);
+    padding: clamp(2rem, 5vw, 3.25rem);
     grid-template-columns: 1.05fr 0.95fr;
     gap: 3rem;
   }
