@@ -22,6 +22,7 @@ describe('routes', () => {
         '/g/:groupId/messages/:messageId',
         '/g/:groupId/messages/:messageId/notify',
         '/g/:groupId/panel',
+        '/g/:groupId/group-settings',
         '/g/:groupId/members',
         '/g/:groupId/settings',
         '/g/:groupId/setup',
@@ -54,6 +55,7 @@ describe('routes', () => {
       'setup',
       'settings',
       'members',
+      'group-settings',
       'groups',
     ]) {
       expect(names).toContain(name)
@@ -65,7 +67,13 @@ describe('routes', () => {
       .getRoutes()
       .filter((route) => route.meta.staffOnly)
       .map((route) => route.name)
-    expect(staffOnly.sort()).toEqual(['absences', 'compose', 'notify', 'panel'])
+    expect(staffOnly.sort()).toEqual([
+      'absences',
+      'compose',
+      'group-settings',
+      'notify',
+      'panel',
+    ])
   })
 
   it('marks the screens that do not need a session', () => {

@@ -82,6 +82,12 @@ const routes: RouteRecordRaw[] = [
     meta: { adminOnly: true },
   },
   {
+    path: '/g/:groupId/group-settings',
+    name: 'group-settings',
+    component: () => import('../pages/GroupSettingsPage.vue'),
+    meta: { staffOnly: true },
+  },
+  {
     path: '/g/:groupId/settings',
     name: 'settings',
     component: () => import('../pages/SettingsPage.vue'),

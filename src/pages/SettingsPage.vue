@@ -56,6 +56,15 @@ function go(place: NavPlace): void {
       @register-email="router.push({ name: 'setup', params: { groupId: session.groupId } })"
     />
     <button
+      v-if="session.role !== 'member'"
+      type="button"
+      class="wide"
+      data-test="group-settings"
+      @click="router.push({ name: 'group-settings', params: { groupId: session.groupId } })"
+    >
+      グループの設定
+    </button>
+    <button
       v-if="session.role === 'admin'"
       type="button"
       class="wide"
