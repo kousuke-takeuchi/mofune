@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { toHex } from '../crypto/bytes'
 import type { KdfParams } from '../crypto/kdf'
 import { randomBytes } from '../crypto/symmetric'
@@ -8,6 +8,8 @@ import type { SetupResult } from '../group/setup'
 import { SetupError, setUpGroup } from '../group/setup'
 import type { StorageSettings } from '../group/storage-credentials'
 import { toProviderConfig } from '../group/storage-credentials'
+import QrCode from './QrCode.vue'
+import { buildJoinUrl, currentAppBaseUrl } from '../group/join-url'
 import type { StorageProvider } from '../storage/provider'
 import { S3StorageProvider } from '../storage/s3'
 
@@ -39,6 +41,11 @@ const secretAccessKey = ref('')
 const check = ref<CheckResult | null>(null)
 const result = ref<SetupResult | null>(null)
 const kitStored = ref(false)
+
+/** 紙に印刷して配る URL。読み取り側の実装が要らないのが利点。 */
+const joinUrl = computed(() =>
+  result.value ? buildJoinUrl(result.value.connectionCode, currentAppBaseUrl()) : '',
+)
 
 function toStorageStep(): void {
   const missing =
@@ -240,7 +247,17 @@ function back(): void {
           この画面を離れると<strong>二度と表示できません</strong>。
           接続コードはストレージからは復元できません(pepper を含むため)。
         </p>
-        <pre data-test="connection-code">{{ result.connectionCode }}</pre>
+        <p>
+          紙に印刷して配ります。参加者は QR を端末のカメラで読むだけで、コードが入った
+          状態のログイン画面が開きます。
+        </p>
+        <QrCode :text="joinUrl" label="参加用のQRコード" />
+        <p class="hint" data-test="join-url">{{ joinUrl }}</p>
+
+        <details>
+          <summary>接続コードの文字列</summary>
+          <pre data-test="connection-code">{{ result.connectionCode }}</pre>
+        </details>
 
         <h2>リカバリキット</h2>
         <p>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import type { Bytes } from '../crypto/bytes'
 import { createPost } from '../content/post'
 import type { DraftAttachment } from '../content/post'
 import { openGroupDatabase } from '../db/group-db'
@@ -36,6 +37,25 @@ const options = computed(() => {
   return list
 })
 
+/** 選んだファイルを読み込む。暗号化は createPost が受け持つ。 */
+async function pickFiles(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const picked = [...(input.files ?? [])]
+  for (const file of picked) {
+    attachments.value.push({
+      name: file.name,
+      mediaType: file.type || 'application/octet-stream',
+      bytes: new Uint8Array(await file.arrayBuffer()) as Bytes,
+    })
+  }
+  // 同じファイルをもう一度選べるようにする
+  input.value = ''
+}
+
+function removeAttachment(index: number): void {
+  attachments.value.splice(index, 1)
+}
+
 async function submit(): Promise<void> {
   error.value = ''
   queued.value = false
@@ -70,6 +90,8 @@ async function submit(): Promise<void> {
 
 <template>
   <section>
+    <h1>お知らせを作る</h1>
+
     <p v-if="!canPost" data-test="not-allowed">投稿できるのは担当者と管理者だけです。</p>
 
     <form v-else @submit.prevent="submit">
@@ -87,7 +109,32 @@ async function submit(): Promise<void> {
         </label>
       </fieldset>
 
-      <textarea data-test="body" v-model="body"></textarea>
+      <label>
+        本文
+        <textarea data-test="body" v-model="body"></textarea>
+      </label>
+
+      <label>
+        写真やPDFを添付
+        <input
+          type="file"
+          data-test="attach"
+          multiple
+          accept="image/*,application/pdf"
+          @change="pickFiles"
+        />
+      </label>
+
+      <ul v-if="attachments.length > 0">
+        <li v-for="(attachment, index) in attachments" :key="index" data-test="attachment">
+          <div class="row">
+            <span class="titles">{{ attachment.name }}</span>
+            <button type="button" class="quiet danger" data-test="remove-attachment" @click="removeAttachment(index)">
+              外す
+            </button>
+          </div>
+        </li>
+      </ul>
 
       <p v-if="error" data-test="error">{{ error }}</p>
       <p v-if="queued" data-test="queued">

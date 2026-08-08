@@ -6,9 +6,11 @@ import { login } from '../group/session'
 import { HttpStorageProvider } from '../storage/http'
 import { rememberGroup } from '../db/groups'
 
+const props = withDefaults(defineProps<{ initialCode?: string }>(), { initialCode: '' })
 const emit = defineEmits<{ login: [session: Session, root: string, adminPublicKey: string] }>()
 
-const code = ref('')
+// QR から来た人は接続コードが入った状態で始まる
+const code = ref(props.initialCode)
 const loginId = ref('')
 const password = ref('')
 const error = ref('')
