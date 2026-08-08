@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import type { StoredGroup } from '../db/groups'
 
-defineProps<{ groups: StoredGroup[]; currentGroupId: string | null }>()
+defineProps<{
+  groups: StoredGroup[]
+  currentGroupId: string | null
+  /** グループIDごとの未読件数。端末のローカル計算。 */
+  unread: Record<string, number>
+}>()
 const emit = defineEmits<{ open: [groupId: string]; add: [] }>()
 </script>
 
@@ -30,7 +35,8 @@ const emit = defineEmits<{ open: [groupId: string]; add: [] }>()
             <h2>{{ group.groupName }}</h2>
             <p class="hint">{{ group.email }}</p>
           </div>
-          <p v-if="group.groupId === currentGroupId" class="badge">いま開いています</p>
+          <p v-if="unread[group.groupId]" class="badge">未読 {{ unread[group.groupId] }}</p>
+          <p v-else-if="group.groupId === currentGroupId" class="badge">いま開いています</p>
         </div>
       </li>
     </ul>
