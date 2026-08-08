@@ -19,6 +19,7 @@ const thumbs = ref<Record<string, string[]>>({})
 /** サムネイルに出す最大枚数。残りは枚数で示す (原稿 03)。 */
 const THUMB_LIMIT = 3
 const lastReadAt = ref<string | null>(null)
+const lastSyncedAt = ref<string | null>(null)
 const syncError = ref('')
 const syncing = ref(false)
 
@@ -30,6 +31,18 @@ function isUnread(message: CachedMessage): boolean {
 }
 
 const unreadCount = computed(() => messages.value.filter(isUnread).length)
+
+/** ヘッダの副題。所属している組と自分の名前を並べる (原稿 03)。 */
+const belongsTo = computed(() => {
+  const names = props.session.roster.subgroups
+    .filter((subgroup) => props.session.scopes.includes(subgroup.id))
+    .map((subgroup) => subgroup.name)
+  return [...names, props.session.displayName].join('・')
+})
+
+const syncedLabel = computed(() =>
+  lastSyncedAt.value === null ? '未同期' : `同期済み ${formatWhen(lastSyncedAt.value)}`,
+)
 
 /** 端末に控えてある画像だけを URL にする。無い添付は黙って出さない。 */
 async function loadThumbs(): Promise<void> {
@@ -61,12 +74,14 @@ async function reload(): Promise<void> {
   try {
     // 2つを直列に await すると、呼び出し側が1ティックしか待たないときに
     // 2つ目が反映されない。まとめて解決させる。
-    const [cached, state] = await Promise.all([
+    const [cached, state, synced] = await Promise.all([
       db.messages.toArray(),
       db.syncState.get('lastReadAt'),
+      db.syncState.get('lastSyncedAt'),
     ])
     messages.value = cached.sort((a, b) => (a.at < b.at ? 1 : -1))
     lastReadAt.value = state?.value ?? null
+    lastSyncedAt.value = synced?.value ?? null
     await loadThumbs()
   } catch {
     // 端末の登録解除(設計書 §5.4)などで DB が閉じられた場合は、
@@ -101,9 +116,18 @@ onMounted(reload)
       <div class="avatar" aria-hidden="true">{{ session.groupName.slice(0, 1) }}</div>
       <div class="titles">
         <h1>{{ session.groupName }}</h1>
-        <p>{{ session.displayName }}</p>
+        <p data-test="belongs-to">{{ belongsTo }}</p>
       </div>
       <p class="badge">未読 <span data-test="unread-count">{{ unreadCount }}</span></p>
+      <button
+        type="button"
+        class="chip sync-chip"
+        data-test="sync-chip"
+        :disabled="syncing"
+        @click="sync"
+      >
+        {{ syncedLabel }}
+      </button>
       <button type="button" class="quiet" data-test="sync" :disabled="syncing" @click="sync">
         いま同期する
       </button>
@@ -145,7 +169,11 @@ onMounted(reload)
         :data-unread="String(isUnread(message))"
         @click="emit('open', message.id)"
       >
-        <time>{{ formatWhen(message.at) }}</time>
+        <p class="card-head">
+          <span v-if="isUnread(message)" class="unread-dot" data-test="unread-dot" aria-label="未読" />
+          <time>{{ formatWhen(message.at) }}</time>
+          <span v-if="message.form" class="chip needs-answer" data-test="needs-answer">要回答</span>
+        </p>
         <h2 v-if="message.title" class="message-title">{{ message.title }}</h2>
         <p>{{ message.body }}</p>
         <div v-if="thumbs[message.id]" class="thumbs">
@@ -164,6 +192,15 @@ onMounted(reload)
           v-else-if="message.attachments.length > 0"
           data-test="has-attachment"
         >添付あり</span>
+        <button
+          v-if="message.form"
+          type="button"
+          class="primary answer"
+          data-test="answer"
+          @click.stop="emit('open', message.id)"
+        >
+          回答する
+        </button>
       </li>
     </ul>
   </section>
