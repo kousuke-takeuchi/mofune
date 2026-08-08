@@ -103,7 +103,9 @@ describe('submitToInbox', () => {
     const queued = await pending(db)
     expect(queued).toHaveLength(1)
     expect(queued[0]?.kind).toBe('inbox')
-    expect(queued[0]?.path).toBe(grant.slots[0]?.url)
+    const first = grant.slots[0]
+    if (first?.kind === 'ticket') throw new Error('expected a presigned slot')
+    expect(queued[0]?.path).toBe(first?.url)
     expect(result.key).toBe(grant.slots[0]?.key)
   })
 

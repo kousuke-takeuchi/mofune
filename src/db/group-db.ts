@@ -67,10 +67,17 @@ export interface CachedRoster {
 
 export interface OutboxItem {
   id: string
-  /** object: files/ と messages/ の実体。event: events/ の追記。inbox: 上りの投函。 */
-  kind: 'object' | 'event' | 'inbox'
-  /** 送信先のストレージパス、または presigned URL。 */
+  /**
+   * object: files/ と messages/ の実体。event: events/ の追記。
+   * inbox: presigned URL への投函。inbox-ticket: 関数へ引換券で投函。
+   */
+  kind: 'object' | 'event' | 'inbox' | 'inbox-ticket'
+  /** 送信先のストレージパス、presigned URL、または関数の URL。 */
   path: string
+  /** inbox-ticket のときだけ。置き場所と引換券。 */
+  key?: string
+  ticket?: string
+  groupId?: string
   body: Bytes
   queuedAt: string
   attempts: number

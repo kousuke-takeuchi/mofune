@@ -1,3 +1,4 @@
+import { toBase64 } from '../crypto/bytes'
 import type { GroupDatabase, OutboxItem } from '../db/group-db'
 import type { StorageProvider } from '../storage/provider'
 
@@ -25,6 +26,28 @@ export async function pending(db: GroupDatabase): Promise<OutboxItem[]> {
  * 投函が永久にキューへ残る。
  */
 async function send(storage: StorageProvider, item: OutboxItem): Promise<void> {
+  if (item.kind === 'inbox-ticket') {
+    // presigned が作れない置き場では、関数が引換券を確かめて置いてくれる。
+    // Apps Script は状態コードを選べないので、本文の error も失敗として扱う。
+    const response = await fetch(`${item.path}?path=${encodeURIComponent('/inbox')}`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        group_id: item.groupId,
+        key: item.key,
+        body: toBase64(item.body),
+        ticket: item.ticket,
+      }),
+    })
+    if (!response.ok) {
+      throw new Error(`inbox upload failed with status ${String(response.status)}`)
+    }
+    const body = (await response.json()) as { error?: string }
+    if (typeof body.error === 'string') {
+      throw new Error(`inbox upload was refused: ${body.error}`)
+    }
+    return
+  }
   if (item.kind === 'inbox') {
     const response = await fetch(item.path, { method: 'PUT', body: item.body })
     if (!response.ok) {

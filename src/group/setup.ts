@@ -5,7 +5,7 @@ import { keyId, parseKeyringFile, unlockKeyring } from '../crypto/keyring'
 import { parseKeystoreFile, unlockKeystore } from '../crypto/keystore'
 import type { Subgroup } from '../crypto/roster'
 import { STAFF_SCOPE, parseRosterFile, verifyRoster } from '../crypto/roster'
-import { publishGrants } from '../inbox/grants'
+import { canIssueGrants, publishGrants } from '../inbox/grants'
 import { keyringPath, keystorePath, rosterPath } from '../storage/paths'
 import type { StorageProvider } from '../storage/provider'
 import { FunctionStorageProvider } from '../storage/function'
@@ -154,15 +154,14 @@ export async function setUpGroup(options: SetupOptions): Promise<SetupResult> {
     parseRosterFile(take(provisioned.objects, rosterPath(options.groupId))),
     fromBase64(provisioned.code.adminPublicKey),
   )
-  const grantsIssued =
-    options.settings.provider === 's3'
-      ? await publishGrants({
-          storage: options.storage,
-          groupId: options.groupId,
-          roster,
-          settings: options.settings,
-        })
-      : []
+  const grantsIssued = canIssueGrants(options.settings)
+    ? await publishGrants({
+        storage: options.storage,
+        groupId: options.groupId,
+        roster,
+        settings: options.settings,
+      })
+    : []
 
   // リカバリキットは戻り値に必ず含める。あとで出す導線にすると
   // 出さないまま運用が始まり、ルート鍵を失った時点で詰む(設計書 §4.8)。

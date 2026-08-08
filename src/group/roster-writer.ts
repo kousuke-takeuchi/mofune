@@ -10,7 +10,7 @@ import {
   verifyRoster,
 } from '../crypto/roster'
 import { generateAesKey } from '../crypto/symmetric'
-import { publishGrants } from '../inbox/grants'
+import { canIssueGrants, publishGrants } from '../inbox/grants'
 import { keyringPath, rosterPath } from '../storage/paths'
 import type { StorageProvider } from '../storage/provider'
 import type { ConnectionCode } from './connection-code'
@@ -177,8 +177,8 @@ export async function issueGrantFor(options: {
 }): Promise<void> {
   const member = options.roster.members.find((candidate) => candidate.userId === options.userId)
   if (!member || member.role !== 'member') return
-  // presigned URL を作れない置き場では枠を配らない。上りは関数層が受ける
-  if (options.settings.provider !== 's3') return
+  // 枠を配れない置き場では何もしない (WebDAV など)
+  if (!canIssueGrants(options.settings)) return
   await publishGrants({
     storage: options.storage,
     groupId: options.groupId,

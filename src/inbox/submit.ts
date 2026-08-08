@@ -38,6 +38,29 @@ export function nextSlot(grant: InboxGrant, used: string[], now: Date = new Date
   return free
 }
 
+/**
+ * 枠の種類から送信先を決める。presigned URL はそこへ素の PUT、引換券は
+ * 関数へ POST。どちらも outbox に積んでから送るので、圏外でも失われない。
+ */
+function destinationOf(slot: InboxSlot): {
+  kind: 'inbox' | 'inbox-ticket'
+  path: string
+  key?: string
+  ticket?: string
+  groupId?: string
+} {
+  if (slot.kind === 'ticket') {
+    return {
+      kind: 'inbox-ticket',
+      path: slot.functionUrl,
+      key: slot.key,
+      ticket: slot.ticket,
+      groupId: slot.key.slice(0, slot.key.indexOf('/')),
+    }
+  }
+  return { kind: 'inbox', path: slot.url }
+}
+
 /** 自分の受信箱に置くキー。誰がいつ何件投函したかを推測しにくいよう乱数にする。 */
 export function inboxKeyFor(session: Session): string {
   return `${session.groupId}/inbox/${session.userId}/${toHex(randomBytes(16))}.enc`
@@ -57,12 +80,7 @@ export async function submitSealedToInbox(options: {
   const used = await usedSlots(options.db)
   const slot = nextSlot(options.grant, used, options.now)
 
-  await enqueue(options.db, {
-    id: slot.key,
-    kind: 'inbox',
-    path: slot.url,
-    body: options.sealed,
-  })
+  await enqueue(options.db, { id: slot.key, ...destinationOf(slot), body: options.sealed })
   await options.db.syncState.put({
     key: USED_SLOTS_KEY,
     value: JSON.stringify([...used, slot.key]),
@@ -87,13 +105,7 @@ export async function submitToInbox(options: {
   const used = await usedSlots(options.db)
   const slot = nextSlot(options.grant, used, options.now)
 
-  await enqueue(options.db, {
-    id: slot.key,
-    kind: 'inbox',
-    // presigned URL をそのまま送信先にする
-    path: slot.url,
-    body: sealed,
-  })
+  await enqueue(options.db, { id: slot.key, ...destinationOf(slot), body: sealed })
   await options.db.syncState.put({
     key: USED_SLOTS_KEY,
     value: JSON.stringify([...used, slot.key]),

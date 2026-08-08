@@ -19,7 +19,7 @@ import { applyInbox } from '../inbox/apply'
 import { decodeManifest } from '../group/manifest'
 import { manifestPath } from '../storage/paths'
 import { pushRegistryFrom, replaceRegistry } from '../notify/push'
-import { publishGrants } from '../inbox/grants'
+import { canIssueGrants, publishGrants } from '../inbox/grants'
 import type { StorageProvider } from '../storage/provider'
 
 const props = defineProps<{
@@ -99,8 +99,9 @@ async function refreshStatus(): Promise<void> {
 
 async function publish(): Promise<void> {
   if (!settings.value) return
-  if (settings.value.provider !== 's3') {
-    error.value = 'この置き場では投函枠を配りません。参加者からの連絡は関数層が受けます。'
+  if (!canIssueGrants(settings.value)) {
+    error.value =
+      'この置き場では投函枠を配れません。参加者からの連絡を受けるには、関数に置き場への書き込みを任せる設定が必要です。'
     return
   }
   error.value = ''

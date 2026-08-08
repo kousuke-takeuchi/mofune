@@ -99,6 +99,7 @@ describe('issueGrant', () => {
       now,
     })
     for (const slot of grant.slots) {
+      if (slot.kind === 'ticket') throw new Error('expected a presigned slot')
       const url = new URL(slot.url)
       expect(url.pathname).toBe(`/mofune/${slot.key}`)
       expect(url.searchParams.get('X-Amz-Signature')).toMatch(/^[0-9a-f]{64}$/)
