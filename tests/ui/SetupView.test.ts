@@ -99,16 +99,21 @@ afterEach(() => {
   mounted = []
 })
 
-async function mountSetup() {
+/**
+ * 既定では同意にチェックを入れた状態で返す。同意そのものを見るテストだけ
+ * agree: false で呼ぶ。
+ */
+async function mountSetup(options: { agree?: boolean } = {}) {
+  const agree = options.agree ?? true
   const { session, storage } = await fixture()
   const wrapper = mount(SetupView, { props: { session, storage } })
   mounted.push(wrapper)
+  if (agree) await wrapper.get('[data-test="agree"]').setValue(true)
   // grant の読み込みが終わって登録ボタンが押せるようになるまで待つ
   await vi.waitFor(() => {
     const button = wrapper.find('[data-test="register"]')
-    if (!button.exists() || button.attributes('disabled') !== undefined) {
-      throw new Error('still loading')
-    }
+    if (!button.exists()) throw new Error('still loading')
+    if (agree && button.attributes('disabled') !== undefined) throw new Error('still loading')
   }, { timeout: 2000, interval: 10 })
   return wrapper
 }
@@ -163,5 +168,26 @@ describe('SetupView', () => {
 
   it('says the address is not shown to other members', async () => {
     expect((await mountSetup()).text()).toContain('担当者')
+  })
+})
+
+describe('the first-run screen, as the design draws it', () => {
+  it('shows which of the three steps we are on', async () => {
+    const wrapper = await mountSetup()
+    expect(wrapper.get('[data-test="step"]').text()).toContain('2 / 3')
+    expect(wrapper.findAll('[data-test="step-segment"]')).toHaveLength(3)
+  })
+
+  it('will not register until the policy is agreed to', async () => {
+    const wrapper = await mountSetup({ agree: false })
+    await wrapper.get('[data-test="email"]').setValue('sato@example.invalid')
+    expect(wrapper.get('[data-test="register"]').attributes('disabled')).toBeDefined()
+
+    await wrapper.get('[data-test="agree"]').setValue(true)
+    await vi.waitFor(() => {
+      if (wrapper.get('[data-test="register"]').attributes('disabled') !== undefined) {
+        throw new Error('still disabled')
+      }
+    }, { timeout: 2000, interval: 10 })
   })
 })

@@ -912,3 +912,65 @@ fieldset.dark-choice button[aria-pressed='true'] {
 .attach-button input {
   display: none;
 }
+
+/* ---------- 初回の設定 (原稿 02) ---------- */
+
+.steps {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.steps p {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--amber-ink);
+}
+
+.step-bar {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 5px;
+}
+
+.step-bar span {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--sand-deep);
+}
+
+.step-bar span[data-done='true'] {
+  background: var(--terracotta);
+}
+
+.agree {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.agree input {
+  accent-color: var(--terracotta);
+  width: 18px;
+  height: 18px;
+}
+
+/* 「届くかどうかの確認」はクリーム地のカードにまとめる */
+.check-card {
+  display: grid;
+  gap: 8px;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.check-card h2 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink);
+}
