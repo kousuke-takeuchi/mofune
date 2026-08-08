@@ -5,6 +5,7 @@ import MembersView from '../ui/MembersView.vue'
 import type { RosterContents } from '../crypto/roster'
 import type { NewMemberInput } from '../group/membership'
 import { addMember, reissuePassword } from '../group/membership'
+import { moveEveryone } from '../group/bulk-move'
 import { removeMember } from '../group/rotation'
 import { createSubgroup, setMemberScopes } from '../group/subgroups'
 import { getGroup } from '../db/groups'
@@ -120,6 +121,28 @@ async function onMove(target: { userId: string; scopes: string[] }): Promise<voi
  * 外したあとは鍵の世代が上がる。いまのセッションは古い世代のままなので、
  * 入り直してもらう。黙って古い鍵で書き続けると、誰も読めないお知らせができる。
  */
+async function onBulkMove(move: { from: string; to: string }): Promise<void> {
+  if (!session.session || !session.writer || !code.value || !settings.value) return
+  error.value = ''
+  notice.value = ''
+  busy.value = true
+  try {
+    const { moved } = await moveEveryone({
+      storage: session.writer,
+      session: session.session,
+      code: code.value,
+      settings: settings.value,
+      ...move,
+    })
+    await refresh()
+    notice.value = `${moved.length}人を移しました。`
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '移せませんでした'
+  } finally {
+    busy.value = false
+  }
+}
+
 async function onRemove(target: { userId: string }): Promise<void> {
   if (!session.session || !session.writer || !code.value || !settings.value) return
   error.value = ''
@@ -179,6 +202,7 @@ async function onReissue(target: {
     :current-user-id="session.session?.userId ?? ''"
     @create-subgroup="onCreateSubgroup"
     @remove="onRemove"
+    @bulk-move="onBulkMove"
     @move="onMove"
     @reissue="onReissue"
     @close="router.push({ name: 'timeline', params: { groupId: session.groupId } })"

@@ -187,4 +187,18 @@ describe('MembersView', () => {
     expect(rows[0]?.find('[data-test="remove"]').exists()).toBe(false)
     expect(rows[1]?.find('[data-test="remove"]').exists()).toBe(true)
   })
+
+  it('moves a whole subgroup into another one', async () => {
+    const wrapper = mountView()
+    await wrapper.find('[data-test="bulk-from"]').setValue('sg_a')
+    await wrapper.find('[data-test="bulk-to"]').setValue('sg_a_pickup')
+    await wrapper.find('[data-test="bulk-move"]').trigger('click')
+    expect(wrapper.emitted('bulkMove')?.[0]?.[0]).toEqual({ from: 'sg_a', to: 'sg_a_pickup' })
+  })
+
+  it('does not move anything until both ends are chosen', async () => {
+    const wrapper = mountView()
+    await wrapper.find('[data-test="bulk-move"]').trigger('click')
+    expect(wrapper.emitted('bulkMove')).toBeFalsy()
+  })
 })
