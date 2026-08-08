@@ -10,9 +10,18 @@ const session = useSessionStore()
 
 <template>
   <MessageDetailView
-    v-if="session.session"
+    v-if="session.session && session.storage"
     :session="session.session"
+    :storage="(session.writer ?? session.storage)!"
     :message-id="String(route.params.messageId)"
     @back="router.push({ name: 'timeline', params: { groupId: session.groupId } })"
+    @results="
+      (formId: string) =>
+        router.push({
+          name: 'results',
+          params: { groupId: session.groupId, messageId: route.params.messageId },
+          query: { form: formId },
+        })
+    "
   />
 </template>

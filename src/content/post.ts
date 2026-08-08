@@ -8,6 +8,7 @@ import { eventPathFor, newEventId, sealEvent } from '../sync/events'
 import { enqueue } from '../sync/outbox'
 import type { AttachmentRef } from './attachments'
 import { sealAttachment } from './attachments'
+import type { FormDefinition } from './forms'
 import type { MessageContent } from './messages'
 import { newMessageId, sealMessage } from './messages'
 
@@ -24,6 +25,7 @@ export interface Draft {
   /** 素のスコープ id。世代は resolveTargets が付ける。 */
   scopes: string[]
   attachments: DraftAttachment[]
+  form?: FormDefinition
 }
 
 export interface PostResult {
@@ -96,6 +98,7 @@ export async function createPost(options: {
     at,
     body: draft.body,
     attachments,
+    ...(draft.form ? { form: draft.form } : {}),
   }
   await enqueue(db, {
     id: message.id,

@@ -1,4 +1,5 @@
 import Dexie from 'dexie'
+import type { FormDefinition } from '../content/forms'
 import type { Table } from 'dexie'
 import type { Bytes } from '../crypto/bytes'
 import type { RosterContents } from '../crypto/roster'
@@ -12,6 +13,21 @@ export interface CachedMessage {
   body: string
   /** files/ に置かれた添付の id。 */
   attachments: string[]
+  /** 埋め込みフォーム。無いお知らせのほうが多い。 */
+  form?: FormDefinition
+}
+
+/** 自分が作ったフォームへ届いた回答。作成者の端末にだけ残る。 */
+export interface StoredFormResponse {
+  /** formId と userId の組。同じ人の答え直しは上書きする。 */
+  id: string
+  formId: string
+  messageId: string
+  userId: string
+  displayName: string
+  choice: string
+  note: string
+  at: string
 }
 
 export interface CachedFile {
@@ -73,6 +89,7 @@ export class GroupDatabase extends Dexie {
   syncState!: Table<SyncState, string>
   absences!: Table<CachedAbsence, string>
   deliveries!: Table<DeliveryRecord, string>
+  formResponses!: Table<StoredFormResponse, string>
 
   constructor(groupId: string) {
     super(`mofune_${groupId}`)
@@ -103,6 +120,18 @@ export class GroupDatabase extends Dexie {
       syncState: 'key',
       absences: 'id, date',
       deliveries: 'id, messageId',
+    })
+    // v3 の定義は消さない。既存端末の DB を移行するために必要。
+    this.version(4).stores({
+      messages: 'id, at',
+      files: 'id, cachedAt',
+      events: 'id',
+      roster: 'groupId',
+      outbox: 'id, queuedAt',
+      syncState: 'key',
+      absences: 'id, date',
+      deliveries: 'id, messageId',
+      formResponses: 'id, formId',
     })
   }
 }

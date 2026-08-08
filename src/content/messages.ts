@@ -4,6 +4,7 @@ import type { SealTarget } from '../crypto/envelope'
 import { openEnvelope, sealEnvelopeFor } from '../crypto/envelope'
 import { randomBytes } from '../crypto/symmetric'
 import type { AttachmentRef } from './attachments'
+import type { FormDefinition } from './forms'
 
 export class MessageFormatError extends Error {}
 
@@ -15,6 +16,8 @@ export interface MessageContent {
   at: string
   body: string
   attachments: AttachmentRef[]
+  /** 埋め込みフォーム。お知らせと同じ鍵で封緘されるので、読める人だけが見える。 */
+  form?: FormDefinition
 }
 
 export function newMessageId(): string {

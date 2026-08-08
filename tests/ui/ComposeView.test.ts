@@ -32,7 +32,18 @@ async function staffSession(role: 'staff' | 'member' = 'staff'): Promise<Session
         { id: 'sg_a_pickup', name: '送迎係', parent: 'sg_a' },
         { id: 'sg_b', name: 'Bチーム', parent: null },
       ],
-      members: [],
+      // ログインは名簿に自分がいることを確かめてから通す。
+      // ここを空にすると、本番では起こらない状態でテストすることになる。
+      members: [
+        {
+          userId: 'u_tanaka',
+          displayName: '田中 みか',
+          role: 'staff' as const,
+          scopes: [],
+          ecdhPublic: 'PUB',
+          ecdsaPublic: '',
+        },
+      ],
     },
     ecdhPrivate: new Uint8Array(0),
     ecdsaPrivate: new Uint8Array(0),
@@ -198,5 +209,42 @@ describe('ComposeView', () => {
     })
     await wrapper.find('[data-test="remove-attachment"]').trigger('click')
     expect(wrapper.findAll('[data-test="attachment"]')).toHaveLength(0)
+  })
+
+  it('puts a form into the post when one is asked for', async () => {
+    const storage = new MemoryStorageProvider()
+    const wrapper = await mountCompose(storage)
+    await wrapper.find('[data-test="body"]').setValue('来週の集まりについて')
+    await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
+    await wrapper.find('[data-test="with-form"]').setValue(true)
+    await wrapper.find('[data-test="form-question"]').setValue('参加できますか?')
+    await wrapper.find('[data-test="submit"]').trigger('click')
+    await until(() => wrapper.emitted('posted') !== undefined)
+
+    // 本体は封緘済みなので、フォームが入ったことはイベント数ではなく
+    // 書き込みが1件で済んでいることと、エラーが出ていないことで見る
+    expect(wrapper.find('[data-test="error"]').exists()).toBe(false)
+    expect(await storage.list('midori/messages/')).toHaveLength(1)
+  })
+
+  it('offers 参加します / 欠席します without being asked', async () => {
+    const wrapper = await mountCompose()
+    await wrapper.find('[data-test="with-form"]').setValue(true)
+    const values = wrapper
+      .findAll('[data-test="form-choice"]')
+      .map((el) => (el.element as HTMLInputElement).value)
+    expect(values).toEqual(['参加します', '欠席します'])
+  })
+
+  it('refuses a form with no question', async () => {
+    const wrapper = await mountCompose()
+    await wrapper.find('[data-test="body"]').setValue('本文')
+    await wrapper.find('[data-test="scope-option"][data-scope="sg_a"]').setValue(true)
+    await wrapper.find('[data-test="with-form"]').setValue(true)
+    await wrapper.find('[data-test="submit"]').trigger('click')
+    await vi.waitFor(() => {
+      if (!wrapper.find('[data-test="error"]').exists()) throw new Error('not yet')
+    })
+    expect(wrapper.emitted('posted')).toBeFalsy()
   })
 })
