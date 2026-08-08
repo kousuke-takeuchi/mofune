@@ -158,4 +158,44 @@ describe('TimelineView', () => {
     expect(wrapper.find('[data-test="sync-error"]').exists()).toBe(true)
     expect(wrapper.findAll('[data-test="message"]')).toHaveLength(1)
   })
+
+  it('offers a way to see only the unread ones', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.bulkPut([older, newer])
+    await db.syncState.put({ key: 'lastReadAt', value: '2026-08-06T00:00:00.000Z' })
+    const wrapper = await mountTimeline()
+    expect(wrapper.findAll('[data-test="message"]')).toHaveLength(2)
+
+    await wrapper.find('[data-test="tab-unread"]').trigger('click')
+    const shown = wrapper.findAll('[data-test="message"]')
+    expect(shown).toHaveLength(1)
+    expect(shown[0]?.text()).toContain('来週の集まりについて')
+  })
+
+  it('comes back to everything when the tab is switched back', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.bulkPut([older, newer])
+    await db.syncState.put({ key: 'lastReadAt', value: '2026-08-06T00:00:00.000Z' })
+    const wrapper = await mountTimeline()
+    await wrapper.find('[data-test="tab-unread"]').trigger('click')
+    await wrapper.find('[data-test="tab-all"]').trigger('click')
+    expect(wrapper.findAll('[data-test="message"]')).toHaveLength(2)
+  })
+
+  it('marks which tab is showing', async () => {
+    const wrapper = await mountTimeline()
+    expect(wrapper.find('[data-test="tab-all"]').attributes('aria-pressed')).toBe('true')
+    await wrapper.find('[data-test="tab-unread"]').trigger('click')
+    expect(wrapper.find('[data-test="tab-unread"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.find('[data-test="tab-all"]').attributes('aria-pressed')).toBe('false')
+  })
+
+  it('says so when the unread tab has nothing in it', async () => {
+    const db = openGroupDatabase('midori')
+    await db.messages.bulkPut([older, newer])
+    await db.syncState.put({ key: 'lastReadAt', value: '2026-08-08T00:00:00.000Z' })
+    const wrapper = await mountTimeline()
+    await wrapper.find('[data-test="tab-unread"]').trigger('click')
+    expect(wrapper.find('[data-test="empty"]').exists()).toBe(true)
+  })
 })

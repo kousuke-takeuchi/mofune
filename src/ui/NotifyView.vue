@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { keyId } from '../crypto/keyring'
 import { STAFF_SCOPE } from '../crypto/roster'
 import { openGroupDatabase } from '../db/group-db'
+import AppBar from './AppBar.vue'
 import { readContacts } from '../group/contacts'
 import { readGroupSettings } from '../group/group-settings'
 import { loadRosterFile } from '../group/roster-update'
@@ -78,7 +79,11 @@ async function markSent(batch: MailBatch): Promise<void> {
 <template>
   <section v-if="loaded" data-test="ready">
     <h1>メールで知らせる</h1>
-    <button type="button" class="quiet" data-test="close" @click="emit('close')">閉じる</button>
+    <AppBar title="通知の送信">
+      <template #left>
+        <button type="button" class="quiet" data-test="close" @click="emit('close')">閉じる</button>
+      </template>
+    </AppBar>
 
     <p>
       リンクを押すとメールアプリが開きます。送信そのものはアプリからは

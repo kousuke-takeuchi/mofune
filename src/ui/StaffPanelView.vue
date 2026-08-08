@@ -4,6 +4,7 @@ import type { Bytes } from '../crypto/bytes'
 import { keyId } from '../crypto/keyring'
 import { STAFF_SCOPE } from '../crypto/roster'
 import type { Session } from '../group/session'
+import AppBar from './AppBar.vue'
 import type { StorageSettings } from '../group/storage-credentials'
 import { readStorageSettings } from '../group/storage-credentials'
 import { updateContacts } from '../group/roster-update'
@@ -95,8 +96,11 @@ async function process(): Promise<void> {
 
 <template>
   <section v-if="loaded">
-    <h1>受信と配布</h1>
-    <button type="button" data-test="close" @click="emit('close')">閉じる</button>
+    <AppBar title="受信と配布">
+      <template #left>
+        <button type="button" class="quiet" data-test="close" @click="emit('close')">閉じる</button>
+      </template>
+    </AppBar>
 
     <p v-if="!settings" data-test="no-credentials">
       このグループの書き込み設定を読めませんでした。管理者が開設ウィザードで設定するまで、
