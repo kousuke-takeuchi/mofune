@@ -9,9 +9,9 @@ import { readQrFromFrame } from '../qr/decode'
  * 「読み取る」に進める道が無いと、PC の人や案内を見落とした人が長い
  * 接続コードを手で打つことになる。
  *
- * 読み取りの本体は `src/qr/decode.ts` に分けてある。ここはカメラの扱いと
- * 後始末だけを持つ。差し替えられるようにしているのは、カメラの無い環境
- * (テスト) でも中身を確かめられるようにするため。
+ * カメラは画面を覆って出す。ページの流れの中に埋めると、映像が小さくなり
+ * 紙を合わせづらい。**読み取りに使う canvas は DOM へ置かない**。置くと
+ * 最後のコマがそのまま残って、映像が2つ並んでいるように見える。
  */
 const props = withDefaults(
   defineProps<{
@@ -25,8 +25,11 @@ const props = withDefaults(
 const emit = defineEmits<{ read: [text: string]; close: [] }>()
 
 const video = ref<HTMLVideoElement | null>(null)
-const canvas = ref<HTMLCanvasElement | null>(null)
 const error = ref('')
+const read = ref(false)
+
+/** 画素を読むための作業台。画面には出さない。 */
+const canvas = document.createElement('canvas')
 
 let stream: MediaStream | null = null
 let timer: ReturnType<typeof setInterval> | null = null
@@ -42,11 +45,11 @@ function stopCamera(): void {
 }
 
 function look(): void {
-  if (done || !canvas.value || !video.value) return
+  if (done || !video.value) return
   const decode = props.decode ?? readQrFromFrame
   let text: string | null = null
   try {
-    text = decode(canvas.value, video.value)
+    text = decode(canvas, video.value)
   } catch {
     // 1コマ読めなくても次のコマで拾えばよい
     text = null
@@ -54,6 +57,7 @@ function look(): void {
   if (text === null || text === '') return
   // 同じ紙を二度渡さない
   done = true
+  read.value = true
   stopCamera()
   emit('read', text)
 }
@@ -96,13 +100,23 @@ function close(): void {
 </script>
 
 <template>
-  <div class="scanner">
-    <p v-if="error" data-test="scanner-error">{{ error }}</p>
-    <template v-else>
-      <video ref="video" data-test="scanner-video" playsinline muted></video>
-      <p class="hint">紙の QR コードを枠の中に入れてください。</p>
-    </template>
-    <canvas ref="canvas" class="hidden-canvas"></canvas>
-    <button type="button" class="quiet" data-test="close-scanner" @click="close">やめる</button>
+  <div class="scanner-backdrop" @click.self="close">
+    <div class="scanner-panel" data-test="scanner-modal" role="dialog" aria-modal="true">
+      <header class="scanner-head">
+        <h2>QRコードを読み取る</h2>
+        <button type="button" class="quiet" data-test="close-scanner" @click="close">閉じる</button>
+      </header>
+
+      <p v-if="error" data-test="scanner-error">{{ error }}</p>
+
+      <div v-else class="scanner-stage">
+        <video ref="video" data-test="scanner-video" playsinline muted></video>
+        <!-- 状態は映像の上に重ねる。下に置くと画面が縦に伸びて映像が小さくなる -->
+        <p class="scanner-state" data-test="scanner-state">
+          {{ read ? '読み取りました' : '紙の QR コードを枠の中に入れてください' }}
+        </p>
+        <div class="scanner-frame" aria-hidden="true"></div>
+      </div>
+    </div>
   </div>
 </template>

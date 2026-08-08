@@ -50,7 +50,7 @@ const pixelSize = computed(() => {
   <figure v-if="rendered" class="qr">
     <svg
       :viewBox="`0 0 ${rendered.count + QUIET_ZONE * 2} ${rendered.count + QUIET_ZONE * 2}`"
-      :style="{ width: `${pixelSize}px` }"
+      :style="{ width: `min(${pixelSize}px, 100%)` }"
       role="img"
       :aria-label="label"
       shape-rendering="crispEdges"

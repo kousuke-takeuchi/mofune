@@ -96,3 +96,31 @@ describe('QrScanner', () => {
     })
   })
 })
+
+describe('how it looks while scanning', () => {
+  it('is a modal, so the camera is not buried in the page', async () => {
+    const { wrapper } = mountScanner({})
+    const panel = wrapper.get('[data-test="scanner-modal"]')
+    expect(panel.attributes('role')).toBe('dialog')
+    expect(panel.attributes('aria-modal')).toBe('true')
+  })
+
+  it('shows one preview, not two', async () => {
+    const { wrapper } = mountScanner({})
+    // 作業用の canvas は DOM に置かない。置くと最後のコマが下に残って2つ見える
+    expect(wrapper.findAll('canvas')).toHaveLength(0)
+    expect(wrapper.findAll('video')).toHaveLength(1)
+  })
+
+  it('lays the state over the preview instead of below it', async () => {
+    const { wrapper } = mountScanner({ decode: () => null })
+    const overlay = wrapper.get('[data-test="scanner-state"]')
+    expect(overlay.text()).toContain('枠')
+  })
+
+  it('says it read something, over the preview', async () => {
+    const { wrapper } = mountScanner({ decode: () => 'CODE' })
+    await vi.waitFor(() => expect(wrapper.emitted('read')).toBeTruthy(), { timeout: 2000 })
+    expect(wrapper.get('[data-test="scanner-state"]').text()).toContain('読み取りました')
+  })
+})
