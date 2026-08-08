@@ -11,6 +11,7 @@
  *   VAPID_PRIVATE_KEY  PEM の秘密鍵 (-----BEGIN PRIVATE KEY----- から始まるもの)
  *   VAPID_SUBJECT      mailto:あなたのアドレス
  *   TOKENS             {"g_xxxx":"グループごとの合言葉"} の JSON
+ *   DRIVE_FOLDER_ID    Drive を置き場にするときだけ。グループのフォルダの ID
  */
 
 /* eslint-disable */
@@ -85,12 +86,96 @@ function mofuneSendPush(endpoint) {
   return response.getResponseCode()
 }
 
+/**
+ * Drive をグループの置き場にする。Apps Script は所有者の権限で動くので、
+ * ここでの読み書きに OAuth の受け渡しは要らない。
+ *
+ * 鍵 (g_xxx/messages/m_1.enc) は `/` を `__` に置き換えた1階層のファイル名で
+ * 持つ。フォルダを掘ると、1件読むたびに階層をたどることになって遅い。
+ */
+function mofuneFolder() {
+  var id = mofuneProps().getProperty('DRIVE_FOLDER_ID')
+  return id ? DriveApp.getFolderById(id) : null
+}
+
+function mofuneFileName(key) {
+  return key.split('/').join('__')
+}
+
+function mofuneKeyOf(name) {
+  return name.split('__').join('/')
+}
+
+function mofuneFindFile(folder, key) {
+  var found = folder.getFilesByName(mofuneFileName(key))
+  return found.hasNext() ? found.next() : null
+}
+
+function mofuneDrive() {
+  return {
+    get: function (key) {
+      var folder = mofuneFolder()
+      if (!folder) return null
+      var file = mofuneFindFile(folder, key)
+      // 中身は封緘済みのバイト列。base64 の文字列として持ち回る
+      return file ? Utilities.base64Encode(file.getBlob().getBytes()) : null
+    },
+    put: function (key, base64Body) {
+      var folder = mofuneFolder()
+      if (!folder) throw new Error('DRIVE_FOLDER_ID is not set')
+      var bytes = Utilities.base64Decode(base64Body)
+      var blob = Utilities.newBlob(bytes, 'application/octet-stream', mofuneFileName(key))
+      var existing = mofuneFindFile(folder, key)
+      if (existing) {
+        // 上書きは作り直し。Drive は同名を許すので、消してから置く
+        existing.setTrashed(true)
+      }
+      folder.createFile(blob)
+    },
+    remove: function (key) {
+      var folder = mofuneFolder()
+      if (!folder) return
+      var file = mofuneFindFile(folder, key)
+      if (file) file.setTrashed(true)
+    },
+    list: function (prefix) {
+      var folder = mofuneFolder()
+      if (!folder) return []
+      var entries = []
+      var files = folder.getFiles()
+      while (files.hasNext()) {
+        var file = files.next()
+        var key = mofuneKeyOf(file.getName())
+        if (key.indexOf(prefix) === 0) {
+          entries.push({ key: key, size: file.getSize() })
+        }
+      }
+      return entries
+    },
+  }
+}
+
+/** 投函の引換券。担当者が同じ計算で作ったものだけを通す。 */
+function mofuneVerifyTicket(key, ticket) {
+  var tokens = mofuneTokens()
+  for (var groupId in tokens) {
+    if (!Object.prototype.hasOwnProperty.call(tokens, groupId)) continue
+    if (key.indexOf(groupId + '/') !== 0) continue
+    var signature = Utilities.computeHmacSha256Signature(key, tokens[groupId])
+    var expected = Utilities.base64EncodeWebSafe(signature).replace(/=+$/, '')
+    if (expected === ticket) return true
+  }
+  return false
+}
+
 function mofuneDeps() {
   return {
     store: mofuneStore(),
     tokens: mofuneTokens(),
     vapidPublicKey: mofuneProps().getProperty('VAPID_PUBLIC_KEY'),
     sendPush: mofuneSendPush,
+    drive: mofuneDrive(),
+    verifyTicket: mofuneVerifyTicket,
   }
 }
 
@@ -106,7 +191,16 @@ function mofunePath(e) {
 
 function doGet(e) {
   return mofuneReply(
-    handleRequest({ path: mofunePath(e), method: 'GET', body: null, authorization: '' }, mofuneDeps()),
+    handleRequest(
+      {
+        path: mofunePath(e),
+        method: 'GET',
+        body: null,
+        authorization: '',
+        query: e && e.parameter ? e.parameter : {},
+      },
+      mofuneDeps(),
+    ),
   )
 }
 
@@ -118,6 +212,15 @@ function doPost(e) {
     body = {}
   }
   return mofuneReply(
-    handleRequest({ path: mofunePath(e), method: 'POST', body: body, authorization: '' }, mofuneDeps()),
+    handleRequest(
+      {
+        path: mofunePath(e),
+        method: 'POST',
+        body: body,
+        authorization: '',
+        query: e && e.parameter ? e.parameter : {},
+      },
+      mofuneDeps(),
+    ),
   )
 }

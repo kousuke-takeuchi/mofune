@@ -72,8 +72,15 @@ function mofuneReadRegistry(store, groupId) {
   }
 }
 
+/** 鍵は必ず自分のグループの下でなければならない。外へ出る形も断る。 */
+function mofuneKeyBelongsTo(groupId, key) {
+  if (typeof key !== 'string' || key === '') return false
+  if (key.indexOf('..') !== -1) return false
+  return key.indexOf(groupId + '/') === 0
+}
+
 /**
- * request: { path, method, body, authorization }
+ * request: { path, method, body, authorization, query }
  * deps:    { store: {get,put}, tokens, vapidPublicKey, sendPush(endpoint) -> HTTP status }
  * 返り値:  { status, body }
  */
@@ -135,6 +142,69 @@ function handleRequest(request, deps) {
     }
 
     return { status: 200, body: { sent: sent, gone: gone.length, notified: notified } }
+  }
+
+  // ---- ここから下は Drive を置き場にするとき (設計書 §10.2) ----
+
+  var query = request && request.query ? request.query : {}
+
+  // 読みは誰でもできる。中身は封緘済みで、鍵を持つ人にしか開けない
+  if (path === '/object' && method === 'GET') {
+    if (!mofuneKeyBelongsTo(query.group_id, query.key)) {
+      return { status: 400, body: { error: 'bad key' } }
+    }
+    var found = deps.drive.get(query.key)
+    if (found === null || found === undefined) {
+      return { status: 404, body: { error: 'not found' } }
+    }
+    return { status: 200, body: { body: found } }
+  }
+
+  if (path === '/object' && method === 'POST') {
+    if (!mofuneAuthorized(request.authorization, deps.tokens, body.group_id, body.token)) {
+      return { status: 401, body: { error: 'unauthorized' } }
+    }
+    if (!mofuneKeyBelongsTo(body.group_id, body.key)) {
+      return { status: 400, body: { error: 'bad key' } }
+    }
+    deps.drive.put(body.key, body.body)
+    return { status: 200, body: { ok: true } }
+  }
+
+  if (path === '/list' && method === 'POST') {
+    if (!mofuneKeyBelongsTo(body.group_id, body.prefix)) {
+      return { status: 400, body: { error: 'bad prefix' } }
+    }
+    return { status: 200, body: { entries: deps.drive.list(body.prefix) } }
+  }
+
+  if (path === '/delete' && method === 'POST') {
+    if (!mofuneAuthorized(request.authorization, deps.tokens, body.group_id, body.token)) {
+      return { status: 401, body: { error: 'unauthorized' } }
+    }
+    if (!mofuneKeyBelongsTo(body.group_id, body.key)) {
+      return { status: 400, body: { error: 'bad key' } }
+    }
+    deps.drive.remove(body.key)
+    return { status: 200, body: { ok: true } }
+  }
+
+  /*
+   * 参加者からの投函。合言葉は渡せないので、担当者が配った引換券で確かめる。
+   * 投函できるのは自分の受信箱の中だけ。ほかの場所を上書きさせない。
+   */
+  if (path === '/inbox' && method === 'POST') {
+    if (!mofuneKeyBelongsTo(body.group_id, body.key)) {
+      return { status: 400, body: { error: 'bad key' } }
+    }
+    if (body.key.indexOf(body.group_id + '/inbox/') !== 0) {
+      return { status: 400, body: { error: 'not an inbox key' } }
+    }
+    if (typeof body.ticket !== 'string' || !deps.verifyTicket(body.key, body.ticket)) {
+      return { status: 401, body: { error: 'unauthorized' } }
+    }
+    deps.drive.put(body.key, body.body)
+    return { status: 200, body: { ok: true } }
   }
 
   return { status: 404, body: { error: 'not found' } }
