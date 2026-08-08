@@ -988,3 +988,17 @@ fieldset.dark-choice button[aria-pressed='true'] {
   padding: 2px 4px;
   color: var(--terracotta);
 }
+
+/* ボタンの並びに混ぜるリンク (保存など、遷移ではない a)。 */
+a.button-like {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+}

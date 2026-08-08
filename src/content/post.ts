@@ -91,6 +91,14 @@ export async function createPost(options: {
       path: filePath(session.groupId, ref.fileId),
       body: sealed,
     })
+    // 自分が選んだ実物を控える。取り直すまでサムネイルが出ないのを避ける
+    await db.files.put({
+      id: ref.fileId,
+      mediaType: attachment.mediaType,
+      size: attachment.bytes.length,
+      blob: attachment.bytes,
+      cachedAt: at,
+    })
   }
 
   const message: MessageContent = {
@@ -108,6 +116,19 @@ export async function createPost(options: {
     kind: 'object',
     path: messagePath(session.groupId, message.id),
     body: await sealMessage(message, targets),
+  })
+
+  // 送った本人の端末にも控えを置く。置かないと、同期で戻ってくるまで
+  // 自分の投稿がタイムラインにも集計にも出てこない (実機で発覚)。
+  await db.messages.put({
+    id: message.id,
+    scopes: message.scopes,
+    author: message.author,
+    at: message.at,
+    ...(message.title ? { title: message.title } : {}),
+    body: message.body,
+    attachments: attachments.map((ref) => ref.fileId),
+    ...(message.form ? { form: message.form } : {}),
   })
 
   const event: GroupEvent = {

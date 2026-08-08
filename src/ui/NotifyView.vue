@@ -21,6 +21,8 @@ const props = defineProps<{
   session: Session
   storage: StorageProvider
   messageId: string
+  /** 宛先をこの人たちに絞る。締切のリマインドで使う (原稿 07)。 */
+  onlyUserIds?: string[]
 }>()
 const emit = defineEmits<{ close: [] }>()
 
@@ -50,8 +52,11 @@ onMounted(async () => {
     ])
     const contacts = await readContacts({ file, staffKey })
 
-    // 関数を置いているなら先に起こす。届いた人はメールから外す (設計書 §9.1)
-    const notified = await wakeSubscribers(message?.scopes ?? [], settings.notifications.functionToken)
+    // 関数を置いているなら先に起こす。届いた人はメールから外す (設計書 §9.1)。
+    // push はスコープ単位でしか送れないので、宛先を絞るリマインドでは使わない。
+    const notified = props.onlyUserIds
+      ? []
+      : await wakeSubscribers(message?.scopes ?? [], settings.notifications.functionToken)
 
     const audience = resolveAudience({
       roster: props.session.roster,
@@ -60,10 +65,15 @@ onMounted(async () => {
       scopes: message?.scopes ?? [],
       excludeUserId: props.session.userId,
     })
-    missingEmail.value = audience.missingEmail
+    const only = props.onlyUserIds
+    missingEmail.value = only
+      ? audience.missingEmail.filter((userId) => only.includes(userId))
+      : audience.missingEmail
 
     batches.value = buildMailBatches({
-      recipients: audience.reachable.filter((person) => !notified.includes(person.userId)),
+      recipients: audience.reachable
+        .filter((person) => !notified.includes(person.userId))
+        .filter((person) => !only || only.includes(person.userId)),
       template: settings.mailTemplate,
       groupName: props.session.groupName,
       kind: 'お知らせ',
@@ -117,7 +127,7 @@ async function markSent(batch: MailBatch): Promise<void> {
 
 <template>
   <section v-if="loaded" data-test="ready">
-    <h1>メールで知らせる</h1>
+    <h1>{{ onlyUserIds ? 'まだ回答していない方へ知らせる' : 'メールで知らせる' }}</h1>
     <AppBar title="通知の送信">
       <template #left>
         <button type="button" class="quiet" data-test="close" @click="emit('close')">閉じる</button>
@@ -129,6 +139,9 @@ async function markSent(batch: MailBatch): Promise<void> {
       <strong>自動では確認できません</strong>ので、送り終えたら「送った」を押してください。
     </p>
     <p>宛先は BCC に入っています。参加者どうしにアドレスは見えません。</p>
+    <p v-if="onlyUserIds" class="hint">
+      通知 (push) は宛先を選べないため、リマインドはメールだけで送ります。
+    </p>
 
     <p v-if="pushResult" data-test="push-result">
       {{

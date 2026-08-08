@@ -51,6 +51,9 @@ async function postedEvent(): Promise<{
     },
   })
   await flushOutbox({ db, storage })
+  // 投稿した端末には控えが残る。ここで見たいのは「受け取る側」なので、
+  // 別の端末に見立てて端末の控えを消してから投影する。
+  await deleteGroupDatabase('midori')
   const event = await openEvent(
     session.groupKeys,
     await storage.get(`midori/events/${result.eventId}.enc`),

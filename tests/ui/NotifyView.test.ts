@@ -253,3 +253,34 @@ describe('when the group has a notification function', () => {
     expect(wrapper.get('[data-test="push-result"]').text()).toContain('届きません')
   })
 })
+
+describe('reminding only the people who have not answered', () => {
+  it('addresses just the given people', async () => {
+    const { session, storage } = await fixture()
+    const wrapper = mount(NotifyView, {
+      props: { session, storage, messageId: 'm_1', onlyUserIds: ['u_new'] },
+    })
+    mounted.push(wrapper)
+    await vi.waitFor(() => {
+      if (!wrapper.find('[data-test="ready"]').exists()) throw new Error('still loading')
+    }, { timeout: 2000, interval: 10 })
+
+    // 佐藤さんは回答済みなので外れる。新井さんはメール未登録なので届かない
+    expect(wrapper.find('[data-test="batch-link"]').exists()).toBe(false)
+    expect(wrapper.get('[data-test="missing-email"]').text()).toContain('1')
+  })
+
+  it('says it is a reminder, so the wrong list is noticed before sending', async () => {
+    const { session, storage } = await fixture()
+    const wrapper = mount(NotifyView, {
+      props: { session, storage, messageId: 'm_1', onlyUserIds: ['u_sato'] },
+    })
+    mounted.push(wrapper)
+    await vi.waitFor(() => {
+      if (!wrapper.find('[data-test="ready"]').exists()) throw new Error('still loading')
+    }, { timeout: 2000, interval: 10 })
+
+    expect(wrapper.text()).toContain('まだ回答していない')
+    expect(wrapper.findAll('[data-test="batch-link"]')).toHaveLength(1)
+  })
+})
