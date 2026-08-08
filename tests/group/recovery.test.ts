@@ -153,7 +153,9 @@ describe('restoreFromRecoveryKit', () => {
 
   it('refuses a code that was mistyped', async () => {
     const { storage, code, paper } = await world()
-    const broken = `${paper.slice(0, -1)}${paper.endsWith('A') ? 'B' : 'A'}`
+    const at = Math.floor(paper.length / 2)
+    const wrong = paper[at] === 'A' ? 'B' : 'A'
+    const broken = `${paper.slice(0, at)}${wrong}${paper.slice(at + 1)}`
 
     await expect(
       restoreFromRecoveryKit({

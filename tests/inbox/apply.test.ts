@@ -86,12 +86,14 @@ describe('applyInbox', () => {
   it('does nothing on an empty inbox', async () => {
     const { session, storage } = await fixture()
     const result = await applyInbox({ storage, session, now })
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       absences: 0,
       emails: 0,
       unknown: 0,
       unreadable: 0,
       pendingContactUpdates: [],
+      pushSubscriptions: 0,
+      pendingPushRegistrations: [],
     })
   })
 
@@ -173,12 +175,14 @@ describe('applyInbox', () => {
     const { session, storage, drop } = await fixture()
     await drop(grantPath('midori', 'u_sato'), { v: 1, slots: [] })
     const result = await applyInbox({ storage, session, now })
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       absences: 0,
       emails: 0,
       unknown: 0,
       unreadable: 0,
       pendingContactUpdates: [],
+      pushSubscriptions: 0,
+      pendingPushRegistrations: [],
     })
     expect(await storage.get(grantPath('midori', 'u_sato'))).toBeDefined()
   })
@@ -198,5 +202,44 @@ describe('applyInbox', () => {
     const { session, storage } = await fixture()
     const asMember = { ...session, role: 'member' as const }
     await expect(applyInbox({ storage, session: asMember, now })).rejects.toThrow()
+  })
+})
+
+const pushRegistration = {
+  v: 1,
+  kind: 'push-subscription',
+  userId: 'u_sato',
+  scopes: ['all', 'sg_a'],
+  subscription: { endpoint: 'https://fcm.googleapis.com/fcm/send/abc' },
+  at: '2026-08-08T07:40:00.000Z',
+}
+
+describe('push subscriptions arriving through the inbox', () => {
+  it('is recognised as its own kind', () => {
+    expect(classifySubmission(utf8(JSON.stringify(pushRegistration)))).toBe('push')
+  })
+
+  it('is collected for the admin to hand to the function', async () => {
+    const { session, storage, drop } = await fixture()
+    await drop('midori/inbox/u_sato/p.enc', pushRegistration)
+
+    const result = await applyInbox({ storage, session, now })
+
+    expect(result.pushSubscriptions).toBe(1)
+    expect(result.pendingPushRegistrations).toEqual([pushRegistration])
+    // 関数へ渡すまでは投函物を消さない。消してから渡せなかったら二度と戻せない
+    expect((await storage.list('midori/inbox/')).map((entry) => entry.path)).toContain(
+      'midori/inbox/u_sato/p.enc',
+    )
+  })
+
+  it('is dropped once the registry has been handed over', async () => {
+    const { session, storage, drop } = await fixture()
+    await drop('midori/inbox/u_sato/p.enc', pushRegistration)
+
+    const result = await applyInbox({ storage, session, now })
+    await result.discardPush()
+
+    expect(await storage.list('midori/inbox/')).toEqual([])
   })
 })

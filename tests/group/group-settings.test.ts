@@ -19,7 +19,7 @@ const custom: GroupSettings = {
     body: '{{グループ名}}からのお知らせです。\n{{リンク}}',
   },
   absenceReasons: ['体調不良', '通院'],
-  notifications: { mutedScopes: ['sg_b'], channels: ['mailto'] },
+  notifications: { mutedScopes: ['sg_b'], channels: ['mailto'], functionToken: '' },
 }
 
 describe('groupSettingsPath', () => {
@@ -134,5 +134,47 @@ describe('readGroupSettings / writeGroupSettings', () => {
       '家庭の都合',
     ])
     expect(await storage.list('midori/settings/')).toHaveLength(1)
+  })
+})
+
+describe('the notification function (設計書 §10)', () => {
+  it('keeps a per-group token that only staff can read', async () => {
+    const storage = new MemoryStorageProvider()
+    const staffKey = await generateAesKey()
+    await writeGroupSettings({
+      storage,
+      groupId: 'midori',
+      generation: 1,
+      staffKey,
+      settings: {
+        ...DEFAULT_GROUP_SETTINGS,
+        notifications: {
+          ...DEFAULT_GROUP_SETTINGS.notifications,
+          functionToken: 'shared-secret',
+        },
+      },
+    })
+    const read = await readGroupSettings({ storage, groupId: 'midori', staffKey })
+    expect(read.notifications.functionToken).toBe('shared-secret')
+  })
+
+  it('reads settings written before the token existed', async () => {
+    const storage = new MemoryStorageProvider()
+    const staffKey = await generateAesKey()
+    const old = {
+      v: 1,
+      mailTemplate: { subject: 's', body: 'b' },
+      absenceReasons: [],
+      notifications: { mutedScopes: [], channels: ['mailto'] },
+    }
+    await writeGroupSettings({
+      storage,
+      groupId: 'midori',
+      generation: 1,
+      staffKey,
+      settings: old as never,
+    })
+    const read = await readGroupSettings({ storage, groupId: 'midori', staffKey })
+    expect(read.notifications.functionToken).toBe('')
   })
 })

@@ -77,6 +77,16 @@ async function world() {
   return { storage, connectionCode, code, paper: kit.code }
 }
 
+/**
+ * 書き写しミスを模す。末尾の1文字は捨てられるビットに当たることがあり、
+ * 書き換えても同じ鍵に戻るので、真ん中を壊す。
+ */
+function brokenAt(paper: string): string {
+  const at = Math.floor(paper.length / 2)
+  const wrong = paper[at] === 'A' ? 'B' : 'A'
+  return `${paper.slice(0, at)}${wrong}${paper.slice(at + 1)}`
+}
+
 let mounted: VueWrapper[] = []
 
 beforeEach(async () => {
@@ -142,7 +152,7 @@ describe('RecoverView', () => {
 
     await fill(wrapper, {
       code: connectionCode,
-      paper: `${paper.slice(0, -1)}${paper.endsWith('A') ? 'B' : 'A'}`,
+      paper: brokenAt(paper),
       email: 'watanabe@example.invalid',
       password: 'brand-new-pass',
     })

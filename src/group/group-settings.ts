@@ -17,8 +17,13 @@ export interface MailTemplate {
 export interface NotificationSettings {
   /** 通知を止めているスコープ id。 */
   mutedScopes: string[]
-  /** 既定で使うチャネル。今フェーズで実装があるのは 'mailto' のみ。 */
+  /** 既定で使うチャネル。 */
   channels: string[]
+  /**
+   * 通知用の関数へ渡す合言葉 (設計書 §10)。関数を置いていないグループは空。
+   * 関数の URL は manifest (平文) に置くが、合言葉は staff スコープで隠す。
+   */
+  functionToken: string
 }
 
 export interface GroupSettings {
@@ -39,7 +44,7 @@ export const DEFAULT_GROUP_SETTINGS: GroupSettings = {
     body: '{{グループ名}}に新しい{{種別}}が届いています。\n\n{{リンク}}\n\nこのメールに本文は含まれません。アプリを開いてご確認ください。',
   },
   absenceReasons: ['体調不良', '通院', '家庭の都合'],
-  notifications: { mutedScopes: [], channels: ['mailto'] },
+  notifications: { mutedScopes: [], channels: ['mailto'], functionToken: '' },
 }
 
 export function groupSettingsPath(groupId: string): string {
@@ -116,5 +121,9 @@ export async function readGroupSettings(options: {
   ) {
     throw new GroupSettingsError('group settings are missing required fields')
   }
-  return settings
+  // 合言葉は後から足した項目。古い設定を読めなくしない
+  return {
+    ...settings,
+    notifications: { functionToken: '', ...settings.notifications },
+  }
 }

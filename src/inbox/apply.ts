@@ -3,6 +3,8 @@ import { keyId } from '../crypto/keyring'
 import { STAFF_SCOPE } from '../crypto/roster'
 import { parseAbsenceReport } from '../content/absence'
 import { parseEmailRegistration } from '../group/email-registration'
+import type { PushRegistration } from '../notify/push'
+import { parsePushRegistration } from '../notify/push'
 import type { Session } from '../group/session'
 import type { StorageProvider } from '../storage/provider'
 import type { GroupEvent } from '../sync/events'
@@ -11,7 +13,7 @@ import { collectInbox, discardInboxItem } from './collect'
 
 export class ApplyError extends Error {}
 
-export type SubmissionKind = 'absence' | 'email' | 'unknown'
+export type SubmissionKind = 'absence' | 'email' | 'push' | 'unknown'
 
 export interface ApplyResult {
   absences: number
@@ -22,12 +24,23 @@ export interface ApplyResult {
   unreadable: number
   /** 名簿へ反映すべき連絡先。適用は管理者の作業(Task 2)。 */
   pendingContactUpdates: Array<{ userId: string; email: string }>
+  pushSubscriptions: number
+  /** 関数へ渡すべき購読。渡せたら discardPush() を呼ぶ。 */
+  pendingPushRegistrations: PushRegistration[]
+  /** 購読の投函物を消す。関数へ渡せたときだけ呼ぶ。 */
+  discardPush: () => Promise<void>
 }
 
 export function classifySubmission(body: Bytes): SubmissionKind {
   try {
     parseAbsenceReport(body)
     return 'absence'
+  } catch {
+    // 次を試す
+  }
+  try {
+    parsePushRegistration(body)
+    return 'push'
   } catch {
     // 次を試す
   }
@@ -64,12 +77,20 @@ export async function applyInbox(options: {
   }
 
   const collected = await collectInbox({ storage: options.storage, session: options.session })
+  const pushKeys: string[] = []
   const result: ApplyResult = {
     absences: 0,
     emails: 0,
     unknown: 0,
     unreadable: collected.unreadable,
     pendingContactUpdates: [],
+    pushSubscriptions: 0,
+    pendingPushRegistrations: [],
+    discardPush: async () => {
+      for (const key of pushKeys) {
+        await discardInboxItem({ storage: options.storage, key })
+      }
+    },
   }
   const now = options.now ?? new Date()
 
@@ -103,6 +124,14 @@ export async function applyInbox(options: {
       })
       await discardInboxItem({ storage: options.storage, key: item.key })
       result.emails += 1
+      continue
+    }
+
+    if (kind === 'push') {
+      // 関数へ渡すまでは消さない。渡す前に消すと、購読は二度と戻せない
+      result.pendingPushRegistrations.push(parsePushRegistration(item.body))
+      pushKeys.push(item.key)
+      result.pushSubscriptions += 1
       continue
     }
 
