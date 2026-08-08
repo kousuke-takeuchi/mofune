@@ -23,6 +23,7 @@ async function staffSession(): Promise<Session> {
     role: 'staff',
     scopes: ['sg_a'],
     groupKeys: new Map([['sg_a:v1', await generateAesKey()]]),
+    generation: 1,
     roster,
     ecdhPrivate: new Uint8Array(0),
     ecdsaPrivate: new Uint8Array(0),

@@ -22,6 +22,7 @@ function session(): Session {
     role: 'staff',
     scopes: [],
     groupKeys: new Map(),
+    generation: 1,
     roster: {
       groupId: 'midori',
       generation: 1,

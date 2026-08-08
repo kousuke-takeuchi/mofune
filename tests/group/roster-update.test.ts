@@ -81,6 +81,7 @@ async function provisioned() {
     role,
     scopes: ['all', 'staff'],
     groupKeys: who.keys,
+    generation: 1,
     roster: { groupId: 'midori', generation: 1, subgroups: [], members: [] },
     ecdhPrivate: who.keystore.ecdh.privateKey,
     ecdsaPrivate: who.keystore.ecdsa.privateKey,

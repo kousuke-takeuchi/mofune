@@ -73,6 +73,7 @@ async function fixture(options: { withAddresses?: boolean } = {}) {
     role: 'staff',
     scopes: ['all', 'staff', 'sg_a'],
     groupKeys: new Map([['staff:v1', staffKey]]),
+    generation: 1,
     roster,
     ecdhPrivate: new Uint8Array(0),
     ecdsaPrivate: new Uint8Array(0),

@@ -34,6 +34,7 @@ function session(role: 'staff' | 'member' = 'staff'): Session {
     role,
     scopes: ['all', 'staff'],
     groupKeys: new Map(),
+    generation: 1,
     roster,
     ecdhPrivate: new Uint8Array(0),
     ecdsaPrivate: new Uint8Array(0),

@@ -56,6 +56,7 @@ async function memberSession() {
     role: 'member',
     scopes: ['all'],
     groupKeys: new Map(),
+    generation: 1,
     roster,
     ecdhPrivate: new Uint8Array(0),
     ecdsaPrivate: new Uint8Array(0),

@@ -23,8 +23,10 @@ export interface Session {
   displayName: string
   role: Role
   scopes: string[]
-  /** keyId -> グループ鍵 */
+  /** keyId -> グループ鍵。過去の世代の鍵も入る(古いお知らせを読むため)。 */
   groupKeys: Map<string, CryptoKey>
+  /** いまの鍵の世代。新しく封緘するときはこれを使う。 */
+  generation: number
   roster: RosterContents
   ecdhPrivate: Bytes
   ecdsaPrivate: Bytes
@@ -106,6 +108,7 @@ export async function login(options: LoginOptions): Promise<Session> {
     role: member.role,
     scopes: member.scopes,
     groupKeys,
+    generation: manifest.keyringGeneration,
     roster,
     ecdhPrivate: keystore.ecdh.privateKey,
     ecdsaPrivate: keystore.ecdsa.privateKey,

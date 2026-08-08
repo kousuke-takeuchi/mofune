@@ -6,7 +6,6 @@ import { keyId } from '../crypto/keyring'
 import { STAFF_SCOPE } from '../crypto/roster'
 import type { GroupSettings } from '../group/group-settings'
 import { readGroupSettings, writeGroupSettings } from '../group/group-settings'
-import { INITIAL_GENERATION } from '../group/provision'
 import { useSessionStore } from '../stores/session'
 
 const router = useRouter()
@@ -19,7 +18,8 @@ const notice = ref('')
 
 /** 設定は staff スコープ鍵で封緘されている。担当者と管理者しか読めない。 */
 function staffKey(): CryptoKey | undefined {
-  return session.session?.groupKeys.get(keyId(STAFF_SCOPE, INITIAL_GENERATION))
+  const current = session.session
+  return current?.groupKeys.get(keyId(STAFF_SCOPE, current.generation))
 }
 
 onMounted(async () => {
@@ -48,7 +48,7 @@ async function save(next: GroupSettings): Promise<void> {
       groupId: session.groupId,
       settings: next,
       staffKey: key,
-      generation: INITIAL_GENERATION,
+      generation: session.session?.generation ?? 1,
     })
     settings.value = next
     notice.value = '保存しました。'
