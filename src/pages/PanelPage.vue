@@ -14,5 +14,12 @@ const session = useSessionStore()
     :storage="(session.writer ?? session.storage)!"
     :admin-public-key="session.adminPublicKey"
     @close="router.push({ name: 'timeline', params: { groupId: session.groupId } })"
+    @open-message="
+      (messageId) =>
+        router.push({
+          name: 'notify',
+          params: { groupId: session.groupId, messageId },
+        })
+    "
   />
 </template>

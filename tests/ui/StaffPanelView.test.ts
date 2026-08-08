@@ -7,7 +7,7 @@ import StaffPanelView from '../../src/ui/StaffPanelView.vue'
 import { sealForRecipients } from '../../src/inbox/uplink'
 import { grantPath } from '../../src/inbox/grants'
 import { writeStorageSettings } from '../../src/group/storage-credentials'
-import { deleteGroupDatabase } from '../../src/db/group-db'
+import { deleteGroupDatabase, openGroupDatabase } from '../../src/db/group-db'
 import { MemoryStorageProvider } from '../../src/storage/memory'
 import { generateAesKey } from '../../src/crypto/symmetric'
 import { generateEcdhKeyPair } from '../../src/crypto/asymmetric'
@@ -188,5 +188,50 @@ describe('StaffPanelView', () => {
     const wrapper = await mountPanel(session, storage)
     await wrapper.find('[data-test="close"]').trigger('click')
     expect(wrapper.emitted('close')).toBeTruthy()
+  })
+})
+
+describe('the running state of the group (原稿 08 / 11)', () => {
+  it('shows what is still waiting to be done', async () => {
+    const { session, storage } = await fixture()
+    const db = openGroupDatabase('midori')
+    await db.deliveries.bulkPut([
+      { id: 'm_1#1', messageId: 'm_1', batchIndex: 1, total: 1, recipients: 12, sentAt: null },
+    ])
+
+    const wrapper = await mountPanel(session, storage)
+    await vi.waitFor(
+      () => {
+        if (!wrapper.find('[data-test="status"]').exists()) throw new Error('no status yet')
+      },
+      { timeout: 2000, interval: 10 },
+    )
+
+    const status = wrapper.get('[data-test="status"]').text()
+    expect(status).toContain('1')
+    expect(status).toContain('12')
+  })
+
+  it('offers a way back to the notice that has not been sent', async () => {
+    const { session, storage } = await fixture()
+    const db = openGroupDatabase('midori')
+    await db.deliveries.put({
+      id: 'm_1#1',
+      messageId: 'm_1',
+      batchIndex: 1,
+      total: 1,
+      recipients: 3,
+      sentAt: null,
+    })
+
+    const wrapper = await mountPanel(session, storage)
+    await vi.waitFor(
+      () => {
+        if (!wrapper.find('[data-test="open-unsent"]').exists()) throw new Error('no link yet')
+      },
+      { timeout: 2000, interval: 10 },
+    )
+    await wrapper.get('[data-test="open-unsent"]').trigger('click')
+    expect(wrapper.emitted('openMessage')?.[0]).toEqual(['m_1'])
   })
 })

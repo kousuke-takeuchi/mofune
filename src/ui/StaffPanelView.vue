@@ -8,6 +8,12 @@ import AppBar from './AppBar.vue'
 import type { StorageSettings } from '../group/storage-credentials'
 import { readStorageSettings } from '../group/storage-credentials'
 import { readGroupSettings } from '../group/group-settings'
+import { readContacts } from '../group/contacts'
+import { loadRosterFile } from '../group/roster-update'
+import { openGroupDatabase } from '../db/group-db'
+import { operationStatus } from '../notify/operations'
+import type { OperationStatus } from '../notify/operations'
+import { formatWhen } from './format'
 import { updateContacts } from '../group/roster-update'
 import { applyInbox } from '../inbox/apply'
 import { decodeManifest } from '../group/manifest'
@@ -21,7 +27,7 @@ const props = defineProps<{
   storage: StorageProvider
   adminPublicKey: Bytes
 }>()
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; openMessage: [messageId: string] }>()
 
 const settings = ref<StorageSettings | null>(null)
 const loaded = ref(false)
@@ -31,6 +37,7 @@ const grantsIssued = ref<number | null>(null)
 const appliedAbsences = ref<number | null>(null)
 const needsAdmin = ref(false)
 const notificationToken = ref('')
+const status = ref<OperationStatus | null>(null)
 const pushHandedOver = ref<number | null>(null)
 const pushProblem = ref('')
 
@@ -57,10 +64,38 @@ onMounted(async () => {
     }
   } catch {
     notificationToken.value = ''
-  } finally {
-    loaded.value = true
   }
+  await refreshStatus()
+  loaded.value = true
 })
+
+/** いま運営が気にすべきこと。端末の中の控えだけで数える (原稿 08 / 11)。 */
+async function refreshStatus(): Promise<void> {
+  // 連絡先が読めなくても、未送信の数は端末の控えだけで数えられる。
+  // 数えられるものは数えて出す。
+  let contacts = {}
+  try {
+    const staffKey = props.session.groupKeys.get(keyId(STAFF_SCOPE, 1))
+    if (staffKey) {
+      const file = await loadRosterFile({
+        storage: props.storage,
+        groupId: props.session.groupId,
+      })
+      contacts = await readContacts({ file, staffKey })
+    }
+  } catch {
+    contacts = {}
+  }
+  try {
+    status.value = await operationStatus({
+      db: openGroupDatabase(props.session.groupId),
+      roster: props.session.roster,
+      contacts,
+    })
+  } catch {
+    status.value = null
+  }
+}
 
 async function publish(): Promise<void> {
   if (!settings.value) return
@@ -171,6 +206,32 @@ async function process(): Promise<void> {
     </p>
 
     <div v-else data-test="ready">
+      <div v-if="status" class="check-card" data-test="status">
+        <h2>いまの状況</h2>
+        <p v-if="!status.needsAttention">いま手が要ることはありません。</p>
+        <template v-else>
+          <p v-if="status.unsentBatches > 0">
+            未送信のメールが {{ status.unsentBatches }} 通 (のべ {{ status.unsentRecipients }} 名)
+            残っています。
+          </p>
+          <p v-if="status.withoutEmail > 0">
+            メール未登録が {{ status.withoutEmail }} 名。この方々には通知が届きません。
+          </p>
+        </template>
+        <p class="hint">
+          {{ status.lastSyncedAt ? `${formatWhen(status.lastSyncedAt)} に同期` : 'まだ同期していません' }}
+        </p>
+        <button
+          v-for="messageId in status.unsentMessageIds"
+          :key="messageId"
+          type="button"
+          data-test="open-unsent"
+          @click="emit('openMessage', messageId)"
+        >
+          送り終えていないお知らせを開く
+        </button>
+      </div>
+
       <p v-if="pushHandedOver !== null" data-test="push-handed-over">
         通知の購読を {{ pushHandedOver }} 件、関数へ渡しました。
       </p>
