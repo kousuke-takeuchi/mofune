@@ -141,6 +141,20 @@ describe('guards', () => {
     expect(app.currentRoute.value.name).toBe('unlock')
   })
 
+  it('keeps staff out of the screens that re-sign the roster', async () => {
+    const app = router()
+    signedInAs('staff')
+    await app.push('/g/midori/members')
+    expect(app.currentRoute.value.name).toBe('timeline')
+  })
+
+  it('lets an admin manage the members', async () => {
+    const app = router()
+    signedInAs('admin')
+    await app.push('/g/midori/members')
+    expect(app.currentRoute.value.name).toBe('members')
+  })
+
   it('lets the provisioning wizard open without a session', async () => {
     const app = router()
     await app.push('/provision')
