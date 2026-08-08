@@ -94,8 +94,41 @@ export function pushRegistryFrom(registrations: PushRegistration[]): PushRegistr
   return registry
 }
 
+/**
+ * Apps Script の web アプリは `/exec` 固定でパスを持てず、preflight にも
+ * 答えない。そこで行き先は問い合わせ文字列で渡し、合言葉は本文へ入れて
+ * 「素のリクエスト」にする (設計書 §10.2)。
+ */
+function isAppsScript(functionUrl: string): boolean {
+  // 見分けるのはホスト名ではなく配置のかたち。試験用に手元へ立てたものも同じ扱いにする
+  return /\/macros\/s\//.test(functionUrl)
+}
+
 function endpointOf(functionUrl: string, path: string): string {
-  return `${functionUrl.replace(/\/+$/, '')}${path}`
+  const base = functionUrl.replace(/\/+$/, '')
+  return isAppsScript(functionUrl) ? `${base}?path=${encodeURIComponent(path)}` : `${base}${path}`
+}
+
+/** 合言葉の渡しかたと本文の作りかたは、相手が Apps Script かどうかで変わる。 */
+function callFunction(options: {
+  functionUrl: string
+  path: string
+  token: string
+  payload: Record<string, unknown>
+}): Promise<Response> {
+  const url = endpointOf(options.functionUrl, options.path)
+  if (isAppsScript(options.functionUrl)) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ ...options.payload, token: options.token }),
+    })
+  }
+  return fetch(url, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${options.token}`, 'content-type': 'application/json' },
+    body: JSON.stringify(options.payload),
+  })
 }
 
 /**
@@ -123,6 +156,20 @@ export async function checkFunction(
   }
 }
 
+/**
+ * Apps Script は応答の状態コードを選べず、断ったときも 200 で返る。
+ * 本文に error があれば失敗として扱う。
+ */
+async function readResult(response: Response): Promise<Record<string, unknown> | null> {
+  if (!response.ok) return null
+  try {
+    const body = (await response.json()) as Record<string, unknown>
+    return typeof body.error === 'string' ? null : body
+  } catch {
+    return null
+  }
+}
+
 /** 名簿をまるごと差し替える。関数は差分を持たない。 */
 export async function replaceRegistry(options: {
   functionUrl: string
@@ -130,12 +177,13 @@ export async function replaceRegistry(options: {
   groupId: string
   registry: PushRegistry
 }): Promise<void> {
-  const response = await fetch(endpointOf(options.functionUrl, '/subscriptions'), {
-    method: 'POST',
-    headers: { authorization: `Bearer ${options.token}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ group_id: options.groupId, registry: options.registry }),
+  const response = await callFunction({
+    functionUrl: options.functionUrl,
+    path: '/subscriptions',
+    token: options.token,
+    payload: { group_id: options.groupId, registry: options.registry },
   })
-  if (!response.ok) {
+  if (!(await readResult(response))) {
     throw new PushError('通知の購読名簿を関数へ渡せませんでした')
   }
 }
@@ -152,16 +200,19 @@ export async function notifyScopes(options: {
   const notified = new Set<string>()
   for (const scope of options.scopes) {
     try {
-      const response = await fetch(endpointOf(options.functionUrl, '/notify'), {
-        method: 'POST',
-        headers: { authorization: `Bearer ${options.token}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ group_id: options.groupId, scope_id: scope }),
+      const response = await callFunction({
+        functionUrl: options.functionUrl,
+        path: '/notify',
+        token: options.token,
+        payload: { group_id: options.groupId, scope_id: scope },
       })
-      if (!response.ok) {
+      const body = (await readResult(response)) as
+        | { sent?: number; notified?: string[] }
+        | null
+      if (!body) {
         failed += 1
         continue
       }
-      const body = (await response.json()) as { sent?: number; notified?: string[] }
       sent += typeof body.sent === 'number' ? body.sent : 0
       for (const userId of body.notified ?? []) notified.add(userId)
     } catch {

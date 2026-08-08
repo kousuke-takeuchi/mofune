@@ -6,6 +6,7 @@ import {
   checkFunction,
   notifyScopes,
   pushRegistryFrom,
+  replaceRegistry,
 } from '../../src/notify/push'
 import type { Session } from '../../src/group/session'
 
@@ -168,6 +169,73 @@ describe('notifyScopes', () => {
         groupId: 'g_midori',
         scopes: ['all'],
       }),
+    ).toEqual({ sent: 0, failed: 1, notified: [] })
+  })
+})
+
+describe('talking to an Apps Script deployment', () => {
+  const gas = 'https://script.google.com/macros/s/AKfycbx/exec'
+
+  it('asks for health through a query, because /exec has no sub-paths', async () => {
+    const calls = vi.fn(async () => Response.json({ ok: true, vapidPublicKey: 'BPUB' }))
+    vi.stubGlobal('fetch', calls)
+
+    await checkFunction(gas)
+
+    const [url] = calls.mock.calls[0] as unknown as [string]
+    expect(url).toBe(`${gas}?path=%2Fhealth`)
+  })
+
+  it('sends the secret in the body as a plain request, because a preflight would fail', async () => {
+    const calls = vi.fn(async () => Response.json({ sent: 1, gone: 0, notified: ['u_sato'] }))
+    vi.stubGlobal('fetch', calls)
+
+    await notifyScopes({ functionUrl: gas, token: 'secret', groupId: 'g_midori', scopes: ['all'] })
+
+    const [url, init] = calls.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe(`${gas}?path=%2Fnotify`)
+    const headers = init.headers as Record<string, string>
+    // 独自ヘッダを付けると preflight が走り、Apps Script はそれに答えない
+    expect(headers.authorization).toBeUndefined()
+    expect(headers['content-type']).toBe('text/plain;charset=utf-8')
+    expect(JSON.parse(init.body as string)).toEqual({
+      group_id: 'g_midori',
+      scope_id: 'all',
+      token: 'secret',
+    })
+  })
+
+  it('still uses a header and a real path for anything else', async () => {
+    const calls = vi.fn(async () => Response.json({ sent: 0, gone: 0, notified: [] }))
+    vi.stubGlobal('fetch', calls)
+
+    await notifyScopes({
+      functionUrl: 'https://push.invalid',
+      token: 'secret',
+      groupId: 'g_midori',
+      scopes: ['all'],
+    })
+
+    const [url, init] = calls.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('https://push.invalid/notify')
+    expect((init.headers as Record<string, string>).authorization).toBe('Bearer secret')
+  })
+})
+
+describe('a function that cannot set a status code (Apps Script)', () => {
+  const gas = 'https://script.google.com/macros/s/AKfycbx/exec'
+
+  it('treats an error in the body as a failure when handing over the registry', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ error: 'unauthorized' })))
+    await expect(
+      replaceRegistry({ functionUrl: gas, token: 'wrong', groupId: 'g_midori', registry: {} }),
+    ).rejects.toThrow()
+  })
+
+  it('counts a notify that answered with an error, rather than calling it sent', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ error: 'unauthorized' })))
+    expect(
+      await notifyScopes({ functionUrl: gas, token: 'wrong', groupId: 'g_midori', scopes: ['all'] }),
     ).toEqual({ sent: 0, failed: 1, notified: [] })
   })
 })
